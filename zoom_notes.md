@@ -78,9 +78,98 @@ Marc Paganini
    - Global, 
    - Pan-European,
    - Local.
+ - Exposure datasets - various population datasets might be helpful.
 
 Steven Briggs
  - Data can be anywhere (no restrictions)
+ 
+Tom Dowling 
+ - Look at thermal data from Sentinal 3 etc. ENVI. Draw diversity measures from that.
+ - All parts of the EM spectrum could be useful, and the more novel could be the most productive.
+ - Have to make all information actionable. Monitor for deforestation. Global Forest Watch. How does data flow?
+
+## What big problems are there in AI4EO
+
+TD 
+ - Fragmentation 
+   - small areas not sustainable for organisms etc.
+   - monitoring would be v. useful.
+
+SB 
+ - Fractral structure critically important for biodiversity. 
+
+Luca
+ - Project about vegation index about fragmentation.
+ - Predicting impact of the development of urban areas.
+ - Use lots of old non-AI techniques.
+ - Species distributions etc.
+ - Improve the distribution of species measurements?
+
+SB 
+ - Landcover and topography might be useful.
+ - Surface temperature, Koppen climate zone.
+ - Driving factors almost endless, therefore AI is a good way forward.
+ - Extreme multivariate, very context dependent.
+
+TD 
+ - Validation will be v. important especiallly at the end.
+
+## Arduin Findeis: Who would be interested in this kind of data?
+
+TD 
+ - National governments. E.g. Chernobyl.
+ - Drying out of wetland forest --> worse or better?
+ - Analysis of the impact of a project on biodiversity.
+
+SB 
+ - Required by international law (e.g. Paris agreement)
+ - SDGs -- development goals.
+ - Environmental analysis.
+ 
+## SM: Which tools are in use, and what questions can already be answered by them?
+
+MP 
+ - Different tools are available in the community
+ - U. of Wolfsburg have very nice book. In R?
+ - Martin Wegman - Biodiversity tools using species modelling using EO.
+ - New set of ambitions come in this year.
+ - Vulnerability of the communities to climate change.
+ - Decade will involve a lot of new restoration efforts.
+ - Look at drivers of changes and classify them. [5]
+    - Climate Change.
+    - ?
+    - Alien Species.
+    - Exploitation of resources.
+ - Nature based solutions. Greening of cities.
+ - Ecosystem accounting - new standard next year. UN, then Eurostat.
+ - Ecosystem monitoring and services.
+
+SB 
+ - Ecosystem migrations, e.g. butterflys etc.
+
+MP 
+ - Phenology v. important.
+
+SB
+ - Please talk about EBVs.
+
+MP 
+ - EBVs: essential biodiversity variables.
+ - Which ones are essential? Currently unclear in some ways. Lead at Geo-BON.
+ 
+ <https://geobon.org/essential-biodiversity-variables-2020-initiative-ebv2020-for-post-2020-global-biodiversity-conservation/>
+ 
+ - Stucture and function, and community compesition.
+ - Species modelling etc. using EO.
+ - EBV engines.
+
+  
+## Zoom Messages:
+
+Standard publicly-available datasets available through the Descartes Labs data platform: <https://www.descarteslabs.com/standard-data-products/>
+
+Another modelling effort, at the ecosystem level that is similar to what Marc is talking about That we have used in past: <https://invest.readthedocs.io/en/latest/index.html>
+
  
 
  
