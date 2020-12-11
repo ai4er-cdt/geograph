@@ -50,6 +50,40 @@ Andrew Fleming (BAS)
 Anita Faul (BAS)
  - Make sure that everyone has a chance to speak. Include notes in chat etc..
  
+## Which data sets would be useful for this project?
+
+Nicolas L
+ - Copernicus program; consistent dataset.
+ - Sentinal 1 day and night radar. Same configurations, nice time series analysis. > 10m.
+ - Sentinal 2 camera, and programatic acquistion etc. Monitor length, free on multiple products. 10m.
+ - Very easy to access, with processing also available online.
+ 
+Cooper E
+ - Lots of data online listed on their website. Mainly use sentinal 1 as it can see through clouds etc.
+ - GEDI - Lidar based data from ISS.
+
+Kyle Story
+ - Sentinal 1/ Sentinal 2 (2015)
+ - Landsats allow longer time history than that.
+ - Contextual datasets, with different ammounts of time.
+ - Different layers of datasets etc.
+ 
+Marc Paganini
+ - Sentinal 2 -- 20km from coastline. 
+ - Europe has ambition to look at protecting 20% of coastline.
+ - High res sattelites. Limited budget. Look at small features, maybe for downscaling Sentinal?
+ - Few global scale projects.
+ - Copernicus services. Pan-European level. 
+ - Land monitoring services: 
+   - Global, 
+   - Pan-European,
+   - Local.
+
+Steven Briggs
+ - Data can be anywhere (no restrictions)
+ 
+
+ 
  
 
    
