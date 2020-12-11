@@ -1,4 +1,4 @@
-.PHONY: clean lint format env jupyter_pro
+.PHONY: clean lint format env jupyter_pro jupyter_dark vscode_pro
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -33,7 +33,7 @@ format:
 	black src
 
 ## Set up python interpreter environment and install basic dependencies
-create_environment:
+env:
 ifeq (True,$(HAS_CONDA))
 	@echo ">>> Detected conda, creating conda environment."
 
@@ -54,8 +54,14 @@ endif
 jupyter_pro:
 	sh ./.setup_scripts/jupyter_tools.sh
 
+
+## Install and set up handy jupyter notebook extensions
+jupyter_dark:
+	sh ./.setup_scripts/jupyter-dark.sh
+
+
 ## Set up sweet vscode settings
-vscode_beautiful:
+vscode_pro:
 	mkdir .vscode
 	cp ./.setup_scripts/vscode_settings.jsonc .vscode/settings.json
 
