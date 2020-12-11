@@ -6,4 +6,6 @@ dependencies:
   - python=3.8
   - pip
   - pip:
+    - hydra-core
+    - wandb
     - -r file:dev-requirements.txt

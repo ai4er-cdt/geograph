@@ -1,4 +1,4 @@
-.PHONY: clean lint format create_environment install_jupyter_tools
+.PHONY: clean lint format env jupyter_pro
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -29,14 +29,14 @@ lint:
 	flake8 src
 
 ## Format src directory using black
-format: 
+format:
 	black src
 
 ## Set up python interpreter environment and install basic dependencies
 create_environment:
 ifeq (True,$(HAS_CONDA))
 	@echo ">>> Detected conda, creating conda environment."
-	
+
 	# Create the conda environment
 	conda env create --prefix=./env -f requirements/environment.yml
 
@@ -51,7 +51,7 @@ else
 endif
 
 ## Install and set up handy jupyter notebook extensions
-install_jupyter_tools:
+jupyter_pro:
 	sh ./.setup_scripts/jupyter_tools.sh
 
 ## Set up sweet vscode settings
