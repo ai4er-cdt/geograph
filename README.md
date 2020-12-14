@@ -11,7 +11,7 @@ __Table of contents:__
 ## 1. Getting started
 ### 1.1 Cloning the project and its submodules
 To get started, first clone the github repository via:  
-`git clone --recurse-submodules git@github.com:ai4er-cdt/ai4er-cookiecutter.git`  
+```git clone --recurse-submodules git@github.com:ai4er-cdt/gtc-biodiversity.git```
 
 Note that this line uses the `--recurse-submodules` flag when it clones. This is needed
 if you would like to also pull the overleaf report that is linked to our project repository as 
