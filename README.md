@@ -41,7 +41,7 @@ an alias instead:
 ```git config alias.spush 'push --recurse-submodules=on-demand'``` 
 This way you can simply run `git spush` when you want to push with submodule dependency checking.
 
-__1.1.3 More info on git submodules:__
+#### 1.1.3 More info on git submodules:
 If you'd like to learn more about submodules, then this is the authoritative link about [git submodules and how to work with them](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
 
 ### 1.2 Setting up the python environment
