@@ -3,14 +3,26 @@
  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
  <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
-## Requirements
-- Python 3.8+
-
 ## Getting started
-To get started, first clone the github repository via: 
-`git clone git@github.com:ai4er-cdt/ai4er-cookiecutter.git` 
+### Cloning the project and its submodules
+To get started, first clone the github repository via:  
+`git clone --recurse-submodules git@github.com:ai4er-cdt/ai4er-cookiecutter.git`  
+Note that this line uses the `--recurse-submodules` flag when it clones. This is needed
+if you would like to also pull the overleaf report that is linked to our project repository. 
+When pulling from overleaf, it will ask you for your overleaf username and password. 
 
-Then enter the repository and run the following commands:
+If you do not want to clone the overleaf files, simply omit the `--recurse-submodules` flag.  
+If you cloned the repository without the submodules, but would like to add them later, use
+```
+git submodule update --init
+``` 
+
+Once you have initialized the submodule, you can fetch and update any changes to the submodules via `git submodule update --remote`
+
+Here's the authoritative link if you'd like to learn more about [git submodules and how to work with them](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
+
+### Setting up the python environment
+Once you cloned the repo to your system, enter the repository and run the following commands:
 ```
 # 1. Highly recommended: 
 make env  # creates a conda environment with python 3.8 and installs dependencies
@@ -30,6 +42,8 @@ To automatically format your code, make sure you have `black` installed (`pip in
 ```black . ``` 
 from within the project directory.
 
+## Requirements
+- Python 3.8+
 
 ## Project Organization
 ```
