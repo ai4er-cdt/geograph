@@ -3,8 +3,13 @@
  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
  <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
-## Getting started
-### Cloning the project and its submodules
+__Table of contents:__  
+1. Getting started
+2. Code formatting
+3. Requirements
+4. Project structure
+## 1. Getting started
+### 1.1 Cloning the project and its submodules
 To get started, first clone the github repository via:  
 `git clone --recurse-submodules git@github.com:ai4er-cdt/ai4er-cookiecutter.git`  
 Note that this line uses the `--recurse-submodules` flag when it clones. This is needed
@@ -17,11 +22,18 @@ If you cloned the repository without the submodules, but would like to add them 
 git submodule update --init
 ``` 
 
-Once you have initialized the submodule, you can fetch and update any changes to the submodules via `git submodule update --remote`
+__Pulling updates from the submodule:__  
+Once you have initialized the submodule, you can fetch and update any changes to the submodules via `git submodule update --remote`.  
+
+__Pushing updates to the submodule:__  
+To push updates to from your local branch to the submodule remote, simply enter the submodule directory and perform the usual `git add`, `git commit` and `git push` workflow. 
+
+If you push an update to the superproject which includes an update to the submodule, use 
+`git push --recurse-submodules=on-demand`.  
 
 Here's the authoritative link if you'd like to learn more about [git submodules and how to work with them](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
 
-### Setting up the python environment
+### 1.2 Setting up the python environment
 Once you cloned the repo to your system, enter the repository and run the following commands:
 ```
 # 1. Highly recommended: 
@@ -37,15 +49,15 @@ make jupyter_dark  # activates jupyter dark mode
 make vscode_pro  # Activates a couple of nice extensions in VSCode
 ```
 
-## Code formatting
+## 2. Code formatting
 To automatically format your code, make sure you have `black` installed (`pip install black`) and call
 ```black . ``` 
 from within the project directory.
 
-## Requirements
+## 3. Requirements
 - Python 3.8+
 
-## Project Organization
+## 4. Project Organization
 ```
 ├── LICENSE
 ├── Makefile           <- Makefile with commands like `make init` or `make lint-requirements`
