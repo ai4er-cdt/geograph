@@ -24,14 +24,14 @@ If you cloned the repository without the submodules, but would like to add them 
 git submodule update --init
 ``` 
 
-__1.1.1 Pulling updates from the submodule:__  
+#### 1.1.1 Pulling updates from the submodule: 
 Once you have initialized the submodule, you can fetch and update any changes to the submodules via `git submodule update --remote --merge`.  
 To make this command more user-friendly, you can define 
 an alias instead:
 ```git config alias.supdate 'submodule update --remote --merge'``` 
 This way you can simply run `git supdate` when you want to update your submodules.
 
-__1.1.2 Pushing updates to the submodule:__  
+#### 1.1.2 Pushing updates to the submodule: 
 To push updates to from your local branch to the submodule remote, simply enter the submodule directory and perform the usual `git add`, `git commit` and `git push` workflow. 
 
 If you push an update to the superproject which includes an update to the submodule, use 
