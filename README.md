@@ -12,8 +12,10 @@ __Table of contents:__
 ### 1.1 Cloning the project and its submodules
 To get started, first clone the github repository via:  
 `git clone --recurse-submodules git@github.com:ai4er-cdt/ai4er-cookiecutter.git`  
+
 Note that this line uses the `--recurse-submodules` flag when it clones. This is needed
-if you would like to also pull the overleaf report that is linked to our project repository. 
+if you would like to also pull the overleaf report that is linked to our project repository as 
+a submodule. 
 When pulling from overleaf, it will ask you for your overleaf username and password. 
 
 If you do not want to clone the overleaf files, simply omit the `--recurse-submodules` flag.  
@@ -22,16 +24,25 @@ If you cloned the repository without the submodules, but would like to add them 
 git submodule update --init
 ``` 
 
-__Pulling updates from the submodule:__  
-Once you have initialized the submodule, you can fetch and update any changes to the submodules via `git submodule update --remote`.  
+__1.1.1 Pulling updates from the submodule:__  
+Once you have initialized the submodule, you can fetch and update any changes to the submodules via `git submodule update --remote --merge`.  
+To make this command more user-friendly, you can define 
+an alias instead:
+```git config alias.supdate 'submodule update --remote --merge'``` 
+This way you can simply run `git supdate` when you want to update your submodules.
 
-__Pushing updates to the submodule:__  
+__1.1.2 Pushing updates to the submodule:__  
 To push updates to from your local branch to the submodule remote, simply enter the submodule directory and perform the usual `git add`, `git commit` and `git push` workflow. 
 
 If you push an update to the superproject which includes an update to the submodule, use 
 `git push --recurse-submodules=on-demand`.  
+To make this command more user-friendly, you can define 
+an alias instead:
+```git config alias.spush 'push --recurse-submodules=on-demand'``` 
+This way you can simply run `git spush` when you want to push with submodule dependency checking.
 
-Here's the authoritative link if you'd like to learn more about [git submodules and how to work with them](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
+__1.1.3 More info on git submodules:__
+If you'd like to learn more about submodules, then this is the authoritative link about [git submodules and how to work with them](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
 
 ### 1.2 Setting up the python environment
 Once you cloned the repo to your system, enter the repository and run the following commands:
