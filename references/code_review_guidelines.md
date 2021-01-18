@@ -132,6 +132,8 @@ To set up the system, perform the following commands in the project directory:
 ```bash
 pip install black pylint pre-commit
 make precommit
+# If you use VSCode, this will set up your editor by automatically activating black and pylint
+make vscode_pro
 ```
 
 ### 3.3 Preparing code for review
