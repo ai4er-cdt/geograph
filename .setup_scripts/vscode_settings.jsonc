@@ -24,6 +24,7 @@
     "**/__pycache__": true,
     "**/**/*.pyc": true
   },
+
   // PYTHON SETTINGS
   // Python interpreter
   "python.pythonPath": "env/bin/python",
@@ -45,5 +46,24 @@
     "editor.rulers": [88, 120],
     "editor.tabSize": 4,
     "editor.insertSpaces": true
-  }
+  },
+
+  // COLOR SETTINGS
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#ab307e",
+    "activityBar.activeBorder": "#25320e",
+    "activityBar.background": "#ab307e",
+    "activityBar.foreground": "#e7e7e7",
+    "activityBar.inactiveForeground": "#e7e7e799",
+    "activityBarBadge.background": "#25320e",
+    "activityBarBadge.foreground": "#e7e7e7",
+    "statusBar.background": "#832561",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#ab307e",
+    "titleBar.activeBackground": "#832561",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveBackground": "#83256199",
+    "titleBar.inactiveForeground": "#e7e7e799"
+  },
+  "peacock.remoteColor": "#832561"
 }
