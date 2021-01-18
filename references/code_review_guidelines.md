@@ -3,13 +3,21 @@
 <details><summary>Table of contents</summary>
 <p>
 
-1. Why code reviews
-2. Reviewee side
-3. Pull requests
-4. Commit messages
-5. Reviewer side
-6. Best practices
-7. Reviewer checklist
+- [Code review guidelines](#code-review-guidelines)
+  - [1. Why code review and coding guidelines?](#1-why-code-review-and-coding-guidelines)
+  - [2. Organising code](#2-organising-code)
+    - [2.1 GitHub](#21-github)
+    - [2.2 Branches](#22-branches)
+    - [2.3 Commit messages](#23-commit-messages)
+  - [3. Writing code](#3-writing-code)
+    - [3.1 Code style guidelines](#31-code-style-guidelines)
+    - [3.2 Automatic formatting and linting](#32-automatic-formatting-and-linting)
+    - [3.3 Preparing code for review](#33-preparing-code-for-review)
+    - [3.4 Assigning reviewers](#34-assigning-reviewers)
+    - [3.5 Checklist (Reviewee)](#35-checklist-reviewee)
+  - [4. Reviewing Code](#4-reviewing-code)
+    - [4.1 Checklist (Reviewer)](#41-checklist-reviewer)
+  - [5. Credit](#5-credit)
 
 </p>
 </details>
@@ -20,21 +28,29 @@
 
 [Source: XKCD 'Code Quality'](https://xkcd.com/1513/)
 
-![Best practice sharing](https://phauer.com/blog/2018/10-code-review-guidelines/author-best-practices-experiences-eo.svg 'caption')
+We perform code reviews (CRs) in order to improve code quality and benefit from positive effects on team culture. They allow us to share knowledge and best practices, keep our project consistent and motivate each other to write legible code. Additionally, they will allow us to catch accidental or strucutral errors in our code and limit the accumulation of [technical debt](https://en.wikipedia.org/wiki/Technical_debt).
+
+Remember that code reviews should be a fun and rewarding procedure. So please speak up whenever you have ideas on how to improve the process or if any of the guidelines do not work for you.
+
+Below are a set of guidelines to structure our team coding and our code reviews. Enjoy the read! 😄
 
 ## 2. Organising code
 
-### 2.1 GitHub branches and pull requests
+### 2.1 GitHub
 
-![GitHub Branches and PR](https://docs.github.com/assets/images/help/branches/pr-retargeting-diagram2.png)
+We will use GitHub as a means to organise and version control our code. One of the many perks of GitHub for team coding, is the [code review feature for pull requets](https://www.youtube.com/watch?v=HW0RPaJqm4g), which we will use for our code reviews.
 
-[GitHub code review video](https://www.youtube.com/watch?v=HW0RPaJqm4g)
-
-https://www.youtube.com/watch?v=gJDtC_tp5w4
+If you are not yet familiar with git or github, please ask your other team members for help.
 
 ### 2.2 Branches
 
-The name of the branch should reflect its purpose. To keep ourselves organised, let us follow these conventions for branch names.
+Branches are used to develop features isolated from each other. The **master** or **main** branch is the "default" branch when you create a repository. We use other branches for development and **merge** them back to the master branch upon completion. This keeps the master branch clean and up-to-date.
+
+The process of merging a branch into another branch is called a **pull request (PR)**. Upon opening a pull request on GitHub, a **continuous integration (CI)** can be triggered to check the code for compliance with certain guidelines. Reviewers can then comment the code on the pull request, provide feedback and ultimately sign it off as "ready to merge". Here's a simplified, visual depiction of the process from githubs official documentation.
+
+![GitHub Branches and PR](https://docs.github.com/assets/images/help/branches/pr-retargeting-diagram2.png)
+
+The name of a branch should reflect its purpose. To keep ourselves organised, let us follow these conventions for branch names.
 
 A new branch should follow this naming pattern `purpose/short-explanation` (all lower case, hyphen separated).
 
@@ -55,6 +71,42 @@ In the above, `purpose` should be one of:
 
 ### 2.3 Commit messages
 
+This section follows [this widely quoted advice for commit messages](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
+Use the same `purpose` keywords for the branches above for the first word of your commit (i.e. feature, exp, fix, ...).
+
+Here's an example of a bad commit message:
+
+```
+# BAD:
+make preprocessing work again
+```
+
+And here's a good commit message:
+
+```
+# GOOD:
+fix: add numpy dependency to fix sentinel preprocessing
+```
+
+If you have a more complicated change, you can follow this general model:
+
+```
+purpose: lowercase, short (50 chars or less) summary
+
+More detailed explanatory text, if necessary. In some contexts, the first line is treated as the subject of an email and the rest of the text as the body.  The blank line separating the summary from the body is critical (unless you omit the body entirely).
+
+Write your commit message in the imperative: "Fix bug" and not "Fixed bug" or "Fixes bug."  This convention matches up with commit messages generated by commands like git merge and git revert.
+
+Further paragraphs come after blank lines.
+
+- Bullet points are okay, too
+
+- Typically a hyphen or asterisk is used for the bullet, followed by a
+  single space, with blank lines in between, but conventions vary here
+
+- Use a hanging indent
+```
+
 ## 3. Writing code
 
 ### 3.1 Code style guidelines
@@ -65,13 +117,31 @@ Style guidelines are entire topic of themselves. To avoid clutter, we will not c
 
 If you're note yet familiar with styleguides, please give it a read. For a start, particularly the conventions on white space ([3.6](https://google.github.io/styleguide/pyguide.html#3163-file-naming)), comments and docstrings ([3.8](https://google.github.io/styleguide/pyguide.html#3163-file-naming)), file naming ([3.16.3](https://google.github.io/styleguide/pyguide.html#3163-file-naming)) and type annotations ([3.19](https://google.github.io/styleguide/pyguide.html#3163-file-naming) are relevant. Don't worry if it might sound overwhelming at the start. Simply try your best when you write the code and we will help each other with the rest in the code reviews.
 
-TODO: Simon will set up an auto-formatter which mostly implements the style guide directly. Resources: [yapf](https://github.com/google/yapf/) and [pylintrc](https://google.github.io/styleguide/pylintrc).
-
 ### 3.2 Automatic formatting and linting
+
+Automatic formatters and linters will greatly simplify the adherence to coding guidelines.
+
+TODO: Simon will set up an auto-formatter which mostly implements the style guide directly. Resources: [yapf](https://github.com/google/yapf/) and [pylintrc](https://google.github.io/styleguide/pylintrc).
 
 ### 3.3 Preparing code for review
 
-### 3.4 Finding reviewers
+This section is mostly taken from [here](https://medium.com/palantir/code-review-best-practices-19e02780015f).
+It is the author's responsibility to submit CRs that are easy to review in order not to waste reviewers' time and motivation:
+
+-**Scope and size**. Changes should have a narrow, well-defined, self-contained scope that they cover exhaustively. For example, a change may implement a new feature or fix a bug. Shorter changes are preferred over longer ones. If a CR makes substantive changes to more than ~5 files, or took longer than 1–2 days to write, or would take more than 20 minutes to review, consider splitting it into multiple self-contained CRs. For example, a developer can submit one change that defines the API for a new feature in terms of interfaces and documentation, and a second change that adds implementations for those interfaces.
+
+- Only submit **complete, self-reviewed, and self-tested CRs**. In order to save reviewers' time, test the submitted changes (i.e., run the test suite) and make sure they pass all builds as well as all tests and code quality checks, both locally and on the CI servers, before assigning reviewers.
+
+- **Refactoring** changes should not alter behavior; conversely, a behavior-changing changes should avoid refactoring and code formatting changes. There are multiple good reasons for this:
+  - Refactoring changes often touch many lines and files and will consequently be reviewed with less attention. Unintended behavior changes can leak into the code base without anyone noticing.
+  - Large refactoring changes break cherry-picking, rebasing, and other source control magic. It is very onerous to undo a behavior change that was introduced as part of a repository-wide refactoring commit.
+  - Expensive human review time should be spent on the program logic rather than style, syntax, or formatting debates. We prefer settling those with automated tooling like Checkstyle, TSLint, Baseline, Prettier, etc.
+
+### 3.4 Assigning reviewers
+
+Make sure you do not request maximally 2 reviewers. Reviews between more than three parties are often unproductive.
+
+Also make sure that you request reviews from differnt people over the course of the project to maximise your learning.
 
 ### 3.5 Checklist (Reviewee)
 
@@ -103,7 +173,7 @@ As you get feedback:
   it be more clear if I rename this class/file/method/variable?")
 - Link to the code review from a GitHub issue if present. ("Ready for review:
   https://github.com/organization/project/pull/1")
-- Try to respond to every comment, even if it's only an "ok" or "thank you".
+- Try to respond to every comment, even if it's only an "ok" or "thank you" or "done".
 - Merge once you feel confident in the code and its impact on the project.
 - Final editorial control rests with you, the pull request author.
 
@@ -112,6 +182,12 @@ A good example response to style comments:
     > Whoops. Good catch, thanks. Fixed in a4994ec.
 
 ## 4. Reviewing Code
+
+A code review is a synchronization point among different team members and thus has the potential to block progress. Consequently, code reviews need to be prompt (on the order of hours, not days), and team members and leads need to be aware of the time commitment and prioritize review time accordingly. If you don't think you can complete a review in time, please let the committer know right away so they can find someone else.
+
+A review should be thorough enough that the reviewer could explain the change at a reasonable level of detail to another developer. This ensures that the details of the code base are known to more than a single person.
+
+As a reviewer, it is your responsibility to enforce coding standards and keep the quality bar up. Reviewing code is more of an art than a science. The only way to learn it is to do it; an experienced reviewer should consider putting other less experienced reviewers on their changes and have them do a review first.
 
 ### 4.1 Checklist (Reviewer)
 
@@ -168,5 +244,7 @@ Reviewers should comment on missed style guidelines. Example comment:
 
     > Order resourceful routes alphabetically by name.
 
-Mostly taken from [here](https://github.com/thoughtbot/guides/tree/main/code-review).
+## 5. Credit
+
+Advice mostly taken from [here](https://github.com/thoughtbot/guides/tree/main/code-review), [here](https://medium.com/palantir/code-review-best-practices-19e02780015f)
 and [here](https://www.codeproject.com/Articles/524235/Codeplusreviewplusguidelines).
