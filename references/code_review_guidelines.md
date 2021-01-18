@@ -88,6 +88,9 @@ And here's a good commit message:
 fix: add numpy dependency to fix sentinel preprocessing
 ```
 
+![Commit image](https://datasciencecampus.github.io/coding-standards/rsrc/img/git_commit.png)  
+[Source](https://datasciencecampus.github.io/coding-standards/version-control.html#branch-names)
+
 If you have a more complicated change, you can follow this general model:
 
 ```
