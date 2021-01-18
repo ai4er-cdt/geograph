@@ -1,3 +1,8 @@
+"""
+This file is used to save all project wide constants such as the path of the
+source folder, the project path, etc.
+"""
+
 # Place all your constants here
 import os
 
