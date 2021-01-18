@@ -124,7 +124,15 @@ If you're note yet familiar with styleguides, please give it a read. For a start
 
 Automatic formatters and linters will greatly simplify the adherence to coding guidelines.
 
-TODO: Simon will set up an auto-formatter which mostly implements the style guide directly. Resources: [yapf](https://github.com/google/yapf/) and [pylintrc](https://google.github.io/styleguide/pylintrc).
+For our project we will use [black](https://black.readthedocs.io/en/stable/) as a python formatter and
+[pylint](http://pylint.pycqa.org/en/latest/) as linter. The `pylintrc` file in our project directory contains the rules of the styleguide above and checks the code against those rules. The pre-commit hook will make sure that this check happens on all newly staged files.
+
+To set up the system, perform the following commands in the project directory:
+
+```bash
+pip install black pylint pre-commit
+make precommit
+```
 
 ### 3.3 Preparing code for review
 
