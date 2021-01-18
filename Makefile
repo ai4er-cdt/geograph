@@ -32,6 +32,11 @@ lint:
 format:
 	black src
 
+## Set up pre-commit hooks
+precommit:
+	pip install pre-commit black pylint
+	pre-commit install
+
 ## Set up python interpreter environment and install basic dependencies
 env:
 ifeq (True,$(HAS_CONDA))
