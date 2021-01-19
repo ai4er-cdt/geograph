@@ -26,11 +26,16 @@ clean:
 
 ## Lint src directory using flake8
 lint:
-	flake8 src
+	pylint --ignore-patterns=lint_test src
 
 ## Format src directory using black
 format:
 	black src
+
+## Set up pre-commit hooks
+precommit:
+	pip install pre-commit black pylint
+	pre-commit install
 
 ## Set up python interpreter environment and install basic dependencies
 env:
