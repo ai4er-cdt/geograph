@@ -5,9 +5,9 @@
 -e ../.
 
 # external requirements (mostly linters and formatters)
-flake8              # flake8 linter
-flake8-docstrings   # docstring support for flake8
+pylint              # pylint linter
 mypy                # python type checker
 black               # automatic formatting provider
+pre-commit  	    # for git precommit hooks
 isort               # automatic import sorter
 python-dotenv       # environment variable manager
