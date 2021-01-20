@@ -1,0 +1,4 @@
+# Convenient jupyter setup
+%load_ext autoreload
+%autoreload 2
+%config IPCompleter.greedy=True
