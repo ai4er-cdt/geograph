@@ -11,3 +11,24 @@ black               # automatic formatting provider
 pre-commit  	    # for git precommit hooks
 isort               # automatic import sorter
 python-dotenv       # environment variable manager
+
+# linear algebra and general data analysis
+numpy               # arrays, linear algebra
+scipy               # linear algebra and numerical mathematics
+numba               # speeding up array operations
+pandas              # tabular data analysis
+
+# plotting
+matplotlib          # general python plotting
+seaborn             # fancier plotting styles
+
+# interactive computing
+jupyter             # jupyter notebooks
+
+# geospatial analysis requirements
+rasterio            # opening and loading raster data
+fiona               # manipulating geospatial vector data
+geopandas           # manipulating geospatial vector data
+shapely             # working with vector shapes
+pycrs               # working with coordinate reference systems
+geopy               # convenient API requests to geocoders
