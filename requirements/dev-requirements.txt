@@ -1,4 +1,4 @@
-# NOTE: These requirements are used for developing code on the repo. 
+# NOTE: These requirements are used for developing code on the repo.
 # As a standard they include certain formatters and linters.
 
 # local package
@@ -11,6 +11,7 @@ black               # automatic formatting provider
 pre-commit  	    # for git precommit hooks
 isort               # automatic import sorter
 python-dotenv       # environment variable manager
+pydocstyle
 
 # linear algebra and general data analysis
 numpy               # arrays, linear algebra
@@ -32,3 +33,6 @@ geopandas           # manipulating geospatial vector data
 shapely             # working with vector shapes
 pycrs               # working with coordinate reference systems
 geopy               # convenient API requests to geocoders
+
+# additional
+networkx
