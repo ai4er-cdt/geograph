@@ -92,3 +92,6 @@ io/
 
 # History files
 .history
+
+# VSCode - custom
+workspace.code-workspace
