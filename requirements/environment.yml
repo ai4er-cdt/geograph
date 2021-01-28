@@ -4,6 +4,10 @@ channels:
   - defaults
 dependencies:
   - python=3.8
+  - jupyterlab
+  - geopandas
+  - matplotlib
+  - descartes
   - pip
   - pip:
     - hydra-core
