@@ -21,6 +21,7 @@ pandas              # tabular data analysis
 # plotting
 matplotlib          # general python plotting
 seaborn             # fancier plotting styles
+descartes           # geospatial plotting of shapefiles
 
 # interactive computing
 jupyter             # jupyter notebooks
