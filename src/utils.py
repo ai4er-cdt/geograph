@@ -1,5 +1,6 @@
 """General project util functions"""
 from sys import getsizeof
+import requests
 
 
 def human_readable_size(num: int, suffix: str = "B") -> str:
@@ -51,6 +52,9 @@ def get_osm_polygon(polygon_id: int, out_format: str = "geojson") -> str:
     Returns:
         str: The completed url query string for use via geopandas or requests
     """
+    # Polygons are only generated upon first request by polygons.openstreaetmap.
+    # This request makes sure the polygon of the requested ID was created before.
+    requests.get(f"http://polygons.openstreetmap.fr/?id={polygon_id}")
 
     allowed = ["geojson", "wkt", "poly"]
     assert out_format in allowed, f"Format {out_format} must be one of {allowed}"
