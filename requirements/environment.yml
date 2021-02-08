@@ -8,6 +8,7 @@ dependencies:
   - geopandas
   - matplotlib
   - descartes
+  - networkx
   - pip
   - pip:
     - hydra-core
