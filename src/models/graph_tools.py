@@ -4,6 +4,7 @@ This file contains the functions to build an EcoGraph.
 
 from shapely.strtree import STRtree
 import networkx as nx
+from tqdm import tqdm
 
 
 def create_nx_graph(gpd_df, attributes=None):
@@ -27,7 +28,7 @@ def create_nx_graph(gpd_df, attributes=None):
     G = nx.Graph()
 
     # Creating nodes (=vertices) and finding neighbors
-    for index, polygon in enumerate(geom):
+    for index, polygon in tqdm(enumerate(geom), desc="Step 1 of 2: Creating nodes and finding neighbours", total=len(geom)):
         # find the indexes of all polygons which touch the borders of or overlap with this one
         neighbours = [id_dict[id(nbr)] for nbr in tree.query(polygon) if nbr.touches(polygon) or nbr.overlaps(polygon)]
         # this dict maps polygon indices in gpd_df to a list of neighbouring polygon indices
@@ -40,7 +41,7 @@ def create_nx_graph(gpd_df, attributes=None):
         G.add_node(index, representative_point = rep_point, **row_attributes)
 
     # iterate through the dict and add all edges between neighbouring polygons
-    for polygon_id, neighbours in graph_dict.items():
+    for polygon_id, neighbours in tqdm(graph_dict.items(), desc="Step 2 of 2: Adding edges"):
         for neighbour_id in neighbours:
             G.add_edge(polygon_id, neighbour_id)
 
