@@ -23,4 +23,6 @@ ESA_LANDCOVER_DIR = CEDA_DIR / "esacci/land_cover/data/land_cover_maps/v2.0.7"
 
 # Coordinate reference systems (crs)
 WGS84 = "EPSG:4326"  # WGS84 standard crs (latitude, longitude)
-PREFERRED_CRS = "EPSG:32635"  # UTM 35 - preferred crs for chernobyl region
+UTM35N = "EPSG:32635"  # https://epsg.io/32635 - preferred crs for chernobyl region
+UCS2000_TM10 = "EPSG:6384"  # https://epsg.io/6384 - reference system for ukaraine
+PREFERRED_CRS = UTM35N  # backwards compatability - preferred crs for chernobyl region
