@@ -6,7 +6,7 @@ This file contains functions that supply simple test data.
 import geopandas as gpd
 import shapely
 
-from src.constants import CHERNOBYL_COORDS_UTM35N, CHERNOBYL_COORDS_WGS84, WGS84_CODE, UTM35N_CODE
+from src.constants import CHERNOBYL_COORDS_UTM35N, UTM35N_CODE
 
 
 def get_square_row(num_squares=2, translation=(2,0),
@@ -19,7 +19,7 @@ def get_square_row(num_squares=2, translation=(2,0),
     `origin`. Returns gpd GeoDataFrame with square polygons.
     """
 
-    out_df = gpd.GeoDataFrame(columns=['id', 'geometry', 'area'])
+    out_gdf = gpd.GeoDataFrame(columns=['id', 'geometry', 'area'])
 
     # setting up the coordinates of first square
     square_coords = [(0,0), (1,0), (1,1), (0,1), (0,0)]
@@ -35,14 +35,14 @@ def get_square_row(num_squares=2, translation=(2,0),
         xoff = i*translation[0]
         yoff = i*translation[1]
         tmp_square = shapely.affinity.translate(square, xoff=xoff, yoff=yoff)
-        out_df.loc[i] = [i, tmp_square, tmp_square.area]
+        out_gdf.loc[i] = [i, tmp_square, tmp_square.area]
 
-    out_df = out_df.set_crs(crs)
+    out_gdf = out_gdf.set_crs(crs)
 
-    return out_df
+    return out_gdf
 
 
-def get_polygon_df(name="default"):
+def get_polygon_gdf(name="default"):
     """
     Simple function to load polygon test data.
     """
