@@ -94,6 +94,7 @@ io/
 .history
 
 # GDrive secrets
+secrets
 token.pickle
 
 # General pickle files
