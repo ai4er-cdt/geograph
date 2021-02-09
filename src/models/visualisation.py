@@ -48,7 +48,6 @@ def create_folium_map(polygon_gdf_list=[],
 
     #Adding graph data
     for graph in graph_list:
-        #TODO: implement graph plotting functionality
         node_gdf, edge_gdf = create_vis_gdfs_from_graph(graph, crs=crs)
 
         # add graph edges to map
