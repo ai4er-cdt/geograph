@@ -10,12 +10,12 @@ def create_nx_graph(gpd_df, attributes=None):
     """ Creates networkx (nx) graph from GeoDataFrame.
     Largely taken from a notebook by @herbiebradley.
     """
-    
+
     # If no attribute list is given, all
     # columns in gpd_df are used
     if not attributes:
         attributes = gpd_df.columns.tolist()
-    
+
     geom = gpd_df.geometry.tolist()
     # Build dict mapping hashable unique object ids for each polygon to their index in geom
     id_dict = {id(poly):index for index, poly in enumerate(geom)}
@@ -36,11 +36,12 @@ def create_nx_graph(gpd_df, attributes=None):
         # getting dict of column values in row
         row_attributes = dict(zip(attributes,[row[attr] for attr in attributes]))
         # add each polygon as a node to the graph with all attributes
-        G.add_node(index, **row_attributes)
+        rep_point = row.geometry.representative_point()
+        G.add_node(index, representative_point = rep_point, **row_attributes)
 
     # iterate through the dict and add all edges between neighbouring polygons
     for polygon_id, neighbours in graph_dict.items():
         for neighbour_id in neighbours:
             G.add_edge(polygon_id, neighbour_id)
-            
+
     return G
