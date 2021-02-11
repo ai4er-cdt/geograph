@@ -96,3 +96,10 @@ io/
 # VSCode - custom
 workspace.code-workspace
 gtc-biodiversity.code-workspace
+
+# GDrive secrets
+secrets
+token.pickle
+
+# General pickle files
+*.pickle
