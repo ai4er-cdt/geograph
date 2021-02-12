@@ -1,5 +1,5 @@
 """
-This module contains the functions to build a networkx graph from a .
+This module contains the functions to build a networkx graph from polygon habitat data.
 """
 
 

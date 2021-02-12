@@ -32,9 +32,8 @@ def create_graph_visualisation(
         m (folium.Map, optional): map to add polygons and graph to. Defaults to None.
         polygon_gdf (gpd.GeoDataFrame, optional): data containing polygon.
             Defaults to None.
-        color_column (str, optional): column in polygon_gdf that determines the
-            which color is given to each polygon. Can be categorical values.
-            Defaults to "index".
+        color_column (str, optional): column in polygon_gdf that determines which color
+            is given to each polygon. Can be categorical values. Defaults to "index".
         graph (Optional[nx.Graph], optional): graph to be plotted. Defaults to None.
         name (str, optional): prefix to all the folium layer names shown in layer
             control of map (if added). Defaults to "data".
