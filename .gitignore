@@ -92,3 +92,10 @@ io/
 
 # History files
 .history
+
+# GDrive secrets
+secrets
+token.pickle
+
+# General pickle files
+*.pickle
