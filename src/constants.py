@@ -18,6 +18,10 @@ PROJECT_PATH = pathlib.Path(os.path.dirname(SRC_PATH))
 GWS_DATA_DIR = pathlib.Path(
     "/gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity"
 )
+
+# Polygon data of Chernobyl Exclusion Zone (CEZ)
+CEZ_DATA_PATH = GWS_DATA_DIR / "chernobyl_exclusion_zone_v1.geojson"
+
 # CEDA directory
 CEDA_DIR = pathlib.Path("/neodc")
 # ESA Landcover directory in CEDA
