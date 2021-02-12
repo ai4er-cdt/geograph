@@ -6,7 +6,6 @@ source folder, the project path, etc.
 # Place all your constants here
 import os
 import pathlib
-from pyproj import Transformer
 
 
 # Note: constants should be UPPER_CASE
@@ -34,9 +33,8 @@ UCS2000_TM10 = "EPSG:6384"  # https://epsg.io/6384 - reference system for ukarai
 PREFERRED_CRS = UTM35N  # backwards compatability - preferred crs for chernobyl region
 
 # Coordinates
-transformer = Transformer.from_crs(WGS84, UTM35N)
 CHERNOBYL_COORDS_WGS84 = (
     51.389167,
     30.099444,
 )  # coordinates of chernobyl power reactor
-CHERNOBYL_COORDS_UTM35N = transformer.transform(*CHERNOBYL_COORDS_WGS84)
+CHERNOBYL_COORDS_UTM35N = (715639.1222290158, 5697662.734402668)
