@@ -1,37 +1,73 @@
 """
-This file contains visualisation functions for vector, raster and graph data.
+This module contains visualisation functions for vector, raster and graph data.
 """
+
+from typing import Optional, List, Tuple, Callable
 
 import folium
 import geopandas as gpd
+import networkx as nx
 import shapely.geometry
-from src.constants import CHERNOBYL_COORDS_WGS84, UTM35N, GWS_DATA_DIR
+from src.constants import CHERNOBYL_COORDS_WGS84, UTM35N, CEZ_DATA_PATH
 
 
-def create_folium_map(
-    m=None,
-    polygon_gdf=None,
-    color_column="index",
-    graph=None,
-    name="data",
-    folium_tile_list=None,
-    location=CHERNOBYL_COORDS_WGS84,
-    crs=UTM35N,
-    add_layer_control=False,
-):
+def create_graph_visualisation(
+    m: folium.Map = None,
+    polygon_gdf: gpd.GeoDataFrame = None,
+    color_column: str = "index",
+    graph: Optional[nx.Graph] = None,
+    name: str = "data",
+    folium_tile_list: Optional[List[str]] = None,
+    location: Tuple[float, float] = CHERNOBYL_COORDS_WGS84,
+    crs: str = UTM35N,
+    add_layer_control: bool = False,
+) -> folium.Map:
+    """
+    This function creates a graph visualisation that puts the polygons in `polygon_gdf`
+    and the `graph` on a folium map. It is intended that the graph was build from
+    `polygon_gdf`, but it is not required. If given `m`, it will be put on this existing
+    folium map.
 
-    if m is None:
-        m = folium.Map(location, zoom_start=8, tiles=folium_tile_list.pop(0))
+    Args:
+        m (folium.Map, optional): map to add polygons and graph to. Defaults to None.
+        polygon_gdf (gpd.GeoDataFrame, optional): data containing polygon.
+            Defaults to None.
+        color_column (str, optional): column in polygon_gdf that determines the
+            which color is given to each polygon. Can be categorical values.
+            Defaults to "index".
+        graph (Optional[nx.Graph], optional): graph to be plotted. Defaults to None.
+        name (str, optional): prefix to all the folium layer names shown in layer
+            control of map (if added). Defaults to "data".
+        folium_tile_list (Optional[List[str]], optional): list of folium.Map tiles to be
+            add to the map. See folium.Map docs for options. Defaults to None.
+        location (Tuple[float, float], optional): starting location in WGS84 coordinates
+            Defaults to CHERNOBYL_COORDS_WGS84.
+        crs (str, optional): coordinates reference system to be used.
+            Defaults to UTM35N.
+        add_layer_control (bool, optional): whether to add layer controls to map.
+            Warning: only use this when you don't intend to add any additional data
+            after calling this function to the map. May cause bugs otherwise.
+            Defaults to False.
+
+    Returns:
+        folium.Map: map with polygons and graph displayed as described
+    """
 
     if folium_tile_list is None:
         folium_tile_list = ["OpenStreetMap"]
+
+    if m is None:
+        m = folium.Map(location, zoom_start=8, tiles=folium_tile_list.pop(0))
 
     # Adding standard folium raster tiles
     for tiles in folium_tile_list:
         # special esri satellite data case
         if tiles == "esri":
             folium.TileLayer(
-                tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                tiles=(
+                    "https://server.arcgisonline.com/ArcGIS/rest/"
+                    "services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                ),
                 attr="esri",
                 name="esri satellite",
                 overlay=False,
@@ -66,7 +102,7 @@ def create_folium_map(
 
     # Adding graph data
     if graph is not None:
-        node_gdf, edge_gdf = create_vis_gdfs_from_graph(graph, crs=crs)
+        node_gdf, edge_gdf = create_node_edge_geometries(graph, crs=crs)
 
         # add graph edges to map
         if not edge_gdf.empty:
@@ -90,8 +126,22 @@ def create_folium_map(
     return m
 
 
-def create_vis_gdfs_from_graph(input_graph, crs=UTM35N):
-    G = input_graph
+def create_node_edge_geometries(
+    G: nx.Graph, crs: str = UTM35N
+) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
+    """
+    This function creates node and edge geometries for the networkx graph G and returns
+    them in two GeoDataFrames. The output can be used for plotting a graph.
+
+    Args:
+        G (nx.Graph): graph with nodes and edges
+        crs (str, optional): coordinate reference system. Defaults to UTM35N.
+
+    Returns:
+        Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]: dataframes of nodes and edges
+            respectively.
+    """
+
     node_gdf = gpd.GeoDataFrame(columns=["id", "geometry"])
     rep_points = G.nodes(data="representative_point")
     for idx, rep_point in rep_points:
@@ -111,12 +161,42 @@ def create_vis_gdfs_from_graph(input_graph, crs=UTM35N):
     return node_gdf, edge_gdf
 
 
-def get_style_function(color="#ff0000"):
+def get_style_function(color: str = "#ff0000") -> Callable[[], dict]:
+    """
+    This function returns a lambda function the returns a dict with the `color` given.
+    The returned lambda function can be used as a style function for folium.
+
+    Args:
+        color (str, optional): color to be used in dict. Defaults to "#ff0000".
+
+    Returns:
+        Callable[[], dict]: style function
+    """
+
     return lambda x: {"fillColor": color, "color": color}
 
 
-def add_CEZ_to_map(m, add_layer_control=False):
-    exclusion_json_path = GWS_DATA_DIR / "chernobyl_exclusion_zone_v1.geojson"
+def add_cez_to_map(
+    m: folium.Map,
+    exclusion_json_path: Optional[str] = CEZ_DATA_PATH,
+    add_layer_control: bool = False,
+) -> folium.Map:
+    """
+    This function adds polygons of the Chernobyl Exclusion Zone (CEZ) to a folium map.
+
+    Args:
+        m (folium.Map): [description]
+        exclusion_json_path (Optional[str], optional): path to the json file containing
+            the CEZ polygons. Defaults to CEZ_DATA_PATH which requires access to
+            the Jasmin servers and relevant shared workspaces.
+        add_layer_control (bool, optional): whether to add layer controls to map.
+            Warning: only use this when you don't intend to add any additional data
+            after calling this function to the map. May cause bugs otherwise.
+            Defaults to False.
+    Returns:
+        folium.Map: map with CEZ polygons added
+    """
+
     exc_data = gpd.read_file(exclusion_json_path)
 
     colors = ["#808080", "#ffff99", "#ff9933", "#990000", "#ff0000", "#000000"]
