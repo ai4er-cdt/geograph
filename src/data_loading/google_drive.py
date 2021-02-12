@@ -107,7 +107,11 @@ class DriveAPI:
         return self.user_data["displayName"]
 
     def file_download(
-        self, file_id: str, save_path: str, chunksize: int = 200 * 1024 * 1024
+        self,
+        file_id: str,
+        save_path: str,
+        chunksize: int = 200 * 1024 * 1024,
+        verbose: bool = False,
     ) -> bool:
         """
         Download file with given `file_id` and save in `save_path`.
@@ -121,6 +125,7 @@ class DriveAPI:
                 each http request. If the download is slow, try increasing the chunksize
                 as google limits the number of http requests we can pose per second.
                 Defaults to 200*1024*1024 (= 200 MB).
+            verbose (bool, optional): Whether to print output. Defaults to False.
 
         Returns:
             bool: True, iff the file was downloaded successfully.
@@ -132,11 +137,12 @@ class DriveAPI:
         downloader = MediaIoBaseDownload(file_handle, request, chunksize=chunksize)
         done = False
 
-        print("Starting file download")
-        progress_bar = tqdm(total=100)
+        if verbose:
+            print("Starting file download")
+        progress_bar = tqdm(total=100, disable=not verbose)
         while not done:
             status, done = downloader.next_chunk()
-            if status:
+            if status and verbose:
                 progress_bar.update(n=status.progress() * 100)
         progress_bar.close()
 
@@ -146,7 +152,8 @@ class DriveAPI:
         with open(save_path, "wb") as f:
             shutil.copyfileobj(file_handle, f)
 
-        print("File Downloaded")
+        if verbose:
+            print("File Downloaded")
         # Return True if file Downloaded successfully
         return True
 
