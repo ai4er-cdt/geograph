@@ -1,5 +1,6 @@
 """
-This module provides helper functions to load land cover data close to chernobyl.
+This module provides helper functions to load land cover data close to chernobyl
+on Jasmin shared workspace.
 """
 
 import geopandas as gpd
@@ -8,11 +9,11 @@ from src.constants import GWS_DATA_DIR
 
 def get_polesia_data(variant: str = "biotope") -> gpd.GeoDataFrame:
     """Return Polesia landcover data from shared workspace on Jasmin.
-    
+
     Note that this requires access to Jasmin and the relevant shared workspaces.
 
     Args:
-        variant (str, optional): Which variant of  the data to load. Must be 
+        variant (str, optional): Which variant of  the data to load. Must be
             either "biotope" or "vegetation". Defaults to "biotope".
 
     Returns:

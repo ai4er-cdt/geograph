@@ -22,11 +22,10 @@ def create_graph_visualisation(
     crs: str = UTM35N,
     add_layer_control: bool = False,
 ) -> folium.Map:
-    """
-    Create a visualisation map of the given polygons and  `graph` in folium. 
-    
-    The polygons in `polygon_gdf` and `graph` are displayed on a folum map. 
-    It is intended that the graph was build from `polygon_gdf`, but it is not required. 
+    """Create a visualisation map of the given polygons and  `graph` in folium.
+
+    The polygons in `polygon_gdf` and `graph` are displayed on a folum map.
+    It is intended that the graph was build from `polygon_gdf`, but it is not required.
     If given `map`, it will be put on this existing folium map.
 
     Args:
@@ -129,9 +128,10 @@ def create_graph_visualisation(
 def create_node_edge_geometries(
     G: nx.Graph, crs: str = UTM35N
 ) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
-    """
-    This function creates node and edge geometries for the networkx graph G and returns
-    them in two GeoDataFrames. The output can be used for plotting a graph.
+    """Create node and edge geometries for the networkx graph G.
+
+    Returns node and edge geometries in two GeoDataFrames. The output can be used for
+    plotting a graph.
 
     Args:
         G (nx.Graph): graph with nodes and edges
@@ -162,8 +162,8 @@ def create_node_edge_geometries(
 
 
 def get_style_function(color: str = "#ff0000") -> Callable[[], dict]:
-    """
-    This function returns a lambda function the returns a dict with the `color` given.
+    """Return lambda function that returns a dict with the `color` given.
+
     The returned lambda function can be used as a style function for folium.
 
     Args:
@@ -181,8 +181,7 @@ def add_cez_to_map(
     exclusion_json_path: Optional[str] = CEZ_DATA_PATH,
     add_layer_control: bool = False,
 ) -> folium.Map:
-    """
-    This function adds polygons of the Chernobyl Exclusion Zone (CEZ) to a folium map.
+    """Add polygons of the Chernobyl Exclusion Zone (CEZ) to a folium map.
 
     Args:
         m (folium.Map): [description]

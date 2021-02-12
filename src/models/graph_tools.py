@@ -14,10 +14,11 @@ from tqdm import tqdm
 def create_nx_graph(
     gdf: gpd.GeoDataFrame, attributes: Optional[List[str]] = None
 ) -> nx.Graph:
-    """
-    Creates networkx graph from GeoDataFrame. For each polygon in gdf a node (=vertex)
-    is created. Edges are created when the polygons of two nodes overlap or touch
-    borders. Largely taken from a notebook by @herbiebradley.
+    """Create networkx graph from polygons in GeoDataFrame.
+
+    For each polygon in gdf a node (=vertex) is created. Edges are created when the
+    polygons of two nodes overlap or touch borders. Largely taken from a notebook
+    by @herbiebradley.
 
     Args:
         gdf (gpd.GeoDataFrame): data frame of polygons

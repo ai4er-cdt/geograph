@@ -17,10 +17,10 @@ def get_square_row(
     origin: Tuple[float, float] = (0, 0),
     crs: str = UTM35N,
 ) -> gpd.GeoDataFrame:
-    """
-    Creates a row of squares with side length `square_side_len`,
-    each square is translated to the previous by `translation`.
-    Starts with the bottom left corner of first square at `origin`.
+    """Create a row of squares.
+
+    Each square has side length `square_side_len`, and is translated to the previous by
+    `translation`. Row starts with the bottom left corner of first square at `origin`.
 
     Args:
         num_squares (int, optional): number of squares. Defaults to 2.
