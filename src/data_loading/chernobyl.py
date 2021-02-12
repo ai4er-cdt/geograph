@@ -7,13 +7,13 @@ from src.constants import GWS_DATA_DIR
 
 
 def get_polesia_data(variant: str = "biotope") -> gpd.GeoDataFrame:
-    """
-    This function loads the Polesia landcover data from shared workspace on Jasmin.
+    """Return Polesia landcover data from shared workspace on Jasmin.
+    
     Note that this requires access to Jasmin and the relevant shared workspaces.
 
     Args:
-        variant (str, optional): either "biotope" or "vegetation".
-            Defaults to "biotope".
+        variant (str, optional): Which variant of  the data to load. Must be 
+            either "biotope" or "vegetation". Defaults to "biotope".
 
     Returns:
         gpd.GeoDataFrame: shape file data loaded as polygons in data frame

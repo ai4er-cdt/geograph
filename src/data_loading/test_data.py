@@ -63,7 +63,7 @@ def get_square_row(
 
 
 def get_polygon_gdf(name: str = "squares_apart") -> gpd.GeoDataFrame:
-    """Loads different test cases consisting of rows of squares.
+    """Load different test cases consisting of rows of squares.
 
     Args:
         name (str, optional): test data name. Defaults to "squares_apart".

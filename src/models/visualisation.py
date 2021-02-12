@@ -23,10 +23,11 @@ def create_graph_visualisation(
     add_layer_control: bool = False,
 ) -> folium.Map:
     """
-    This function creates a graph visualisation that puts the polygons in `polygon_gdf`
-    and the `graph` on a folium map. It is intended that the graph was build from
-    `polygon_gdf`, but it is not required. If given `m`, it will be put on this existing
-    folium map.
+    Create a visualisation map of the given polygons and  `graph` in folium. 
+    
+    The polygons in `polygon_gdf` and `graph` are displayed on a folum map. 
+    It is intended that the graph was build from `polygon_gdf`, but it is not required. 
+    If given `map`, it will be put on this existing folium map.
 
     Args:
         m (folium.Map, optional): map to add polygons and graph to. Defaults to None.
