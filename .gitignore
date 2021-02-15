@@ -93,6 +93,10 @@ io/
 # History files
 .history
 
+# VSCode - custom
+workspace.code-workspace
+gtc-biodiversity.code-workspace
+
 # GDrive secrets
 secrets
 token.pickle
