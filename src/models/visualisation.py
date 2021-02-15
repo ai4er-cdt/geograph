@@ -12,7 +12,7 @@ from src.constants import CHERNOBYL_COORDS_WGS84, UTM35N, CEZ_DATA_PATH
 
 
 def create_graph_visualisation(
-    m: folium.Map = None,
+    folium_map: folium.Map = None,
     polygon_gdf: gpd.GeoDataFrame = None,
     color_column: str = "index",
     graph: Optional[nx.Graph] = None,
@@ -29,7 +29,8 @@ def create_graph_visualisation(
     If given `map`, it will be put on this existing folium map.
 
     Args:
-        m (folium.Map, optional): map to add polygons and graph to. Defaults to None.
+        folium_map (folium.Map, optional): map to add polygons and graph to.
+            Defaults to None.
         polygon_gdf (gpd.GeoDataFrame, optional): data containing polygon.
             Defaults to None.
         color_column (str, optional): column in polygon_gdf that determines which color
@@ -55,8 +56,8 @@ def create_graph_visualisation(
     if folium_tile_list is None:
         folium_tile_list = ["OpenStreetMap"]
 
-    if m is None:
-        m = folium.Map(location, zoom_start=8, tiles=folium_tile_list.pop(0))
+    if folium_map is None:
+        folium_map = folium.Map(location, zoom_start=8, tiles=folium_tile_list.pop(0))
 
     # Adding standard folium raster tiles
     for tiles in folium_tile_list:
@@ -71,9 +72,9 @@ def create_graph_visualisation(
                 name="esri satellite",
                 overlay=False,
                 control=True,
-            ).add_to(m)
+            ).add_to(folium_map)
         else:
-            folium.TileLayer(tiles=tiles).add_to(m)
+            folium.TileLayer(tiles=tiles).add_to(folium_map)
 
     # Adding polygon data
     if polygon_gdf is not None:
@@ -92,7 +93,7 @@ def create_graph_visualisation(
             fill_color="YlOrBr",
             name=name + "_polygons",
         )
-        choropleth.add_to(m)
+        choropleth.add_to(folium_map)
 
         # adding popup markers with class name
         folium.features.GeoJsonPopup(fields=[color_column], labels=True).add_to(
@@ -110,19 +111,19 @@ def create_graph_visualisation(
                 name=name + "_graph_edges",
                 style_function=get_style_function("#dd0000"),
             )
-            edges.add_to(m)
+            edges.add_to(folium_map)
 
         # add graph nodes/vertices to map
         node_marker = folium.vector_layers.Circle(radius=100, color="black")
         nodes = folium.features.GeoJson(
             node_gdf, marker=node_marker, name=name + "_graph_vetrices"
         )
-        nodes.add_to(m)
+        nodes.add_to(folium_map)
 
     if add_layer_control:
-        folium.LayerControl().add_to(m)
+        folium.LayerControl().add_to(folium_map)
 
-    return m
+    return folium_map
 
 
 def create_node_edge_geometries(
@@ -177,14 +178,14 @@ def get_style_function(color: str = "#ff0000") -> Callable[[], dict]:
 
 
 def add_cez_to_map(
-    m: folium.Map,
+    folium_map: folium.Map,
     exclusion_json_path: Optional[str] = CEZ_DATA_PATH,
     add_layer_control: bool = False,
 ) -> folium.Map:
     """Add polygons of the Chernobyl Exclusion Zone (CEZ) to a folium map.
 
     Args:
-        m (folium.Map): [description]
+        folium_map (folium.Map): [description]
         exclusion_json_path (Optional[str], optional): path to the json file containing
             the CEZ polygons. Defaults to CEZ_DATA_PATH which requires access to
             the Jasmin servers and relevant shared workspaces.
@@ -205,9 +206,9 @@ def add_cez_to_map(
             row["geometry"],
             name=row["name"],
             style_function=get_style_function(colors[index]),
-        ).add_to(m)
+        ).add_to(folium_map)
 
     if add_layer_control:
-        folium.LayerControl().add_to(m)
+        folium.LayerControl().add_to(folium_map)
 
-    return m
+    return folium_map
