@@ -127,7 +127,7 @@ def create_graph_visualisation(
 
 
 def create_node_edge_geometries(
-    G: nx.Graph, crs: str = UTM35N
+    graph: nx.Graph, crs: str = UTM35N
 ) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Create node and edge geometries for the networkx graph G.
 
@@ -135,7 +135,7 @@ def create_node_edge_geometries(
     plotting a graph.
 
     Args:
-        G (nx.Graph): graph with nodes and edges
+        graph (nx.Graph): graph with nodes and edges
         crs (str, optional): coordinate reference system. Defaults to UTM35N.
 
     Returns:
@@ -144,12 +144,12 @@ def create_node_edge_geometries(
     """
 
     node_gdf = gpd.GeoDataFrame(columns=["id", "geometry"])
-    rep_points = G.nodes(data="representative_point")
+    rep_points = graph.nodes(data="representative_point")
     for idx, rep_point in rep_points:
         node_gdf.loc[idx] = [idx, rep_point]
 
     edge_gdf = gpd.GeoDataFrame(columns=["id", "geometry"])
-    for idx, (node_a, node_b) in enumerate(G.edges()):
+    for idx, (node_a, node_b) in enumerate(graph.edges()):
         point_a = rep_points[node_a]
         point_b = rep_points[node_b]
         line = shapely.geometry.LineString([point_a, point_b])

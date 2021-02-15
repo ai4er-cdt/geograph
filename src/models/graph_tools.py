@@ -43,7 +43,7 @@ def create_nx_graph(
 
     # Initialising graph
     graph_dict = {}
-    G = nx.Graph()
+    graph = nx.Graph()
 
     # Creating nodes (=vertices) and finding neighbors
     for index, polygon in tqdm(
@@ -66,13 +66,13 @@ def create_nx_graph(
         row_attributes = dict(zip(attributes, [row[attr] for attr in attributes]))
         # add each polygon as a node to the graph with all attributes
         rep_point = row.geometry.representative_point()
-        G.add_node(index, representative_point=rep_point, **row_attributes)
+        graph.add_node(index, representative_point=rep_point, **row_attributes)
 
     # iterate through the dict and add all edges between neighbouring polygons
     for polygon_id, neighbours in tqdm(
         graph_dict.items(), desc="Step 2 of 2: Adding edges"
     ):
         for neighbour_id in neighbours:
-            G.add_edge(polygon_id, neighbour_id)
+            graph.add_edge(polygon_id, neighbour_id)
 
-    return G
+    return graph
