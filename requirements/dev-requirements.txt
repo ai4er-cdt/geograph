@@ -23,9 +23,11 @@ pandas              # tabular data analysis
 matplotlib          # general python plotting
 seaborn             # fancier plotting styles
 descartes           # geospatial plotting of shapefiles
+folium              # plotting maps
 
 # interactive computing
 jupyter             # jupyter notebooks
+tqdm                # progress bars
 
 # geospatial analysis requirements
 rasterio            # opening and loading raster data
@@ -36,7 +38,7 @@ pycrs               # working with coordinate reference systems
 geopy               # convenient API requests to geocoders
 
 # additional
-networkx
+networkx            # manipulating graph data
 
 # gdrive functionality
 google-api-python-client
