@@ -93,6 +93,7 @@ def create_graph_visualisation(
             fill_color="YlOrBr",
             name=name + "_polygons",
         )
+        choropleth = remove_choropleth_color_legend(choropleth)
         choropleth.add_to(folium_map)
 
         # adding popup markers with class name
@@ -212,3 +213,24 @@ def add_cez_to_map(
         folium.LayerControl().add_to(folium_map)
 
     return folium_map
+
+
+def remove_choropleth_color_legend(
+    choropleth_map: folium.features.Choropleth,
+) -> folium.features.Choropleth:
+    """Remove color legend from Choropleth folium map.
+
+    Solution proposed by `nhpackard` in the following GitHub issue in the folium repo:
+    https://github.com/python-visualization/folium/issues/956
+
+    Args:
+        choropleth_map (folium.features.Choropleth): a Choropleth map
+
+    Returns:
+        folium.features.Choropleth: the same map without color legend
+    """
+    for key in choropleth_map._children:  # pylint: disable=protected-access
+        if key.startswith("color_map"):
+            del choropleth_map._children[key]  # pylint: disable=protected-access
+
+    return choropleth_map
