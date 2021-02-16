@@ -47,7 +47,7 @@ class GeoGraph:
         """
         if not graph_path.endswith(('pickle', 'pkl')):
             raise ValueError("Argument `graph_path` should be a pickle file.")
-        self.G = nx.read_gpickle(graph_path)
+        self.graph = nx.read_gpickle(graph_path)
 
     def _dataframe_to_graph(self, df: gpd.GeoDataFrame, attributes: Optional[List[str]] = None) -> None:
         """
