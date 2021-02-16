@@ -10,7 +10,12 @@ from tqdm import tqdm
 
 class GeoGraph:
     """Class for the fragmentation graph."""
-    def __init__(self, dataframe: Optional[gpd.GeoDataFrame] = None, graph_path: Optional[str] = None) -> None:
+
+    def __init__(
+        self,
+        dataframe: Optional[gpd.GeoDataFrame] = None,
+        graph_path: Optional[str] = None,
+    ) -> None:
         """
         Class for the fragmentation graph.
 
@@ -45,11 +50,13 @@ class GeoGraph:
         Args:
             graph_path (str): Path to a pickle file.
         """
-        if not graph_path.endswith(('pickle', 'pkl')):
+        if not graph_path.endswith(("pickle", "pkl")):
             raise ValueError("Argument `graph_path` should be a pickle file.")
         self.graph = nx.read_gpickle(graph_path)
 
-    def _dataframe_to_graph(self, df: gpd.GeoDataFrame, attributes: Optional[List[str]] = None) -> None:
+    def _dataframe_to_graph(
+        self, df: gpd.GeoDataFrame, attributes: Optional[List[str]] = None
+    ) -> None:
         """
         Convert geopandas dataframe to networkx graph.
 
@@ -85,8 +92,11 @@ class GeoGraph:
         ):
             # find the indexes of all polygons which touch the borders of or
             # overlap with this one
-            neighbours = [id_dict[id(nbr)] for nbr in tree.query(polygon)
-                          if nbr.touches(polygon) or nbr.overlaps(polygon)]
+            neighbours = [
+                id_dict[id(nbr)]
+                for nbr in tree.query(polygon)
+                if nbr.touches(polygon) or nbr.overlaps(polygon)
+            ]
             # this dict maps polygon indices in df to a list
             # of neighbouring polygon indices
             graph_dict[index] = neighbours
