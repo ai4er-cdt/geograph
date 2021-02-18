@@ -120,7 +120,7 @@ class GeoGraph:
             neighbours: List[int] = [
                 id_dict[id(nbr)]
                 for nbr in tree.query(polygon)
-                if nbr.touches(polygon) or nbr.overlaps(polygon)
+                if nbr.intersects(polygon) and id_dict[id(nbr)] != id_dict[id(polygon)]
             ]
             # this dict maps polygon indices in df to a list
             # of neighbouring polygon indices
