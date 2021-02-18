@@ -42,3 +42,7 @@ networkx
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
+
+# make videos
+imageio
+imageio-ffmpeg
