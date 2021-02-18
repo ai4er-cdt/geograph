@@ -99,3 +99,6 @@ token.pickle
 
 # General pickle files
 *.pickle
+
+#test data file
+test.tif
