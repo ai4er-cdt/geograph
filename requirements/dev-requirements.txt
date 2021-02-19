@@ -46,3 +46,8 @@ google-auth-oauthlib
 # make videos
 imageio
 imageio-ffmpeg
+
+# xgboost
+xgboost
+sklearn
+graphviz
