@@ -34,6 +34,8 @@ geopandas           # manipulating geospatial vector data
 shapely             # working with vector shapes
 pycrs               # working with coordinate reference systems
 geopy               # convenient API requests to geocoders
+xarray              # useful data structures
+rioxarray           # adaptation of xarray for raterio.
 
 # additional
 networkx
