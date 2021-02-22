@@ -1,4 +1,4 @@
-"""Module for processing and analysis of the graph generated from shp files."""
+"""Module for processing and analysis of the geospatial graph."""
 
 import bz2
 import gzip
@@ -8,14 +8,16 @@ import pickle
 from itertools import zip_longest
 from typing import Dict, List, Optional, Union
 
+import affine
 import geopandas as gpd
 import networkx as nx
+import numpy as np
 import rasterio
 import shapely
-from rasterio.features import shapes
 from shapely.ops import unary_union
 from shapely.strtree import STRtree
 from src.constants import PROJECT_PATH
+from src.data_loading.rasterio_utils import polygonise
 from tqdm import tqdm
 
 
@@ -25,11 +27,17 @@ class GeoGraph:
     def __init__(
         self,
         dataframe: Optional[gpd.GeoDataFrame] = None,
+        attributes: Optional[List[str]] = None,
         graph_load_path: Optional[Union[str, os.PathLike]] = None,
         graph_save_path: Optional[Union[str, os.PathLike]] = None,
+        raster_array: Optional[np.ndarray] = None,
         raster_load_path: Optional[Union[str, os.PathLike]] = None,
         raster_save_path: Optional[Union[str, os.PathLike]] = None,
         vector_path: Optional[Union[str, os.PathLike]] = None,
+        tolerance: float = 0.0,
+        mask: Optional[np.ndarray] = None,
+        transform: affine.Affine = affine.identity,
+        crs: Optional[str] = None,
     ) -> None:
         """
         Class for the fragmentation graph.
@@ -42,12 +50,17 @@ class GeoGraph:
             object containing a `geometry` column with polygon data. To load
             polygon class labels as node attributes, include these in a column.
             Defaults to None.
+            attributes (Optional[List[str]], optional): columns of dataframe
+            that are added to nodes of graph as attributes. Defaults to None,
+            which will cause all attributes to be added.
             graph_load_path (str or pathlib.Path, optional): A path to a pickle
             file to load from, can be `.gz` or `.bz2`. Defaults to None.
             graph_save_path (str or pathlib.Path, optional): A path to a pickle
             file to save the graph to, can be `.gz` or `.bz2`. Defaults to None,
             which will save the graph in the project root in the `data`
             folder.
+            raster_array (np.ndarray, optional): 2D numpy array with the raster
+            data that can be passed as an alternative to `raster_path`.
             vector_path (str or pathlib.Path, optional): A path to a file of
             vector data, either in GPKG or Shapefile format. Defaults to None.
             raster_load_path (str or pathlib.Path, optional): A path to a file
@@ -56,6 +69,14 @@ class GeoGraph:
             to save the polygonised raster data in. A path to a GPKG file is
             recommended, but Shapefiles also work. Defaults to None, which saves
             to the project root in the `data` folder in GPKG format.
+            tolerance (float, optional): Adds edges between neighbours that are
+            at most `tolerance` metres apart. Defaults to 0.
+            mask (np.ndarray, optional): Boolean mask that can be applied over
+            the polygonisation. Defaults to None.
+            transform (affine.Affine, optional): Affine transformation to apply
+            when polygonising. Defaults to the identity transform.
+            crs (str, optional): Coordinate reference system to set on the
+            resulting dataframe. Defaults to None.
         """
         super().__init__()
         self._graph = nx.Graph()
@@ -65,20 +86,33 @@ class GeoGraph:
         if raster_save_path is None:
             raster_save_path = PROJECT_PATH / "data" / "geo_data.gpkg"
             os.makedirs(raster_save_path.parent, exist_ok=True)
+        self.tolerance: float = tolerance
 
         if graph_load_path is not None:
             self._rtree = self._load_graph(pathlib.Path(graph_load_path))
         elif dataframe is not None:
-            self._rtree = self._dataframe_to_graph(dataframe)
-            self._save_graph(pathlib.Path(graph_save_path))
-        elif vector_path is not None:
-            self._rtree = self._load_vector(pathlib.Path(vector_path))
-            self._save_graph(pathlib.Path(graph_save_path))
-        elif raster_load_path is not None:
-            self._rtree = self._load_raster(
-                pathlib.Path(raster_load_path), pathlib.Path(raster_save_path)
+            self._rtree = self._dataframe_to_graph(
+                dataframe, attributes, tolerance=self.tolerance
             )
             self._save_graph(pathlib.Path(graph_save_path))
+        elif raster_array is not None or raster_load_path is not None:
+            self._rtree = self._load_raster(
+                raster_load_path,
+                pathlib.Path(raster_save_path),
+                array=raster_array,
+                mask=mask,
+                transform=transform,
+                crs=crs,
+            )
+            self._save_graph(pathlib.Path(graph_save_path))
+        elif vector_path is not None:
+            self._rtree = self._load_vector(pathlib.Path(vector_path), attributes)
+            self._save_graph(pathlib.Path(graph_save_path))
+
+        print(
+            f"Graph successfully loaded with {self.graph.number_of_nodes()} nodes",
+            f"and {self.graph.number_of_edges()} edges",
+        )
 
     @property
     def graph(self) -> nx.Graph:
@@ -94,14 +128,22 @@ class GeoGraph:
         """Return Rtree object."""
         return self._rtree
 
-    def _load_vector(self, vector_path: pathlib.Path, load_slice=None) -> STRtree:
+    def _load_vector(
+        self,
+        vector_path: pathlib.Path,
+        attributes: Optional[List[str]] = None,
+        load_slice=None,
+    ) -> STRtree:
         """
         Load graph and rtree with vector data from GeoPackage or shape file.
 
         Args:
             vector_path (pathlib.Path): Path to a gpkg or shp file.
-            load_slice : A slice object denoting the rows of the dataframe to load.
-            Defaults to None, meaning load all rows.
+            attributes (Optional[List[str]], optional): columns of the dataframe
+            that are added to nodes of graph as attributes. Defaults to None,
+            which will cause all attributes to be added.
+            load_slice: A slice object denoting the rows of the dataframe to
+            load. Defaults to None, meaning load all rows.
 
         Raises:
             ValueError: If `vector_path` is not a GPKG or Shapefile.
@@ -120,13 +162,21 @@ class GeoGraph:
             dataframe = gpd.read_file(
                 vector_path, enabled_drivers=["GPKG", "ESRI Shapefile"]
             )
-        return self._dataframe_to_graph(dataframe)
+        return self._dataframe_to_graph(
+            dataframe, attributes=attributes, tolerance=self.tolerance
+        )
 
     def _load_raster(
-        self, raster_path: pathlib.Path, save_path: pathlib.Path
+        self,
+        raster_path: Optional[Union[str, os.PathLike]],
+        save_path: pathlib.Path,
+        array: Optional[np.ndarray],
+        mask: Optional[np.ndarray],
+        transform: affine.Affine,
+        crs: Optional[str],
     ) -> STRtree:
         """
-        Load raster data, polygonize, then load graph and rtree.
+        Load raster data, polygonise, then load graph and rtree.
 
         The raster data should be in GeoTiff format.
 
@@ -136,39 +186,48 @@ class GeoGraph:
             save_path (pathlib.Path, optional): A path to a file to save the
             polygonised raster data in. A path to a GPKG file is recommended,
             but Shapefiles also work.
+            array (np.ndarray, optional): 2D numpy array with the raster data
+            that can be passed as an alternative to `raster_path`.
+            mask (np.ndarray, optional): Boolean mask that can be applied over
+            the polygonisation. Defaults to None.
+            transform (affine.Affine, optional): Affine transformation to apply
+            when polygonising. Defaults to the identity transform.
+            crs (str, optional): Coordinate reference system to set on the
+            resulting dataframe. Defaults to None.
 
         Raises:
-            ValueError: If `save_path` is not a GPKG or Shapefile.
+            ValueError: If `save_path` is not a GPKG or Shapefile, or if both
+            `raster_path` and `array` are None.
 
         Returns:
             STRtree: The Rtree object used to build the graph.
         """
         if save_path.suffix not in (".shp", ".gpkg"):
             raise ValueError("Argument `save_path` should be a GPKG or Shapefile.")
-        mask = None
-        with rasterio.Env():
-            with rasterio.open(raster_path) as image:
-                image_band_1 = image.read(1)
-                geoms = [
-                    {"properties": {"raster_val": v}, "geometry": s}
-                    for _, (s, v) in enumerate(
-                        shapes(
-                            image_band_1,
-                            mask=mask,
-                            connectivity=4,
-                            transform=image.transform,
-                        )
-                    )
-                ]
-        vector_df = gpd.GeoDataFrame.from_features(geoms)
-        # Redraw geometries to ensure polygons are valid.
-        vector_df.geometry = vector_df.geometry.buffer(0)
+        if array is None and raster_path is None:
+            raise ValueError("One of `raster_path` or `array` arguments must be used.")
+        elif array is None and raster_path is not None:
+            with rasterio.Env():
+                with rasterio.open(raster_path) as image:
+                    data = image.read(1)  # Read band 1
+        else:
+            data = array
+        vector_df = polygonise(
+            data_array=data,
+            mask=mask,
+            connectivity=4,
+            apply_buffer=True,
+            transform=transform,
+            crs=crs,
+        )
 
         if save_path.suffix == ".gpkg":
             vector_df.to_file(save_path, driver="GPKG")
         else:
             vector_df.to_file(save_path)
-        return self._dataframe_to_graph(vector_df, attributes=["geometry"])
+        return self._dataframe_to_graph(
+            vector_df, attributes=["geometry", "class_label"], tolerance=self.tolerance
+        )
 
     def _load_graph(self, graph_path: pathlib.Path) -> STRtree:
         """
@@ -232,7 +291,10 @@ class GeoGraph:
                 pickle.dump(data, file)
 
     def _dataframe_to_graph(
-        self, df: gpd.GeoDataFrame, attributes: Optional[List[str]] = None
+        self,
+        df: gpd.GeoDataFrame,
+        attributes: Optional[List[str]] = None,
+        tolerance: float = 0.0,
     ) -> STRtree:
         """
         Convert geopandas dataframe to networkx graph.
@@ -243,16 +305,26 @@ class GeoGraph:
         Args:
             df (gpd.GeoDataFrame): GeoDataFrame containing polygon objects from
             a shape file.
-            attributes (Optional[List[str]], optional): columns of gdf that are
-            added to nodes of graph as attributes. Defaults to None.
+            attributes (Optional[List[str]], optional): columns of df that are
+            added to nodes of graph as attributes. Defaults to None,
+            which will cause all attributes to be added.
+            tolerance (float, optional): Adds edges between neighbours that are
+            at most `tolerance` metres apart. Defaults to 0.
+
+        Raises:
+            ValueError: If `tolerance` < 0.
 
         Returns:
             STRtree: The Rtree object used to build the graph.
         """
+        if tolerance < 0.0:
+            raise ValueError("`tolerance` must be greater than 0.")
         # If no attribute list is given, all
         # columns in df are used
         if attributes is None:
             attributes = df.columns.tolist()
+        elif not set(attributes).issubset(set(df.columns)):
+            raise ValueError("`attributes` must only contain column names in `df`.")
 
         geom: Dict[int, shapely.Polygon] = df.geometry.to_dict()
         # Build dict mapping hashable unique object ids for each polygon
@@ -272,13 +344,23 @@ class GeoGraph:
             desc="Step 1 of 2: Creating nodes and finding neighbours",
             total=len(geom),
         ):
-            # find the indexes of all polygons which touch the borders of or
-            # overlap with this one
-            neighbours: List[int] = [
-                id_dict[id(nbr)]
-                for nbr in tree.query(polygon)
-                if nbr.intersects(polygon) and id_dict[id(nbr)] != id_dict[id(polygon)]
-            ]
+            if tolerance > 0:
+                # Expand the borders of the polygon by `tolerance```
+                new_polygon = polygon.buffer(tolerance)
+                # find the indexes of all polygons which intersect with this one
+                neighbours: List[int] = [
+                    id_dict[id(nbr)]
+                    for nbr in tree.query(new_polygon)
+                    if nbr.intersects(new_polygon)
+                    and id_dict[id(nbr)] != id_dict[id(polygon)]
+                ]
+            else:
+                neighbours = [
+                    id_dict[id(nbr)]
+                    for nbr in tree.query(polygon)
+                    if nbr.intersects(polygon)
+                    and id_dict[id(nbr)] != id_dict[id(polygon)]
+                ]
             # this dict maps polygon indices in df to a list
             # of neighbouring polygon indices
             graph_dict[index] = neighbours
@@ -291,7 +373,7 @@ class GeoGraph:
                 rep_point=polygon.representative_point(),
                 area=polygon.area,
                 perimeter=polygon.length,
-                **row_attributes
+                **row_attributes,
             )
 
         # iterate through the dict and add edges between neighbouring polygons
@@ -303,7 +385,9 @@ class GeoGraph:
 
         return tree
 
-    def merge_nodes(self, node_list: List[int], final_index: int = None) -> None:
+    def merge_nodes(
+        self, node_list: List[int], class_label: int, final_index: int = None
+    ) -> None:
         """
         Merge a list of nodes in the graph together into a single node.
 
@@ -312,6 +396,7 @@ class GeoGraph:
 
         Args:
             node_list (List[int]): List of integer node indexes in the graph.
+            class_label (int): Class label for the resulting node.
             final_index (int, optional): Index to assign to the resulting node.
             Defaults to None, in which case it becomes the number of nodes in
             the graph.
@@ -332,18 +417,22 @@ class GeoGraph:
             )
         if final_index is None:
             final_index = self.graph.number_of_nodes
+
         adjacency_list = set()
         for node in node_list:
             adjacency_list.update(self.graph.neighbors(node))
         polygon = unary_union(
             [self.graph.nodes[node]["geometry"] for node in node_list]
         )
+
         self.graph.remove_nodes_from(node_list)
         self.graph.add_node(
             final_index,
             rep_point=polygon.representative_point(),
             area=polygon.area,
             perimeter=polygon.length,
+            geometry=polygon,
+            class_label=class_label,
         )
         self.graph.add_edges_from(
             zip_longest([final_index], adjacency_list, fillvalue=final_index)
