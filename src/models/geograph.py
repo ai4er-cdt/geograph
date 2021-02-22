@@ -75,7 +75,7 @@ class GeoGraph:
             recommended, but Shapefiles also work. Defaults to None, which saves
             to the project root in the `data` folder in GPKG format.
             tolerance (float, optional): Adds edges between neighbours that are
-            at most `tolerance` metres apart. Defaults to 0.
+            at most `tolerance` units apart. Defaults to 0.
             mask (np.ndarray, optional): Boolean mask that can be applied over
             the polygonisation. Defaults to None.
             transform (affine.Affine, optional): Affine transformation to apply
@@ -184,6 +184,11 @@ class GeoGraph:
         Load raster data, polygonise, then load graph and rtree.
 
         The raster data should be in GeoTiff format.
+        Polygonisation via `rasterio.features.shapes`, which uses `gdal_polygonize`.
+
+        References:
+        (1) https://rasterio.readthedocs.io/en/latest/api/rasterio.features.html
+        (2) https://gdal.org/programs/gdal_polygonize.html
 
         Args:
             raster_path (pathlib.Path): A path to a file of raster data in
@@ -213,7 +218,7 @@ class GeoGraph:
             raise ValueError("One of `raster_path` or `array` arguments must be used.")
         elif array is None and raster_path is not None:
             raster_path = pathlib.Path(raster_path)
-            if raster_path.suffix not in (".tiff", ".tif"):
+            if raster_path.suffix not in (".tiff", ".tif", ".geotif"):
                 raise ValueError("Argument `raster_path` should be a GeoTiff file.")
             with rasterio.Env():
                 with rasterio.open(raster_path) as image:
@@ -255,14 +260,11 @@ class GeoGraph:
             raise ValueError("Argument `graph_path` should be a pickle file.")
 
         if graph_path.suffix == ".bz2":
-            bz2_file = bz2.BZ2File(graph_path, "rb")
-            data = pickle.load(bz2_file)
-            bz2_file.close()
+            with bz2.BZ2File(graph_path, "rb") as bz2_file:
+                data = pickle.load(bz2_file)
         elif graph_path.suffix == ".gz":
-            gz_file = gzip.GzipFile(graph_path, "rb")
-            gz_data = gz_file.read()
-            data = pickle.loads(gz_data)
-            gz_file.close()
+            with gzip.GzipFile(graph_path, "rb") as gz_file:
+                data = pickle.loads(gz_file.read())
         else:
             with open(graph_path, "rb") as file:
                 data = pickle.load(file)
@@ -291,9 +293,8 @@ class GeoGraph:
             with bz2.BZ2File(save_path, "wb") as bz2_file:
                 pickle.dump(data, bz2_file)
         elif save_path.suffix == ".gz":
-            gz_file = gzip.GzipFile(save_path, "wb")
-            gz_file.write(pickle.dumps(data))
-            gz_file.close()
+            with gzip.GzipFile(save_path, "wb") as gz_file:
+                gz_file.write(pickle.dumps(data))
         else:
             with open(save_path, "wb") as file:
                 pickle.dump(data, file)
@@ -317,7 +318,7 @@ class GeoGraph:
             added to nodes of graph as attributes. Defaults to None,
             which will cause all attributes to be added.
             tolerance (float, optional): Adds edges between neighbours that are
-            at most `tolerance` metres apart. Defaults to 0.
+            at most `tolerance` units apart. Defaults to 0.
 
         Raises:
             ValueError: If `tolerance` < 0.
@@ -331,7 +332,7 @@ class GeoGraph:
         # columns in df are used
         if attributes is None:
             attributes = df.columns.tolist()
-        elif not set(attributes).issubset(set(df.columns)):
+        elif not set(attributes).issubset(df.columns):
             raise ValueError("`attributes` must only contain column names in `df`.")
 
         geom: Dict[int, shapely.Polygon] = df.geometry.to_dict()

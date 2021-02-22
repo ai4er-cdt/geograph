@@ -122,12 +122,20 @@ def polygonise(
     crs: Optional[str] = None,
 ):
     """
-    Polygonise 2D numpy array containing raster data.
+    Convert 2D numpy array containing raster data into polygons.
+
+    This implementation uses rasterio.features.shapes, which uses GDALpolygonize
+    under the hood.
+
+    References:
+    (1) https://rasterio.readthedocs.io/en/latest/api/rasterio.features.html
+    (2) https://gdal.org/programs/gdal_polygonize.html
 
     Args:
         data_array (np.ndarray): 2D numpy array with the raster data.
-        mask (Optional[np.ndarray], optional): Boolean mask that can be applied
-        over the polygonisation. Defaults to None.
+        mask (Optional[np.ndarray], optional): Boolean mask that can be applied.
+        Values of False or 0 will be excluded from feature generation. Must
+        evaluate to bool.
         connectivity (int, optional): Use 4 or 8 pixel connectivity for grouping
         pixels into features. 8 can cause issues, Defaults to 4.
         apply_buffer (bool, optional): Apply shapely buffer function to the
