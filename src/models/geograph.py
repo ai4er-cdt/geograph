@@ -207,7 +207,8 @@ class GeoGraph:
 
         Raises:
             ValueError: If `save_path` is not a GPKG or Shapefile, or if both
-            `raster_path` and `array` are None.
+            `raster_path` and `array` are None, or if `raster_path` is not a
+            GeoTiff file.
 
         Returns:
             STRtree: The Rtree object used to build the graph.
@@ -321,13 +322,21 @@ class GeoGraph:
             at most `tolerance` units apart. Defaults to 0.
 
         Raises:
-            ValueError: If `tolerance` < 0.
+            ValueError: If `tolerance` < 0, if `class_label` is not a column in
+            the dataframe, or if `attributes` contains column names not in the
+            dataframe.
 
         Returns:
             STRtree: The Rtree object used to build the graph.
         """
         if tolerance < 0.0:
             raise ValueError("`tolerance` must be greater than 0.")
+        if (
+            attributes is not None
+            and "class_label" not in attributes
+            or "class_label" not in df.columns
+        ):
+            raise ValueError("`class_label` must be a column in the dataframe.")
         # If no attribute list is given, all
         # columns in df are used
         if attributes is None:
