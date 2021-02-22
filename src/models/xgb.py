@@ -5,9 +5,9 @@ import xgboost as xgb
 import rioxarray
 import xarray as xr
 import rasterio
-from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, WGS84, PREFERRED_CRS
 import time
 from functools import wraps
+from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, WGS84, PREFERRED_CRS
 
 
 def timeit(method):
@@ -23,10 +23,8 @@ def timeit(method):
     # chuck it into part to stop interference.
     assert part != particles
     spin_round_time[key].append(tmp_log_data['SPIN_FORWARD'])
-    TODO make this function user friendly for getting the data from.
     USAGE:
-    import src.time_wrapper as twr
-    @twr.timeit
+    @ttimeit
     """
 
     @wraps(method)
@@ -91,6 +89,7 @@ def return_x_y_da():
 
     x_da = x_old_da.isel(yr=x_indices)
     y_da = y_old_da.isel(yr=y_indices)
+
     return x_da, y_da
 
 
@@ -126,6 +125,13 @@ def to_netcdf(npa, da):
 
 @timeit
 def train_xgb(train_X, train_Y, test_X, test_Y):
+    """
+    :param train_X: npa, float32
+    :param train_Y: npa, int16
+    :param test_X: npa, float32
+    :param test_Y: npa, int16
+    TODO: Make mapping between esa_cci and a reduced list of labels.
+    """
     wandb.init(project="xgbc-esa-cci", entity="sdat2")
     # label need to be 0 to num_class -1
     xg_train = xgb.DMatrix(train_X, label=train_Y)
@@ -136,13 +142,13 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
     param["objective"] = "multi:softmax"
     # scale weight of positive examples
     param["eta"] = 0.1
-    param["max_depth"] = 6
+    param["max_depth"] = 8
     param["silent"] = 1
-    param["nthread"] = 4
-    # param['num_class'] = 6 # I'm not sure I want to set this.
+    param["nthread"] = 16
+    param['num_class'] = np.max(train_Y) + 1 # I'm not sure I want to set this.
     wandb.config.update(param)
     watchlist = [(xg_train, "train"), (xg_test, "test")]
-    num_round = 5
+    num_round = 15
     bst = xgb.train(
         param,
         xg_train,
@@ -160,14 +166,14 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
 
 if __name__ == "__main__":
     # python3 src/models/xgb.py > log.txt
-    run_name = "INIT"
+    run_name = "8-DEEP"
     x_da, y_da = return_x_y_da()
     x_tr, y_tr = return_xy(x_da, y_da, yr=range(0, 15))
     x_te, y_te = return_xy(x_da, y_da, yr=range(15, 20))
     bst = train_xgb(x_tr, y_tr, x_te, y_te)
     x_all, y_all = return_xy(x_da, y_da, yr=range(0, 20))
-    y_pr_all = bst.predict(x_all)
+    xg_all = xgb.DMatrix(x_all, label=y_all)
+    y_pr_all = bst.predict(xg_all)
     y_pr_da = to_netcdf(y_pr_all, y_da)
     y_pr_da.to_netcdf(run_name + "_y.nc")
     bst.save_model(run_name + "_xgb.model")
-
