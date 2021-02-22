@@ -44,6 +44,11 @@ class GeoGraph:
 
         This class can load a pickled networkx graph directly, or create the
         graph from vector data, raster data, or a dataframe containing polygons.
+        Warning: loading and saving GeoGraphs uses pickle. Loading untrusted
+        data using the pickle module is not secure as it can execute arbitrary
+        code. Therefore, only load GeoGraphs that come from a trusted source.
+        See the pickle documentation for more details:
+        https://docs.python.org/3/library/pickle.html
 
         Args:
             dataframe (gpd.GeoDataFrame, optional): A geopandas dataframe
@@ -111,7 +116,7 @@ class GeoGraph:
 
         print(
             f"Graph successfully loaded with {self.graph.number_of_nodes()} nodes",
-            f"and {self.graph.number_of_edges()} edges",
+            f"and {self.graph.number_of_edges()} edges.",
         )
 
     @property
@@ -207,6 +212,9 @@ class GeoGraph:
         if array is None and raster_path is None:
             raise ValueError("One of `raster_path` or `array` arguments must be used.")
         elif array is None and raster_path is not None:
+            raster_path = pathlib.Path(raster_path)
+            if raster_path.suffix not in (".tiff", ".tif"):
+                raise ValueError("Argument `raster_path` should be a GeoTiff file.")
             with rasterio.Env():
                 with rasterio.open(raster_path) as image:
                     data = image.read(1)  # Read band 1
@@ -351,15 +359,15 @@ class GeoGraph:
                 neighbours: List[int] = [
                     id_dict[id(nbr)]
                     for nbr in tree.query(new_polygon)
-                    if nbr.intersects(new_polygon)
-                    and id_dict[id(nbr)] != id_dict[id(polygon)]
+                    if id_dict[id(nbr)] != id_dict[id(polygon)]
+                    and nbr.intersects(new_polygon)
                 ]
             else:
                 neighbours = [
                     id_dict[id(nbr)]
                     for nbr in tree.query(polygon)
-                    if nbr.intersects(polygon)
-                    and id_dict[id(nbr)] != id_dict[id(polygon)]
+                    if id_dict[id(nbr)] != id_dict[id(polygon)]
+                    and nbr.intersects(polygon)
                 ]
             # this dict maps polygon indices in df to a list
             # of neighbouring polygon indices
