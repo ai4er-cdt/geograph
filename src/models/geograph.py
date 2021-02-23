@@ -52,8 +52,11 @@ class GeoGraph:
         Class for the fragmentation graph.
 
         This class can load a pickled networkx graph directly, or create the
-        graph from a path to vector data, a path to raster data, a numpy array
-        containing raster data, or a dataframe containing polygons.
+        graph from 
+            - a path to vector data (.shp, .gpkg)
+            - a path to raster data  (.tif, .tiff, .geotif, .geotiff)
+            - a numpy array containing raster data
+            - a dataframe containing polygons.
 
         Note that when loading vector data, the class label column may not be
         named "class_label", which will cause an error. If loading from a
