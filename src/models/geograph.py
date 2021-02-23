@@ -213,6 +213,8 @@ class GeoGraph:
         """
         Load raster data from a GeoTiff file, then load graph and rtree.
 
+        Note: Assumes that relevant data is stored in the first band (band 1) by default.
+
         Args:
             raster_path (pathlib.Path): A path to a file of raster data in
             GeoTiff format.
