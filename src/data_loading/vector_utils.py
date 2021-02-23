@@ -1,9 +1,12 @@
-"""Utils for working with vector data in python using shapely and geopandas"""
+"""Utils for working with vector data in python using shapely and geopandas."""
+
+import collections.abc
+import os
+import pathlib
+from typing import Any, Dict, Iterable, Optional, Union
 
 import geopandas as gpd
-import collections.abc
 from shapely.geometry.base import BaseGeometry
-from typing import Union, Iterable, Dict, Any, Optional
 
 
 def shapely_to_frame(
@@ -13,7 +16,7 @@ def shapely_to_frame(
     **kwargs
 ) -> gpd.GeoDataFrame:
     """
-    Turn shapely object into geopandas dataframe
+    Turn shapely object into geopandas dataframe.
 
     Convenience function to quickly turn shapely objects to geopandas dataframes
     within one line, regardless of whether they are a single object (e.g. Point)
@@ -34,7 +37,6 @@ def shapely_to_frame(
     Returns:
         gpd.GeoDataFrame: The geodataframe that contains the shapes and their attributes
     """
-
     is_multiple = isinstance(shapes, collections.abc.Iterable)
 
     # Add shapely geometries
@@ -48,3 +50,52 @@ def shapely_to_frame(
         data[key] = val if is_multiple else [val]
     # Convert to dataframe and return
     return gpd.GeoDataFrame(data, crs=crs)
+
+
+def convert_to_gpkg(
+    vector_path: Union[str, os.PathLike],
+    save_path: Union[str, os.PathLike],
+    driver: str = None,
+    rename_class_label: bool = False,
+    class_label_column: str = None,
+) -> gpd.GeoDataFrame:
+    """
+    Convert saved vector data file to GPKG format.
+
+    This function allows for the renaming of a column in the loaded dataframe
+    to "class_label", which is required to load the data as a `GeoGraph`. The
+    `driver` argument also allows for the loading of vector data in any format
+    supported by Fiona. A list of available drivers can be found at
+    https://github.com/Toblerity/Fiona/blob/master/fiona/drvsupport.py.
+
+    Args:
+        vector_path (Union[str, os.PathLike]): A path to a file of vector data.
+        save_path (Union[str, os.PathLike]): A path to a GPKG file to save the
+        data.
+        driver (str, optional): A format to load the data in. Defaults to None,
+        which will load a Shapefile.
+        rename_class_label (bool, optional): Whether or not to rename a class
+        label column. Defaults to False.
+        class_label_column (str, optional): The name of the class label column
+        to rename. Defaults to None.
+
+    Raises:
+        ValueError: If the `save_path` is not a GPKG file.
+
+    Returns:
+        gpd.GeoDataFrame: The loaded dataframe.
+    """
+    vector_path, save_path = pathlib.Path(vector_path), pathlib.Path(save_path)
+    if save_path.suffix != ".gpkg":
+        raise ValueError("`save_path` must be a GPKG file.")
+
+    drivers = ["ESRI Shapefile"]
+    if driver is not None:
+        drivers.append(driver)
+
+    df = gpd.read_file(vector_path, enabled_drivers=drivers)
+    if rename_class_label:
+        df = df.rename(columns={class_label_column: "class_label"})
+
+    df.to_file(save_path, driver="GPKG")
+    return df
