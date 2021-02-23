@@ -225,7 +225,7 @@ class GeoGraph:
         """
         with rasterio.Env():
             with rasterio.open(raster_path) as image:
-                # Load band 1
+                # Load band 1 (Assumes that landcover map is stored in first band by default)
                 data = image.read(1)
         return self._load_from_raster(data, save_path, **raster_kwargs)
 
