@@ -1,11 +1,13 @@
 """
-This module trains an xgboost model using preprocessed inputs.
+xgb.py
+======
+This module trains an xgboost classification model using preprocessed inputs.
 X: Landsat data.
 Y: ESA CCI.
 usage: 
     python3 src/models/xgb.py 
 
-currently training parameters are changed inside train_xgb()
+Currently training parameters are changed inside train_xgb()
 
 TODO: some functions need to be moved to separate files.
 TODO: the animation function could be generalised.
@@ -15,6 +17,7 @@ TODO: Could extend the training/testing data.
 import os
 import copy
 import numpy as np
+import numpy.ma as ma
 import wandb
 import xgboost as xgb
 import rioxarray
@@ -27,6 +30,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, WGS84, PREFERRED_CRS
 from src.data_loading.landcover_plot_utils import classes_to_rgb
+SAT_DIR = "/gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data"
 
 
 def timeit(method):
@@ -43,7 +47,7 @@ def timeit(method):
     assert part != particles
     spin_round_time[key].append(tmp_log_data['SPIN_FORWARD'])
     USAGE:
-    @ttimeit
+    @timeit
     """
 
     @wraps(method)
@@ -57,20 +61,20 @@ def timeit(method):
         else:
             print("%r  %2.5f s\n" % (method.__name__, (te - ts)))
         return result
-
     return timed
 
 
 @timeit
 def return_path_dataarray():
-    """makes path to the google earth engine landsat data."""
-    incomplete_years = [1984, 1994, 2002, 2003, 2008]
+    """
+    makes path to the google earth engine landsat data.
+    """
+    incomplete_years = [] # [1984, 1994, 2002, 2003, 2008] 
+    # previously these were ignored, now algorithm is robust to absence.
     years = [year for year in range(1984, 2021) if year not in incomplete_years]
     im_type = ["hab", "chern"]
     month_groups = ["JFM", "AMJ", "JAS", "OND"]
-    directory = (
-        "/gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data"
-    )
+    directory = SAT_DIR
     # year, month_group, im_type
     path_array = np.empty([len(years), len(month_groups), len(im_type)], dtype=object)
     for year in years:
@@ -85,33 +89,140 @@ def return_path_dataarray():
                         if str(value) in full_name:
                             indices.append(counter)
                 path_array[indices[0], indices[1], indices[2]] = full_name
-    da = xr.DataArray(
-        data=path_array,
-        dims=["yr", "mn", "ty"],
-        coords=dict(
-            yr=years,
-            mn=month_groups,
-            ty=im_type,
-        ),
-        attrs=dict(
-            description="Paths to tif.",
-        ),
-    )
-    return da
+    return xr.DataArray(
+            data=path_array,
+            dims=["yr", "mn", "ty"],
+            coords=dict(
+                yr=years,
+                mn=month_groups,
+                ty=im_type,
+            ),
+            attrs=dict(
+                description="Paths to tif.",
+            ),
+        )
+
+
+@timeit
+def return_normalized_array(
+    file_name=SAT_DIR + "/2012/L7_chern_2012_AMJ.tif",
+    filter_together=True,
+    high_limit=3e3,
+    low_limit=0,
+    high_filter=True,
+    low_filter=True,
+    common_norm=True,
+):
+    """
+    Function takes name of geotiff and converts it to a preprocessed numpy array.
+    TODO: Change names to make it more obvious what's going on.
+    :param file_name: full path to .tif image.
+    :param filter_together: if True will only display points where all 3 members of a band
+            are below the threshold.
+    :param high_limit: The aforementioned threshold.
+    :param low_limit: Adding a lower threshold.
+    :param high_filter: Bool, whether to turn the high limit on.
+    :param low_filter: Bool, whether to turn the lower limit on.
+    :param common_norm: Bool, whether to norm between the upper and lower limit.
+    :return: numpy float array
+    """
+    # Open the file:
+    raster = rasterio.open(file_name)
+    
+    # Convert to numpy arrays
+    if "L8" in file_name :
+        # LandSat8 currently stored in different bands for R, G, B.
+        red, green, blue = raster.read(2), raster.read(3), raster.read(4)
+    else:
+        red, green, blue = raster.read(1), raster.read(2), raster.read(3)
+    
+    # Normalize bands into 0.0 - 1.0 scale
+    def norm(array):
+        array_min, array_max = np.nanmin(array), np.nanmax(array)
+        if common_norm:
+            # This doesn't guarantee it's between 0 and 1 if the filter is off.
+            return array / (high_limit - low_limit)
+        else:
+            return (array - array_min) / (array_max - array_min)
+    
+    def filt(data_array, filter_array):
+        return ma.masked_where(filter_array, data_array).filled(np.nan)
+
+    def filter_sep_and_norm(array):
+        if high_filter:
+            array = filt(array, array >= high_limit).filled(np.nan)
+        if low_filter:
+            array = filt(array, array <= low_limit).filled(np.nan)
+        return norm(array)
+
+    def filter_tog_and_norm(red, green, blue):
+        def comb_and_filt(red, green, blue, filter_red, filter_green, filter_blue):
+            filter_array = np.logical_or(
+                np.logical_or(filter_red, filter_green), filter_blue
+            )
+            return (
+                filt(red, filter_array),
+                filt(green, filter_array),
+                filt(blue, filter_array),
+            )
+
+        if high_filter:
+            filter_red, filter_green, filter_blue = (
+                red >= high_limit,
+                green >= high_limit,
+                blue >= high_limit,
+            )
+            red, green, blue = comb_and_filt(
+                red, green, blue, filter_red, filter_green, filter_blue
+            )
+        if low_filter:
+            filter_red, filter_green, filter_blue = (
+                red <= low_limit,
+                green <= low_limit,
+                blue <= low_limit,
+            )
+            red, green, blue = comb_and_filt(
+                red, green, blue, filter_red, filter_green, filter_blue
+            )
+        return norm(red), norm(green), norm(blue)
+
+    # Normalize band DN
+    if not filter_together:
+        blue_norm, green_norm, red_norm = (
+            filter_sep_and_norm(blue),
+            filter_sep_and_norm(green),
+            filter_sep_and_norm(red),
+        )
+    else:
+        red_norm, green_norm, blue_norm = filter_tog_and_norm(red, green, blue)
+    # Stack bands
+    # TODO: Have these been put in the wrong order?
+    bgr = np.dstack((blue_norm, green_norm, red_norm))
+    # View the color composite
+    return bgr
 
 
 @timeit
 def create_netcdfs():
-    """create the landsat preprocessed data"""
+    """
+    create the landsat preprocessed data.
+    """
     path_da = return_path_dataarray()
     for ty, ty_v in enumerate(path_da.coords["ty"].values.tolist()):
         for mn, mn_v in enumerate(path_da.coords["mn"].values.tolist()):
             da_list = []
-            for yr in tqdm(range(32), ascii=True, desc=ty_v + "  " + mn_v):
+            for yr in tqdm(range(len(path_da.coords["yr"].values)), ascii=True, desc=ty_v + "  " + mn_v):
                 file_name = path_da.isel(yr=yr, mn=mn, ty=ty).values.tolist()
-                xr_da = xr.open_rasterio(file_name)
+                if file_name != None and os.path.exists(file_name):
+                    xr_da = xr.open_rasterio(file_name)
+                    data = return_normalized_array(file_name)
+                else: 
+                    file_name = SAT_DIR + "/2012/L7_chern_2012_AMJ.tif"
+                    xr_da = xr.open_rasterio(file_name)
+                    data = return_normalized_array(file_name)  
+                    data[:] = np.nan    # make everything nan if the file didn't exist.
                 da = xr.DataArray(
-                    data=return_normalized_array(file_name),
+                    data=data,
                     dims=["y", "x", "band"],
                     coords=dict(
                         y=xr_da.coords["y"].values,
@@ -120,14 +231,12 @@ def create_netcdfs():
                         year=path_da.isel(yr=yr).coords["yr"].values,
                     ),
                     attrs=dict(
-                        description="Normalized reflectance at "+ ty_v +".",
+                        description="Normalized reflectance at " + ty_v + ".",
                     ),
                 )
                 da_list.append(da)
             cat_da = xr.concat(da_list, "yr")
-            directory = (
-                "/gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data/nc_" + ty_v
-            )
+            directory = os.path.join(SAT_DIR, "nc_" + ty_v)
             if not os.path.exists(directory):
                 os.mkdir(directory)
             cat_da.astype("float32").to_netcdf(os.path.join(directory, ty_v + "_" + mn_v + ".nc"))
@@ -136,6 +245,8 @@ def create_netcdfs():
 @timeit
 def animate_prediction(x_da, y_da, pred_da, video_path="joint_val.mp4"):
     """
+    This function animates the inputs, labels, and the corresponding predictions of the model.
+    TODO: improve resolution, and make it an input parameter.
     :param x_da: xarray.Dataarray, 3 bands, 4 seasons, 20 years
     :param y_da: xarray.Dataarray, 1 band, 20 years
     :param pred_da: xarray.Dataarray, 1 band, 20 years
@@ -238,72 +349,76 @@ def animate_prediction(x_da, y_da, pred_da, video_path="joint_val.mp4"):
         x_da, y_da, pred_da,
         video_path,
         mask_type=None,
-        fps=10,
+        fps=5,
     )
 
 
 @timeit
-def return_x_y_da():
+def return_x_y_da(
+    take_esa_coords=False
+):
     """
     Load the preprocced Landsat and ESA cci data on the same format of xarray.dataaray grids.
     # TODO: Find a way to memoise this so that it doesn't need to be repeated every time.
-    # TODO: Try different interpolation schemes.
+    :param take_esa_coords: bool, if true use the lower resolution grid from esa ccis
     current time taken to run: 'return_x_y_da'  431.59196 s
     """
-    input_filepaths = [
-        GWS_DATA_DIR / "esa_cci_rois" / f"esa_cci_{year}_chernobyl.geojson"
-        for year in range(1992, 2016)
-    ]
 
-    da_list = []
-
-    for i in range(len(input_filepaths)):
-        file_name = input_filepaths[i]
-        da_list.append(xr.open_rasterio(file_name).isel(band=0))
-
-    y_old_da = xr.concat(da_list, "yr")
-    y_old_da = y_old_da.assign_coords(yr=("yr", list(range(1992, 2016))))
+    def return_y_da():
+        input_filepaths = [
+                GWS_DATA_DIR / "esa_cci_rois" / f"esa_cci_{year}_chernobyl.geojson"
+                for year in range(1992, 2016)
+            ]
+        da_list = []
+        for i in range(len(input_filepaths)):
+            file_name = input_filepaths[i]
+            da_list.append(xr.open_rasterio(file_name).isel(band=0))
+        return xr.concat(da_list, "yr").assign_coords(yr=("yr", list(range(1992, 2016))))
 
     @timeit
-    def return_da(ty_v="chern", mn_v="JAS"):
-        directory = (
-            "/gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data/nc_"
-            + ty_v
-        )
+    def return_part_x_da(ty_v="chern", mn_v="JAS"):
+        directory = os.path.join(SAT_DIR, "nc_"+ ty_v)
         return xr.open_dataarray(os.path.join(directory, ty_v + "_" + mn_v + ".nc"))
-
-    mn_l = ["JFM", "AMJ", "JAS", "OND"]
-    x_old_da = xr.concat(
-        [
-            return_da(mn_v=x).reindex(
-                x=y_old_da.coords["x"].values,
-                y=y_old_da.coords["y"].values,
+    
+    @timeit
+    def reindex_da(mould_da, putty_da):
+        putty_da.reindex(
+                x=mould_da.coords["x"].values,
+                y=mould_da.coords["y"].values,
                 method="nearest",
             )
-            for x in mn_l
-        ],
-        "mn",
-    ).assign_coords(mn=("mn", mn_l))
 
+    mn_l = ["JFM", "AMJ", "JAS", "OND"]
+
+    if take_esa_coords:
+        y_full_da = return_y_da()
+        x_full_da = xr.concat(
+            [reindex_da(y_full_da, return_part_x_da(mn_v=mn_v)) for mn_v in mn_l ],
+            "mn").assign_coords(mn=("mn", mn_l))
+    else:
+        x_full_da = xr.concat(
+            [return_part_x_da(mn_v=mn_v) for mn_v in mn_l],
+            "mn").assign_coords(mn=("mn", mn_l))
+        y_full_da = reindex_da(x_full_da, return_y_da())
+        
     def intersection(lst1, lst2):
         return [value for value in lst1 if value in lst2]
 
-    y_years = y_old_da.coords["yr"].values.tolist()
-    x_years = x_old_da.coords["yr"].yr.to_dict()["coords"]["year"]["data"]
+    y_years = y_full_da.coords["yr"].values.tolist()
+    x_years = x_full_da.coords["yr"].yr.to_dict()["coords"]["year"]["data"]
     int_years = intersection(y_years, x_years)
-    x_indices = [x_years.index(x) for x in int_years]
-    y_indices = [y_years.index(x) for x in int_years]
-
-    x_da = x_old_da.isel(yr=x_indices)
-    y_da = y_old_da.isel(yr=y_indices)
-
-    return x_da, y_da
+    x_yr_i = [x_years.index(x) for x in int_years];  y_yr_i = [y_years.index(x) for x in int_years]
+    return x_full_da.isel(yr=x_yr_i), y_full_da.isel(yr=y_yr_i)
 
 
 @timeit
 def return_xy(x_da, y_da, yr=5):
     """
     return the x and y numpy arrays for a given number of years.
+    :param x_da: xarray.dataarray, inputs
+    :param y_da: xarray.datarray, labels
+    :param yr: ints, single or list
+    :return: x_val, y_val
     """
     x_val = np.asarray(
         [
@@ -347,19 +462,19 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
     """
     wandb.init(project="xgbc-esa-cci", entity="sdat2")   # my id for wandb
     # label need to be 0 to num_class -1
-    xg_train = xgb.DMatrix(train_X, label=train_Y)       # make train DMatrix
-    xg_test = xgb.DMatrix(test_X, label=test_Y)          # make test DMatrix
+    xg_train = xgb.DMatrix(train_X, label=train_Y)     # make train DMatrix
+    xg_test = xgb.DMatrix(test_X, label=test_Y)        # make test DMatrix
     # setup parameters for xgboost
     param = {}
-    param["objective"] = "multi:softmax"    # use softmax multi-class classification
-    param["eta"] = 0.1                      # scale weight of positive examples
-    param["max_depth"] = 4                  # max_depth
+    param["objective"] = "multi:softmax"      # use softmax multi-class classification
+    param["eta"] = 0.1                        # scale weight of positive examples
+    param["max_depth"] = 4                    # max_depth
     param["silent"] = 1
-    param["nthread"] = 16                   # number of threads
+    param["nthread"] = 16                     # number of threads
     param['num_class'] = np.max(train_Y) + 1  # max size of labels.
     wandb.config.update(param)
     watchlist = [(xg_train, "train"), (xg_test, "test")]
-    num_round = 25  # how many training epochs
+    num_round = 5  # how many training epochs
     bst = xgb.train(
         param,
         xg_train,
@@ -368,18 +483,20 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
         callbacks=[wandb.xgboost.wandb_callback()],
     )
     # get prediction
-    pred = bst.predict(xg_test)          # predict for the test set.
+    pred = bst.predict(xg_test)                                 # predict for the test set.
     error_rate = np.sum(pred != test_Y) / test_Y.shape[0]
     print("Test error using softmax = {}".format(error_rate))
-    wandb.summary["Error Rate"] = error_rate
+    wandb.log({"Error Rate": error_rate})
     return bst
 
 
 if __name__ == "__main__":
-    # python3 src/models/xgb.py > log.txt
-    # TODO: Make outputs save to a sensible directory
-    # create_netcdfs() # preprocess data.
-    run_name = "4-DEEP"                                   # memorable run-name for saving.
+    # usage:  python3 src/models/xgb.py > log.txt
+    # create_netcdfs() # uncomment to preprocess data.
+    run_name = "4-DEEP"                                    # memorable run-name for saving.
+    direc = run_name
+    if not os.path.exists(direc):                          # check if the direc exists.
+        os.mkdir(direc)                                    # make the directory if it doesn't exist.
     x_da, y_da = return_x_y_da()                           # load preprocessed data from netcdfs
     x_tr, y_tr = return_xy(x_da, y_da, yr=range(0, 15))    # load numpy training data 
     x_te, y_te = return_xy(x_da, y_da, yr=range(15, 20))   # load numpy test data
@@ -388,7 +505,6 @@ if __name__ == "__main__":
     xg_all = xgb.DMatrix(x_all, label=y_all)               # pass all data to xgb data matrix
     y_pr_all = bst.predict(xg_all)                         # predict whole time period using model
     y_pr_da = to_netcdf(y_pr_all, y_da)                    # transform full prediction to dataarray.
-    y_pr_da.to_netcdf(run_name + "_y.nc")                  # save to netcdf
-    bst.save_model(run_name + "_xgb.model")                # save model using xgboost
-    animate_prediction(x_da, y_da, y_pr_da, video_path=run_name + "_joint_val.mp4") # animate prediction vs inputs.
-
+    y_pr_da.to_netcdf(os.path.join(direc, run_name  + "_y.nc"))     # save to netcdf
+    bst.save_model(os.path.join(direc, run_name + "_xgb.model"))     # save model using xgboost
+    animate_prediction(x_da, y_da, y_pr_da, video_path=os.path.join(direc, run_name + "_joint_val.mp4"))  # animate prediction vs inputs.
