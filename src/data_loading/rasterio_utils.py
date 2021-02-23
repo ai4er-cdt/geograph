@@ -42,11 +42,11 @@ def get_thumbnail(
             from nearest neighbour resampling.
     """
     aspect_ratio = data.height / data.width
-    if not height and not width:
+    if height is None and width is None:
         height = 100
-    elif height and not width:
+    elif height is not None and width is None:
         width = int(height / aspect_ratio)
-    elif width and not height:
+    elif width is not None and height is None:
         height = int(width * aspect_ratio)
 
     # Output height and/or width must be specified.
@@ -115,11 +115,11 @@ def read_from_lat_lon(
 
 def polygonise(
     data_array: np.ndarray,
-    mask: Optional[np.ndarray] = None,
+    mask: Optional[np.ndarray],
+    transform: affine.Affine,
+    crs: Optional[str],
     connectivity: int = 4,
     apply_buffer: bool = True,
-    transform: affine.Affine = affine.identity,
-    crs: Optional[str] = None,
 ):
     """
     Convert 2D numpy array containing raster data into polygons.
@@ -133,18 +133,18 @@ def polygonise(
 
     Args:
         data_array (np.ndarray): 2D numpy array with the raster data.
-        mask (Optional[np.ndarray], optional): Boolean mask that can be applied.
-        Values of False or 0 will be excluded from feature generation. Must
-        evaluate to bool.
-        connectivity (int, optional): Use 4 or 8 pixel connectivity for grouping
-        pixels into features. 8 can cause issues, Defaults to 4.
-        apply_buffer (bool, optional): Apply shapely buffer function to the
-        polygons after polygonising. This can fix issues with the polygonisation
-        creating invalid geometries.
+        mask (np.ndarray, optional): Boolean mask that can be applied over
+        the polygonisation. Defaults to None.
         transform (affine.Affine, optional): Affine transformation to apply
         when polygonising. Defaults to the identity transform.
-        crs (Optional[str], optional): Coordinate reference system to set on the
+        crs (str, optional): Coordinate reference system to set on the
         resulting dataframe. Defaults to None.
+        connectivity (int, optional): Use 4 or 8 pixel connectivity for
+        grouping pixels into features. 8 can cause issues, Defaults to 4.
+        apply_buffer (bool, optional): Apply shapely buffer function to the
+        polygons after polygonising. This can fix issues with the
+        polygonisation creating invalid geometries.
+
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame containing polygon objects.
