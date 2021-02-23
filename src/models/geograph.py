@@ -344,12 +344,12 @@ class GeoGraph:
         """
         if tolerance < 0.0:
             raise ValueError("`tolerance` must be greater than 0.")
-        # if (
-        #    attributes is not None
-        #    and "class_label" not in attributes
-        #    or "class_label" not in df.columns
-        # ):
-        #    raise ValueError("`class_label` must be a column in the dataframe.")
+        if (
+            attributes is not None
+            and "class_label" not in attributes
+            or "class_label" not in df.columns
+        ):
+            raise ValueError("`class_label` must be a column in the dataframe.")
         if (
             attributes is not None
             and "geometry" not in attributes
