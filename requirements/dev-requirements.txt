@@ -39,6 +39,7 @@ geopy               # convenient API requests to geocoders
 
 # additional
 networkx            # manipulating graph data
+rtree               # rtree library
 
 # gdrive functionality
 google-api-python-client

@@ -10,7 +10,7 @@ import pathlib
 import pickle
 from copy import deepcopy
 from itertools import zip_longest
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import geopandas as gpd
 import networkx as nx
@@ -101,7 +101,7 @@ class GeoGraph:
         """
         super().__init__()
         self._graph = nx.Graph()
-        self._habitats = {}
+        self._habitats: Dict[str, nx.Graph] = {}
 
         if raster_save_path is not None:
             raster_save_path = pathlib.Path(raster_save_path)
@@ -117,14 +117,16 @@ class GeoGraph:
             assert load_path.exists()
             # Load from saved graph
             if load_path.suffix in (".pickle", ".pkl", ".gz", ".bz2"):
-                self._rtree = self._load_from_graph_path(load_path)
+                self._rtree, self._df = self._load_from_graph_path(load_path)
                 load_from_graph = True
             # Load from saved vector data
             elif load_path.suffix in (".shp", ".gpkg"):
-                self._rtree = self._load_from_vector_path(load_path, attributes)
+                self._rtree, self._df = self._load_from_vector_path(
+                    load_path, attributes
+                )
             # Load from saved raster data
             elif load_path.suffix in (".tiff", ".tif", ".geotif", ".geotiff"):
-                self._rtree = self._load_from_raster_path(
+                self._rtree, self._df = self._load_from_raster_path(
                     load_path, raster_save_path, **kwargs
                 )
             else:
@@ -136,12 +138,20 @@ class GeoGraph:
         # Load from objects in memory
         # Load from dataframe
         elif isinstance(data, gpd.GeoDataFrame):
-            self._rtree = self._load_from_dataframe(
+            self._rtree, self._df = self._load_from_dataframe(
                 data, attributes, tolerance=self.tolerance
             )
         # Load from raster array
         elif isinstance(data, np.ndarray):
-            self._rtree = self._load_from_raster(data, raster_save_path, **kwargs)
+            self._rtree, self._df = self._load_from_raster(
+                data, raster_save_path, **kwargs
+            )
+        else:
+            raise ValueError(
+                """Type of `data` unknown. Must be a dataframe, numpy
+                             array, or file path."""
+            )
+
         # Save resulting graph, if we didn't load from graph.
         if not load_from_graph and graph_save_path is not None:
             graph_save_path = pathlib.Path(graph_save_path)
@@ -177,12 +187,17 @@ class GeoGraph:
         """Return habitat dictionary."""
         return self._habitats
 
+    @property
+    def df(self) -> gpd.GeoDataFrame:
+        """Return dataframe containing polygons."""
+        return self._df
+
     def _load_from_vector_path(
         self,
         vector_path: pathlib.Path,
         attributes: Optional[List[str]] = None,
         load_slice=None,
-    ) -> rtree_lib.index.Index:
+    ) -> Tuple[rtree_lib.index.Index, gpd.GeoDataFrame]:
         """
         Load graph and rtree with vector data from GeoPackage or shape file.
 
@@ -195,7 +210,8 @@ class GeoGraph:
             load. Defaults to None, meaning load all rows.
 
         Returns:
-            rtree_lib.index.Index: The Rtree object used to build the graph.
+            Tuple: A tuple with the Rtree object used to build the graph and the
+            dataframe containing polygon objects.
         """
         # First try to load as GeoPackage, then as Shapefile.
         if slice is not None:
@@ -215,7 +231,7 @@ class GeoGraph:
         raster_path: pathlib.Path,
         save_path: Optional[pathlib.Path],
         **raster_kwargs,
-    ) -> rtree_lib.index.Index:
+    ) -> Tuple[rtree_lib.index.Index, gpd.GeoDataFrame]:
         """
         Load raster data from a GeoTiff file, then load graph and rtree.
 
@@ -240,7 +256,7 @@ class GeoGraph:
 
     def _load_from_raster(
         self, data_array: np.ndarray, save_path: Optional[pathlib.Path], **raster_kwargs
-    ) -> rtree_lib.index.Index:
+    ) -> Tuple[rtree_lib.index.Index, gpd.GeoDataFrame]:
         """
         Load raster data, polygonise, then load graph and rtree.
 
@@ -258,7 +274,8 @@ class GeoGraph:
             but Shapefiles also work.
 
         Returns:
-            rtree_lib.index.Index: The Rtree object used to build the graph.
+            Tuple: A tuple with the Rtree object used to build the graph and the
+            dataframe containing polygon objects.
         """
         vector_df = polygonise(data_array=data_array, **raster_kwargs)
         if save_path is not None:
@@ -270,7 +287,9 @@ class GeoGraph:
             vector_df, attributes=["geometry", "class_label"], tolerance=self.tolerance
         )
 
-    def _load_from_graph_path(self, graph_path: pathlib.Path) -> rtree_lib.index.Index:
+    def _load_from_graph_path(
+        self, graph_path: pathlib.Path
+    ) -> Tuple[rtree_lib.index.Index, gpd.GeoDataFrame]:
         """
         Load networkx graph and rtree objects from a pickle file.
 
@@ -279,7 +298,8 @@ class GeoGraph:
             with gzip or bz2.
 
         Returns:
-            rtree_lib.index.Index: The Rtree object used to build the graph.
+            Tuple: A tuple with the Rtree object used to build the graph and the
+            dataframe containing polygon objects.
         """
         if graph_path.suffix == ".bz2":
             with bz2.BZ2File(graph_path, "rb") as bz2_file:
@@ -292,7 +312,7 @@ class GeoGraph:
                 data = pickle.load(file)
 
         self.graph = data["graph"]
-        return data["rtree"]
+        return data["rtree"], data["dataframe"]
 
     def _save_graph(self, save_path: pathlib.Path) -> None:
         """
@@ -302,7 +322,7 @@ class GeoGraph:
             save_path (pathlib.Path): Path to a pickle file. Can be compressed
             with gzip or bz2 by passing filenames ending in `gz` or `bz2`.
         """
-        data = {"graph": self.graph, "rtree": self.rtree}
+        data = {"graph": self.graph, "rtree": self.rtree, "dataframe": self.df}
         if save_path.suffix == ".bz2":
             with bz2.BZ2File(save_path, "wb") as bz2_file:
                 pickle.dump(data, bz2_file)
@@ -318,7 +338,7 @@ class GeoGraph:
         df: gpd.GeoDataFrame,
         attributes: Optional[List[str]] = None,
         tolerance: float = 0.0,
-    ) -> rtree_lib.index.Index:
+    ) -> Tuple[rtree_lib.index.Index, gpd.GeoDataFrame]:
         """
         Convert geopandas dataframe to networkx graph.
 
@@ -340,7 +360,8 @@ class GeoGraph:
             dataframe.
 
         Returns:
-            rtree_lib.index.Index: The Rtree object used to build the graph.
+            Tuple: A tuple with the Rtree object used to build the graph and the
+            dataframe containing polygon objects.
         """
         if tolerance < 0.0:
             raise ValueError("`tolerance` must be greater than 0.")
@@ -362,14 +383,22 @@ class GeoGraph:
             attributes = df.columns.tolist()
         elif not set(attributes).issubset(df.columns):
             raise ValueError("`attributes` must only contain column names in `df`.")
+        else:
+            # If attributes exists, drop all other columns.
+            df = df[attributes]
 
+        # Reset index to ensure consistent indices
+        df = df.reset_index()
+        # Using this dict and iterating through it is slightly faster than
+        # iterating through df due to the dataframe overhead
         geom: Dict[int, shapely.Polygon] = df.geometry.to_dict()
+        class_labels: List[int] = df.class_label.tolist()
         # Build Rtree from geometry
         tree = rtree_lib.index.Index()
         for index, polygon in geom.items():
             tree.insert(index, polygon.bounds)
-        # this dict maps polygon indices in df to a list
-        # of neighbouring polygon indices
+        # this dict maps polygon row numbers in df to a list
+        # of neighbouring polygon row numbers
         graph_dict = {}
 
         # Creating nodes (=vertices) and finding neighbors
@@ -393,19 +422,15 @@ class GeoGraph:
                     for nbr_index in tree.intersection(polygon.bounds)
                     if nbr_index != index and geom[nbr_index].intersects(polygon)
                 ]
-            # this dict maps polygon indices in df to a list
-            # of neighbouring polygon indices
+
             graph_dict[index] = neighbours
-            row = df.loc[index]
-            # getting dict of column values in row
-            row_attributes = dict(zip(attributes, [row[attr] for attr in attributes]))
             # add each polygon as a node to the graph with all attributes
             self.graph.add_node(
                 index,
-                rep_point=polygon.representative_point(),
+                rep_point=polygon.representative_point().coords[0],
                 area=polygon.area,
                 perimeter=polygon.length,
-                **row_attributes,
+                class_label=class_labels[index],
             )
 
         # iterate through the dict and add edges between neighbouring polygons
@@ -415,7 +440,7 @@ class GeoGraph:
             for neighbour_id in neighbours:
                 self.graph.add_edge(polygon_id, neighbour_id)
 
-        return tree
+        return tree, df
 
     def merge_nodes(
         self, node_list: List[int], class_label: int, final_index: int = None
@@ -445,27 +470,30 @@ class GeoGraph:
             and self.graph.has_node(final_index)
         ):
             raise ValueError(
-                "`final_index` must not be an existing node not in `node_list`."
+                "`final_index` cannot be an existing node that is not in `node_list`."
             )
         if final_index is None:
             final_index = self.graph.number_of_nodes
 
         adjacency_list = set()
         for node in node_list:
-            adjacency_list.update(self.graph.neighbors(node))
-        polygon = unary_union(
-            [self.graph.nodes[node]["geometry"] for node in node_list]
-        )
-
+            adjacency_list.update(list(self.graph.neighbors(node)))
+        polygon = unary_union([self._df.at[node, "geometry"] for node in node_list])
+        # Remove nodes from graph and rows from df
         self.graph.remove_nodes_from(node_list)
+        self._df = self._df.drop(node_list)
+        # Add final node to graph and df
         self.graph.add_node(
             final_index,
-            rep_point=polygon.representative_point(),
+            rep_point=polygon.representative_point().coords[0],
             area=polygon.area,
             perimeter=polygon.length,
-            geometry=polygon,
             class_label=class_label,
         )
+        data = {"class_label": class_label, "geometry": polygon}
+        missing_cols = {key: None for key in set(self._df.columns) - set(data.keys())}
+        self._df.loc[final_index] = gpd.GeoSeries({**data, **missing_cols})
+        # Add edges from final node to all neighbours of the original
         self.graph.add_edges_from(
             zip_longest([final_index], adjacency_list, fillvalue=final_index)
         )
@@ -473,30 +501,66 @@ class GeoGraph:
     def add_habitat(
         self,
         name: str,
-        valid_classes: List[int],
+        valid_classes: set,
         max_travel_distance: float,
-        barrier_classes: List[int],
-    ):
-        """Add habitat graph to habitats dictionary."""
+    ) -> None:
+        """
+        Create habitat graph and store it in habitats dictionary.
+
+        Creates a habitat subgraph of the main GeoGraph that only contains edges
+        between nodes in `valid_classes` as long as they are less than
+        `max_travel_distance` apart. All nodes which are not in `valid_classes`
+        are not in the resulting habitat graph.
+
+        Args:
+            name (str): The name of the habitat.
+            valid_classes (set): A set of class labels which make up the habitat.
+            max_travel_distance (float): The maximum distance the animal(s) in
+            the habitat can travel through non-habitat areas. The habitat graph
+            will contain edges between any two nodes that have a class label in
+            `valid_classes`, as long as they are less than `max_travel_distance`
+            units apart.
+        """
         hgraph: nx.Graph = deepcopy(self.graph)
         # Remove all edges in the graph, then at the end we only have edges
         # between nodes less than `max_travel_distance` apart
         hgraph.clear_edges()
-
+        # Vectorised buffer on the entire df to calculate the expanded polygons
+        # used to get intersections.
+        self._df.buff_polygon = self._df.geometry.buffer(max_travel_distance)
+        # List of nodes that are not in the habitat
+        invalid_indexes: List[int] = []
         for node in hgraph.nodes:
             if hgraph.nodes[node]["class_label"] not in valid_classes:
+                invalid_indexes.append(node)
                 continue
-
-            polygon = hgraph.nodes[node]["geometry"]
-            buff_poly = polygon.buffer(max_travel_distance)
+            # df.at is a fast df.loc designed only to access single values
+            polygon = self._df.at[node, "geometry"]
+            buff_poly = self._df.at[node, "buff_polygon"]
+            # Query rtree for all polygons within `max_travel_distance` of the original
             poss_neighbours = list(self.rtree.intersection(buff_poly.bounds))
             for nbr in poss_neighbours:
-                if hgraph.nodes[node]["class_label"] in barrier_classes:
+                # If a node is not a habitat class node, don't add the edge
+                if hgraph.nodes[nbr]["class_label"] not in valid_classes:
                     continue
-
-                nbr_polygon = hgraph.nodes[nbr]["geometry"]
+                # Otherwise add the edge with distance attribute
+                nbr_polygon = self._df.at[nbr, "geometry"]
                 if not hgraph.has_edge(node, nbr) and nbr_polygon.intersects(buff_poly):
-                    distance = polygon.distance(nbr_polygon)
+                    # Since intersects is cheaper than distance, we can save time here
+                    if nbr_polygon.intersects(polygon):
+                        distance = 0.0
+                    else:
+                        distance = polygon.distance(nbr_polygon)
                     hgraph.add_edge(node, nbr, distance=distance)
 
-        self.habitats[name] = hgraph
+        # Remove expanded polygons from df
+        self._df = self._df.drop(columns=["buff_polygon"])
+        # Remove non-habitat nodes from habitat graph
+        hgraph.remove_nodes_from(invalid_indexes)
+        # Add habitat graph to habitats dict
+        self._habitats[name] = hgraph
+
+        print(
+            f"Habitat successfully loaded with {hgraph.number_of_nodes()} nodes",
+            f"and {hgraph.number_of_edges()} edges.",
+        )
