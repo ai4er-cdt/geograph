@@ -3,6 +3,7 @@ Module for processing and analysis of the geospatial graph.
 
 See https://networkx.org/documentation/stable/index.html for graph operations.
 """
+from __future__ import annotations
 import bz2
 import gzip
 import os
@@ -20,6 +21,7 @@ import rtree as rtree_lib
 import shapely
 from shapely.ops import unary_union
 from src.data_loading.rasterio_utils import polygonise
+from src.models.binary_graph_operations import identify_node
 from tqdm import tqdm
 
 VALID_EXTENSIONS = (
@@ -500,3 +502,8 @@ class GeoGraph:
                     hgraph.add_edge(node, nbr, distance=distance)
 
         self.habitats[name] = hgraph
+
+    def identify_node(
+        self, node_id: int, other_graph: GeoGraph, mode: str
+    ) -> List[int]:
+        return identify_node(self.nodes[node_id], other_graph=other_graph, mode=mode)
