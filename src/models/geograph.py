@@ -565,7 +565,10 @@ class GeoGraph:
         This method takes an nx.Graph and determines the individual disconnected
         graph components that make up the graph. Each row of the returned
         GeoDataFrame corresponds to a graph component, with entries in column
-        'geometry' being the union of all individual polygons making up a component.
+        'geometry' being the union of all individual polygons making up a
+        component. Warning: this function can only be passed graphs which are a
+        subgraph of this class's main `graph` attribute, such as the habitat
+        subgraph or the main graph itself.
 
         This method allows for the UI to visualise components and output their
         number as a metric. Warning: this method is very slow if the graph
@@ -576,7 +579,8 @@ class GeoGraph:
         https://en.wikipedia.org/wiki/Component_(graph_theory)
 
         Args:
-            graph (nx.Graph): nx.Graph of a GeoGraph
+            graph (nx.Graph): nx.Graph object. This must be a subgraph of this
+            class's main `graph` attribute.
 
         Returns:
             Tuple: A tuple containing the resulting GeoDataFrame and the list of
