@@ -442,7 +442,7 @@ class GeoGraph:
             # add each polygon as a node to the graph with useful attributes
             self.graph.add_node(
                 index,
-                rep_point=polygon.representative_point().coords[0],
+                rep_point=polygon.representative_point(),
                 area=polygon.area,
                 perimeter=polygon.length,
                 class_label=class_labels[index],
