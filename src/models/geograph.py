@@ -18,7 +18,7 @@ import numpy as np
 import rasterio
 import rtree as rtree_lib
 import shapely
-from shapely.ops import unary_union
+from src.constants import PREFERRED_CRS
 from src.data_loading.rasterio_utils import polygonise
 from tqdm import tqdm
 
@@ -46,6 +46,7 @@ class GeoGraph:
         graph_save_path: Optional[Union[str, os.PathLike]] = None,
         raster_save_path: Optional[Union[str, os.PathLike]] = None,
         tolerance: float = 0.0,
+        crs: str = PREFERRED_CRS,
         **kwargs,
     ) -> None:
         """
@@ -86,13 +87,13 @@ class GeoGraph:
             not save the polygonised data.
             tolerance (float, optional): Adds edges between neighbours that are
             at most `tolerance` units apart. Defaults to 0.
+            crs (str, optional): Coordinate reference system to set on the
+            resulting dataframe. Defaults to None.
 
             **mask (np.ndarray, optional): Boolean mask that can be applied over
             the polygonisation. Defaults to None.
             **transform (affine.Affine, optional): Affine transformation to
             apply when polygonising. Defaults to the identity transform.
-            **crs (str, optional): Coordinate reference system to set on the
-            resulting dataframe. Defaults to None.
             **connectivity (int, optional): Use 4 or 8 pixel connectivity for
             grouping pixels into features. 8 can cause issues, Defaults to 4.
             **apply_buffer (bool, optional): Apply shapely buffer function to
@@ -163,6 +164,11 @@ class GeoGraph:
             os.makedirs(graph_save_path.parent, exist_ok=True)
             self._save_graph(graph_save_path)
 
+        if self.df.crs is None:
+            self.df.crs = crs
+        else:
+            self.df = self.df.to_crs(crs)
+
         print(
             f"Graph successfully loaded with {self.graph.number_of_nodes()} nodes",
             f"and {self.graph.number_of_edges()} edges.",
@@ -191,6 +197,15 @@ class GeoGraph:
     def df(self) -> gpd.GeoDataFrame:
         """Return dataframe containing polygons."""
         return self._df
+
+    @df.setter
+    def df(self, new_df):
+        self._df = new_df
+
+    @property
+    def crs(self):
+        """Return crs of dataframe."""
+        return self.df.crs
 
     def _load_from_vector_path(
         self,
@@ -388,7 +403,7 @@ class GeoGraph:
             df = df[attributes]
 
         # Reset index to ensure consistent indices
-        df = df.reset_index()
+        df = df.reset_index(drop=True)
         # Using this dict and iterating through it is slightly faster than
         # iterating through df due to the dataframe overhead
         geom: Dict[int, shapely.Polygon] = df.geometry.to_dict()
@@ -424,13 +439,14 @@ class GeoGraph:
                 ]
 
             graph_dict[index] = neighbours
-            # add each polygon as a node to the graph with all attributes
+            # add each polygon as a node to the graph with useful attributes
             self.graph.add_node(
                 index,
                 rep_point=polygon.representative_point().coords[0],
                 area=polygon.area,
                 perimeter=polygon.length,
                 class_label=class_labels[index],
+                bounds=polygon.bounds,
             )
 
         # iterate through the dict and add edges between neighbouring polygons
@@ -455,8 +471,8 @@ class GeoGraph:
             node_list (List[int]): List of integer node indexes in the graph.
             class_label (int): Class label for the resulting node.
             final_index (int, optional): Index to assign to the resulting node.
-            Defaults to None, in which case it becomes the number of nodes in
-            the graph.
+            Defaults to None, in which case it becomes the highest valid index
+            in the dataframe + 1.
 
         Raises:
             ValueError: If there are invalid nodes in `node_list`, or if
@@ -473,36 +489,44 @@ class GeoGraph:
                 "`final_index` cannot be an existing node that is not in `node_list`."
             )
         if final_index is None:
-            final_index = self.graph.number_of_nodes
+            final_index = self.df.last_valid_index()
 
-        adjacency_list = set()
+        # Build set of all neighbours of nodes in node_list, excluding the
+        # nodes in node_list.
+        adjacency_set = set()
         for node in node_list:
-            adjacency_list.update(list(self.graph.neighbors(node)))
-        polygon = unary_union([self._df.at[node, "geometry"] for node in node_list])
+            adjacency_set.update(list(self.graph.neighbors(node)))
+        adjacency_set -= adjacency_set.intersection(node_list)
+        # Build union polygon.
+        polygon = self.df.geometry.iloc[node_list].unary_union
         # Remove nodes from graph and rows from df
         self.graph.remove_nodes_from(node_list)
-        self._df = self._df.drop(node_list)
+        self.df = self.df.drop(node_list)
         # Add final node to graph and df
         self.graph.add_node(
             final_index,
-            rep_point=polygon.representative_point().coords[0],
+            rep_point=polygon.representative_point(),
             area=polygon.area,
             perimeter=polygon.length,
             class_label=class_label,
+            bounds=polygon.bounds,
         )
         data = {"class_label": class_label, "geometry": polygon}
-        missing_cols = {key: None for key in set(self._df.columns) - set(data.keys())}
-        self._df.loc[final_index] = gpd.GeoSeries({**data, **missing_cols})
+        missing_cols = {key: None for key in set(self.df.columns) - set(data.keys())}
+        self.df.loc[final_index] = gpd.GeoSeries(
+            {**data, **missing_cols}, crs=self.df.crs
+        )
+        self.df = self.df.sort_index()
         # Add edges from final node to all neighbours of the original
         self.graph.add_edges_from(
-            zip_longest([final_index], adjacency_list, fillvalue=final_index)
+            zip_longest([final_index], adjacency_set, fillvalue=final_index)
         )
 
     def add_habitat(
         self,
         name: str,
         valid_classes: set,
-        max_travel_distance: float,
+        max_travel_distance: float = 0.0,
     ) -> None:
         """
         Create habitat graph and store it in habitats dictionary.
@@ -519,24 +543,28 @@ class GeoGraph:
             the habitat can travel through non-habitat areas. The habitat graph
             will contain edges between any two nodes that have a class label in
             `valid_classes`, as long as they are less than `max_travel_distance`
-            units apart.
+            units apart. Defaults to 0, which will only create edges between
+            directly neighbouring areas.
         """
         hgraph: nx.Graph = deepcopy(self.graph)
+        hgraph.graph["name"] = name
         # Remove all edges in the graph, then at the end we only have edges
         # between nodes less than `max_travel_distance` apart
         hgraph.clear_edges()
         # Vectorised buffer on the entire df to calculate the expanded polygons
         # used to get intersections.
-        self._df.buff_polygon = self._df.geometry.buffer(max_travel_distance)
+        self.df["buff_polygon"] = self.df.geometry.buffer(max_travel_distance)
         # List of nodes that are not in the habitat
         invalid_indexes: List[int] = []
-        for node in hgraph.nodes:
+        for node in tqdm(
+            hgraph.nodes, desc="Generating habitat graph", total=len(hgraph)
+        ):
             if hgraph.nodes[node]["class_label"] not in valid_classes:
                 invalid_indexes.append(node)
                 continue
             # df.at is a fast df.loc designed only to access single values
-            polygon = self._df.at[node, "geometry"]
-            buff_poly = self._df.at[node, "buff_polygon"]
+            polygon = self.df.at[node, "geometry"]
+            buff_poly = self.df.at[node, "buff_polygon"]
             # Query rtree for all polygons within `max_travel_distance` of the original
             poss_neighbours = list(self.rtree.intersection(buff_poly.bounds))
             for nbr in poss_neighbours:
@@ -544,7 +572,7 @@ class GeoGraph:
                 if hgraph.nodes[nbr]["class_label"] not in valid_classes:
                     continue
                 # Otherwise add the edge with distance attribute
-                nbr_polygon = self._df.at[nbr, "geometry"]
+                nbr_polygon = self.df.at[nbr, "geometry"]
                 if not hgraph.has_edge(node, nbr) and nbr_polygon.intersects(buff_poly):
                     # Since intersects is cheaper than distance, we can save time here
                     if nbr_polygon.intersects(polygon):
@@ -554,7 +582,7 @@ class GeoGraph:
                     hgraph.add_edge(node, nbr, distance=distance)
 
         # Remove expanded polygons from df
-        self._df = self._df.drop(columns=["buff_polygon"])
+        self.df = self.df.drop(columns=["buff_polygon"])
         # Remove non-habitat nodes from habitat graph
         hgraph.remove_nodes_from(invalid_indexes)
         # Add habitat graph to habitats dict
@@ -564,3 +592,33 @@ class GeoGraph:
             f"Habitat successfully loaded with {hgraph.number_of_nodes()} nodes",
             f"and {hgraph.number_of_edges()} edges.",
         )
+
+    def get_graph_components(
+        self, graph: nx.Graph
+    ) -> Tuple[gpd.GeoDataFrame, List[set]]:
+        """Return a GeoDataFrame with graph components.
+
+        This method takes an nx.Graph and determines the individual disconnected
+        graph components that make up the graph. Each row of the returned
+        GeoDataFrame corresponds to a graph component, with entries in column
+        'geometry' being the union of all individual polygons making up a component.
+
+        This method allows for the UI to visualise components and output their
+        number as a metric. Warning: this method is very slow if the graph
+        consists mostly of one big component, because taking the union is
+        expensive.
+
+        More info on the definition of graph components can be found here:
+        https://en.wikipedia.org/wiki/Component_(graph_theory)
+
+        Args:
+            graph (nx.Graph): nx.Graph of a GeoGraph
+
+        Returns:
+            Tuple: A tuple containing the resulting GeoDataFrame and the list of
+            graph components.
+        """
+        components = list(nx.connected_components(graph))
+        geom = [self.df.geometry.iloc[list(comp)].unary_union for comp in components]
+        gdf = gpd.GeoDataFrame({"geometry": geom}, crs=self.df.crs)
+        return gdf, components
