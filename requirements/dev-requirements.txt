@@ -37,7 +37,7 @@ geopy               # convenient API requests to geocoders
 xarray              # useful data structures
 rioxarray           # adaptation of xarray for raterio.
 "dask[dataframe]"   # allows more lazy operation for xarray.
-
+netCDF4             # makes sure that the default driver is netCDF4.
 
 # additional
 networkx
@@ -54,4 +54,4 @@ imageio-ffmpeg
 # xgboost
 xgboost
 sklearn
-graphviz
+graphviz        # can plot the decission tree
