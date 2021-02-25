@@ -1,7 +1,7 @@
 """
-This module contains visualisation functions for vector, raster and graph data.
+This module contains visualisation functions for GeoGraphs.
 """
-
+from __future__ import annotations
 from typing import Optional, List, Tuple, Callable
 
 import folium
@@ -9,9 +9,64 @@ import geopandas as gpd
 import networkx as nx
 import shapely.geometry
 from src.constants import CHERNOBYL_COORDS_WGS84, UTM35N, CEZ_DATA_PATH
+from src.models import geograph
 
 
-def create_graph_visualisation(
+class GeoGraphViewer:
+    """Class for viewing GeoGraph object"""
+
+    def __init__(self, map_type: str = "folium") -> None:
+        """Class for viewing GeoGraph object.
+
+        Args:
+            map_type (str, optional): defines which package is used for creating the
+                map. One of ["folium","ipyleaflet"]. Folium is more widely compatible
+                and may also run on google colab but the viewer functionality is
+                limited, whereas ipyleaflet won't run on google colab but offers the
+                full viewer functionality.
+                Defaults to "folium".
+        """
+        if map_type == "ipyleaflet":
+            raise NotImplementedError
+        self.map_type = map_type
+        self.widget = None
+
+    def _repr_html_(self) -> str:
+        """Return raw html of widget as string.
+
+        This method gets called by IPython.display.display().
+        """
+
+        if self.widget is not None:
+            return self.widget._repr_html_()  # pylint: disable=protected-access
+
+    def add_graph(self, graph: geograph.GeoGraph) -> None:
+        """Add graph to viewer.
+
+        The added graph is visualised in the viewer.
+
+        Args:
+            graph (geograph.GeoGraph): GeoGraph to be shown.
+        """
+
+        if self.map_type == "folium":
+            self._add_graph_to_folium_map(graph)
+
+    def add_layer_control(self) -> None:
+        """Add layer control to the viewer."""
+        if self.map_type == "folium":
+            folium.LayerControl().add_to(self.widget)
+
+    def _add_graph_to_folium_map(self, graph: geograph.GeoGraph) -> None:
+        """Add graph to folium map.
+
+        Args:
+            graph (geograph.GeoGraph): GeoGraph to be added.
+        """
+        self.widget = add_graph_to_folium_map(folium_map=self.widget, graph=graph.graph)
+
+
+def add_graph_to_folium_map(
     folium_map: folium.Map = None,
     polygon_gdf: gpd.GeoDataFrame = None,
     color_column: str = "index",
@@ -22,7 +77,7 @@ def create_graph_visualisation(
     crs: str = UTM35N,
     add_layer_control: bool = False,
 ) -> folium.Map:
-    """Create a visualisation map of the given polygons and  `graph` in folium.
+    """Create a visualisation map of the given polygons and `graph` in folium.
 
     The polygons in `polygon_gdf` and `graph` are displayed on a folum map.
     It is intended that the graph was build from `polygon_gdf`, but it is not required.
@@ -145,7 +200,7 @@ def create_node_edge_geometries(
     """
 
     node_gdf = gpd.GeoDataFrame(columns=["id", "geometry"])
-    rep_points = graph.nodes(data="representative_point")
+    rep_points = graph.nodes(data="rep_point")
     for idx, rep_point in rep_points:
         node_gdf.loc[idx] = [idx, rep_point]
 
