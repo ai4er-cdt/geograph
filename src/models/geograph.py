@@ -42,7 +42,6 @@ class GeoGraph:
     def __init__(
         self,
         data,
-        attributes: Optional[List[str]] = None,
         graph_save_path: Optional[Union[str, os.PathLike]] = None,
         raster_save_path: Optional[Union[str, os.PathLike]] = None,
         tolerance: float = 0.0,
@@ -75,9 +74,6 @@ class GeoGraph:
             the graph from, a path to vector data in GPKG or Shapefile format,
             a path to raster data in GeoTiff format, a numpy array containing raster
             data, or a dataframe containing polygons.
-            attributes (Optional[List[str]], optional): Columns of the dataframe
-            that are added to nodes of graph as attributes. Defaults to None,
-            which will cause all attributes to be added.
             graph_save_path (str or pathlib.Path, optional): A path to a pickle
             file to save the graph to, can be `.gz` or `.bz2`. Defaults to None,
             which will not save the graph.
@@ -122,9 +118,7 @@ class GeoGraph:
                 load_from_graph = True
             # Load from saved vector data
             elif load_path.suffix in (".shp", ".gpkg"):
-                self._rtree, self._df = self._load_from_vector_path(
-                    load_path, attributes
-                )
+                self._rtree, self._df = self._load_from_vector_path(load_path)
             # Load from saved raster data
             elif load_path.suffix in (".tiff", ".tif", ".geotif", ".geotiff"):
                 self._rtree, self._df = self._load_from_raster_path(
@@ -140,7 +134,7 @@ class GeoGraph:
         # Load from dataframe
         elif isinstance(data, gpd.GeoDataFrame):
             self._rtree, self._df = self._load_from_dataframe(
-                data, attributes, tolerance=self.tolerance
+                data, tolerance=self.tolerance
             )
         # Load from raster array
         elif isinstance(data, np.ndarray):
@@ -210,7 +204,6 @@ class GeoGraph:
     def _load_from_vector_path(
         self,
         vector_path: pathlib.Path,
-        attributes: Optional[List[str]] = None,
         load_slice=None,
     ) -> Tuple[rtree_lib.index.Index, gpd.GeoDataFrame]:
         """
@@ -218,9 +211,6 @@ class GeoGraph:
 
         Args:
             vector_path (pathlib.Path): Path to a gpkg or shp file.
-            attributes (Optional[List[str]], optional): columns of the dataframe
-            that are added to nodes of graph as attributes. Defaults to None,
-            which will cause all attributes to be added.
             load_slice: A slice object denoting the rows of the dataframe to
             load. Defaults to None, meaning load all rows.
 
@@ -237,9 +227,7 @@ class GeoGraph:
             dataframe = gpd.read_file(
                 vector_path, enabled_drivers=["GPKG", "ESRI Shapefile"]
             )
-        return self._load_from_dataframe(
-            dataframe, attributes=attributes, tolerance=self.tolerance
-        )
+        return self._load_from_dataframe(dataframe, tolerance=self.tolerance)
 
     def _load_from_raster_path(
         self,
@@ -298,9 +286,7 @@ class GeoGraph:
                 vector_df.to_file(save_path, driver="GPKG")
             else:
                 vector_df.to_file(save_path, driver="ESRI Shapefile")
-        return self._load_from_dataframe(
-            vector_df, attributes=["geometry", "class_label"], tolerance=self.tolerance
-        )
+        return self._load_from_dataframe(vector_df, tolerance=self.tolerance)
 
     def _load_from_graph_path(
         self, graph_path: pathlib.Path
@@ -351,7 +337,6 @@ class GeoGraph:
     def _load_from_dataframe(
         self,
         df: gpd.GeoDataFrame,
-        attributes: Optional[List[str]] = None,
         tolerance: float = 0.0,
     ) -> Tuple[rtree_lib.index.Index, gpd.GeoDataFrame]:
         """
@@ -363,16 +348,12 @@ class GeoGraph:
         Args:
             df (gpd.GeoDataFrame): GeoDataFrame containing polygon objects from
             a shape file.
-            attributes (Optional[List[str]], optional): columns of df that are
-            added to nodes of graph as attributes. Defaults to None,
-            which will cause all attributes to be added.
             tolerance (float, optional): Adds edges between neighbours that are
             at most `tolerance` units apart. Defaults to 0.
 
         Raises:
-            ValueError: If `tolerance` < 0, if `class_label` is not a column in
-            the dataframe, or if `attributes` contains column names not in the
-            dataframe.
+            ValueError: If `tolerance` < 0, if `class_label` or `geometry` are
+            not columns in the dataframe.
 
         Returns:
             Tuple: A tuple with the Rtree object used to build the graph and the
@@ -380,27 +361,10 @@ class GeoGraph:
         """
         if tolerance < 0.0:
             raise ValueError("`tolerance` must be greater than 0.")
-        if (
-            attributes is not None
-            and "class_label" not in attributes
-            or "class_label" not in df.columns
-        ):
+        if "class_label" not in df.columns:
             raise ValueError("`class_label` must be a column in the dataframe.")
-        if (
-            attributes is not None
-            and "geometry" not in attributes
-            or "geometry" not in df.columns
-        ):
+        if "geometry" not in df.columns:
             raise ValueError("`geometry` must be a column in the dataframe.")
-        # If no attribute list is given, all
-        # columns in df are used
-        if attributes is None:
-            attributes = df.columns.tolist()
-        elif not set(attributes).issubset(df.columns):
-            raise ValueError("`attributes` must only contain column names in `df`.")
-        else:
-            # If attributes exists, drop all other columns.
-            df = df[attributes]
 
         # Reset index to ensure consistent indices
         df = df.reset_index(drop=True)
