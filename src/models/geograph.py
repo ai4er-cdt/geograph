@@ -496,6 +496,7 @@ class GeoGraph:
         """
         if max_travel_distance < 0:
             raise ValueError("`max_travel_distance` must be greater than 0.")
+        valid_classes_set = set(valid_classes)
         hgraph: nx.Graph = deepcopy(self.graph)
         # Remove all edges in the graph, then at the end we only have edges
         # between nodes less than `max_travel_distance` apart
@@ -513,7 +514,7 @@ class GeoGraph:
         for node in tqdm(
             hgraph.nodes, desc="Generating habitat graph", total=len(hgraph)
         ):
-            if hgraph.nodes[node]["class_label"] not in valid_classes:
+            if hgraph.nodes[node]["class_label"] not in valid_classes_set:
                 invalid_indexes.append(node)
                 continue
 
@@ -525,7 +526,7 @@ class GeoGraph:
             # Query rtree for all polygons within `max_travel_distance` of the original
             for nbr in self.rtree.intersection(buff_poly.bounds):
                 # If a node is not a habitat class node, don't add the edge
-                if hgraph.nodes[nbr]["class_label"] not in valid_classes:
+                if hgraph.nodes[nbr]["class_label"] not in valid_classes_set:
                     continue
                 # Otherwise add the edge with distance attribute
                 nbr_polygon = polygons[nbr]
