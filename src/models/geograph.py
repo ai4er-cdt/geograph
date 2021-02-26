@@ -50,7 +50,7 @@ class GeoGraph:
     def __init__(
         self,
         data,
-        crs: str,
+        crs: Union[str, pyproj.CRS], 
         graph_save_path: Optional[Union[str, os.PathLike]] = None,
         raster_save_path: Optional[Union[str, os.PathLike]] = None,
         columns_to_rename: Optional[Dict[str, str]] = None,
@@ -114,7 +114,7 @@ class GeoGraph:
         super().__init__()
         self.graph = nx.Graph()
         self._habitats: Dict[str, Habitat] = {}
-        self._crs: str = crs
+        self._crs: Union[str, pyproj.CRS] = crs
         self._columns_to_rename: Optional[Dict[str, str]] = columns_to_rename
         self._tolerance: float = tolerance
 
