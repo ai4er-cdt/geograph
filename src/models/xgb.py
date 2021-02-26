@@ -17,7 +17,6 @@ Currently training parameters are changed inside train_xgb()
 TODO: some functions need to be moved to separate files.
 TODO: the animation function could be generalised.
 TODO: Should add hydra to allow a lot of different model hyperparameters to be passed in.
-TODO: Could extend the training/testing data.
 """
 import os
 import copy
@@ -36,7 +35,10 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, WGS84, PREFERRED_CRS
 from src.data_loading.landcover_plot_utils import classes_to_rgb
-SAT_DIR = "/gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data"
+
+SAT_DIR = (
+    "/gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data"
+)
 
 
 def timeit(method):
@@ -52,7 +54,6 @@ def timeit(method):
     # chuck it into part to stop interference.
     assert part != particles
     spin_round_time[key].append(tmp_log_data['SPIN_FORWARD'])
-    USAGE:
     @timeit
     """
 
@@ -67,6 +68,7 @@ def timeit(method):
         else:
             print("%r  %2.5f s\n" % (method.__name__, (te - ts)))
         return result
+
     return timed
 
 
@@ -76,7 +78,7 @@ def return_path_dataarray():
     makes path to the google earth engine landsat data.
     if the file doesn't exist, it becomes 'None' in the netcdf.
     """
-    incomplete_years = [] # [1984, 1994, 2002, 2003, 2008] 
+    incomplete_years = []  # [1984, 1994, 2002, 2003, 2008]
     # previously these were ignored, now algorithm is robust to absence.
     years = [year for year in range(1984, 2021) if year not in incomplete_years]
     im_type = ["hab", "chern"]
@@ -97,17 +99,17 @@ def return_path_dataarray():
                             indices.append(counter)
                 path_array[indices[0], indices[1], indices[2]] = full_name
     return xr.DataArray(
-                data=path_array,
-                dims=["yr", "mn", "ty"],
-                coords=dict(
-                    yr=years,
-                    mn=month_groups,
-                    ty=im_type,
-                ),
-                attrs=dict(
-                    description="Paths to tif.",
-                ),
-            )
+        data=path_array,
+        dims=["year", "mn", "ty"],
+        coords=dict(
+            year=years,
+            mn=month_groups,
+            ty=im_type,
+        ),
+        attrs=dict(
+            description="Paths to tif.",
+        ),
+    )
 
 
 @timeit
@@ -135,14 +137,14 @@ def return_normalized_array(
     """
     # Open the file:
     raster = rasterio.open(file_name)
-    
+
     # Convert to numpy arrays
-    if "L8" in file_name :
+    if "L8" in file_name:
         # LandSat8 currently stored in different bands for R, G, B.
         red, green, blue = raster.read(2), raster.read(3), raster.read(4)
     else:
         red, green, blue = raster.read(1), raster.read(2), raster.read(3)
-    
+
     # Normalize bands into 0.0 - 1.0 scale
     def norm(array):
         array_min, array_max = np.nanmin(array), np.nanmax(array)
@@ -151,7 +153,7 @@ def return_normalized_array(
             return array / (high_limit - low_limit)
         else:
             return (array - array_min) / (array_max - array_min)
-    
+
     def filt(data_array, filter_array):
         return ma.masked_where(filter_array, data_array).filled(np.nan)
 
@@ -220,49 +222,71 @@ def create_netcdfs():
         os.mkdir(tmp_path)
     print(tmp_path)
     path_da = return_path_dataarray()
-    for ty, ty_v in enumerate(path_da.coords["ty"].values.tolist()):
+    for ty, ty_v in enumerate(path_da.coords["ty"].values.tolist()):  # [(1, "chern")]:
         for mn, mn_v in enumerate(path_da.coords["mn"].values.tolist()):
             path_list = []
-            for yr in tqdm(range(len(path_da.coords["yr"].values)), ascii=True, desc=ty_v + "  " + mn_v):
-                file_name = path_da.isel(yr=yr, mn=mn, ty=ty).values.tolist()
+            for year in tqdm(
+                range(len(path_da.coords["year"].values)),
+                ascii=True,
+                desc=ty_v + "  " + mn_v,
+            ):
+                file_name = path_da.isel(year=year, mn=mn, ty=ty).values.tolist()
+                tmp_name = os.path.join(
+                    tmp_path,
+                    ty_v
+                    + "_"
+                    + mn_v
+                    + "_year_"
+                    + str(path_da.isel(year=year).coords["year"].values)
+                    + ".nc",
+                )
                 if file_name != None and os.path.exists(file_name):
                     xr_da = xr.open_rasterio(file_name)
                     data = return_normalized_array(file_name)
                 else:
-                    file_name = os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif")
+                    if ty_v == "chern":
+                        file_name = os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif")
+                    elif ty_v == "hab":
+                        file_name = os.path.join(SAT_DIR, "2012/L7_hab_2012_AMJ.tif")
                     xr_da = xr.open_rasterio(file_name)
-                    data = return_normalized_array(file_name)  
-                    data[:] = np.nan    # make everything nan if the file didn't exist.
-                tmp_name = os.path.join(tmp_path, ty_v + "_" + mn_v + "_yr_" + str(path_da.isel(yr=yr).coords["yr"].values) + ".nc")
+                    data = return_normalized_array(file_name)
+                    data[:] = np.nan  # make everything nan if the file didn't exist.
                 xr.DataArray(
-                    data=np.expand_dims(data, axis=3),
-                    dims=["y", "x", "band", "year"],
+                    data=np.expand_dims(np.expand_dims(data, axis=3), axis=4),
+                    dims=["y", "x", "band", "year", "mn"],
                     coords=dict(
                         y=xr_da.coords["y"].values,
                         x=xr_da.coords["x"].values,
                         band=["red", "green", "blue"],
-                        year=[path_da.isel(yr=yr).coords["yr"].values],
-                        mn=mn_v,
+                        year=[path_da.isel(year=year).coords["year"].values],
+                        mn=[mn_v],
                     ),
                     attrs=dict(
                         description="Normalized reflectance at " + ty_v + ".",
                     ),
                 ).astype("float32").to_dataset(name="norm_refl").to_netcdf(tmp_name)
                 path_list.append(tmp_name)
-
             # this option should override chunk size to prevent chunks from being too large.
-            with dask.config.set(**{'array.slicing.split_large_chunks': True}):
+            with dask.config.set(**{"array.slicing.split_large_chunks": True}):
+
                 @timeit
                 def _cat_ds():
                     print(path_list)
-                    return xr.open_mfdataset(path_list, concat_dim="year", chunks={"band":1, "year":1})
+                    return xr.open_mfdataset(
+                        path_list, concat_dim="year", chunks={"band": 1, "year": 1}
+                    )
+
                 cat_ds = _cat_ds()
                 directory = os.path.join(SAT_DIR, "nc_" + ty_v)
                 if not os.path.exists(directory):
                     os.mkdir(directory)
+
                 @timeit
                 def _save_nc():
-                    xr.save_mfdataset([cat_ds], [os.path.join(directory, ty_v + "_" + mn_v + ".nc")])
+                    xr.save_mfdataset(
+                        [cat_ds], [os.path.join(directory, ty_v + "_" + mn_v + ".nc")]
+                    )
+
                 _save_nc()
 
 
@@ -277,7 +301,10 @@ def animate_prediction(x_da, y_da, pred_da, video_path="joint_val.mp4"):
     :param video_path: relative text path to output mp4 file.
     Based on code originally from Tom Anderson: tomand@bas.ac.uk.
     """
-    def gen_frame_func(x_da, y_da, pred_da, mask=None, mask_type="contour", cmap="pink_r", figsize=15):
+
+    def gen_frame_func(
+        x_da, y_da, pred_da, mask=None, mask_type="contour", cmap="pink_r", figsize=15
+    ):
         """
         Create imageio frame function for xarray.DataArray visualisation.
 
@@ -294,38 +321,42 @@ def animate_prediction(x_da, y_da, pred_da, video_path="joint_val.mp4"):
         cm = copy.copy(plt.get_cmap(cmap))
         cm.set_bad("gray")
 
-        def make_frame(yr):
-            fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6))= plt.subplots(3, 2, figsize=(10, 10))
-            # da.sel(yr=yr).plot(cmap=cmap, clim=(min, max))
+        def make_frame(year):
+            fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
+                3, 2, figsize=(10, 10)
+            )
+            # da.sel(year=year).plot(cmap=cmap, clim=(min, max))
 
-            x_da.isel(yr=yr, mn=0).plot.imshow(ax=ax1)
-            x_da.isel(yr=yr, mn=1).plot.imshow(ax=ax2)
-            x_da.isel(yr=yr, mn=2).plot.imshow(ax=ax3)
-            x_da.isel(yr=yr, mn=3).plot.imshow(ax=ax4)
+            x_da.isel(year=year, mn=0).plot.imshow(ax=ax1)
+            x_da.isel(year=year, mn=1).plot.imshow(ax=ax2)
+            x_da.isel(year=year, mn=2).plot.imshow(ax=ax3)
+            x_da.isel(year=year, mn=3).plot.imshow(ax=ax4)
 
             for ax in [ax1, ax2, ax3, ax4]:
-                ax.set_xlabel('')
+                ax.set_xlabel("")
 
             da = xr.DataArray(
-                data=classes_to_rgb(y_da.isel(yr=yr).values),
+                data=classes_to_rgb(y_da.isel(year=year).values),
                 dims=["y", "x", "band"],
                 coords=dict(
                     y=y_da.coords["y"].values,
                     x=y_da.coords["x"].values,
                     band=["red", "green", "blue"],
-                    Y='esa_cci',
+                    Y="esa_cci",
                 ),
             )
             da.plot.imshow(ax=ax5)
 
             da = xr.DataArray(
-                data=classes_to_rgb(np.round_(pred_da.isel(yr=yr)).values.astype('int16')),
+                data=classes_to_rgb(
+                    np.round_(pred_da.isel(year=year)).values.astype("int16")
+                ),
                 dims=["y", "x", "band"],
                 coords=dict(
                     y=y_da.coords["y"].values,
                     x=y_da.coords["x"].values,
                     band=["red", "green", "blue"],
-                    Y='predicted_classes',
+                    Y="predicted_classes",
                 ),
             )
             da.plot.imshow(ax=ax6)
@@ -343,7 +374,9 @@ def animate_prediction(x_da, y_da, pred_da, video_path="joint_val.mp4"):
         return make_frame
 
     def xarray_to_video(
-        x_da, y_da, pred_da,
+        x_da,
+        y_da,
+        pred_da,
         video_path,
         fps,
         mask_type="contour",
@@ -357,9 +390,14 @@ def animate_prediction(x_da, y_da, pred_da, video_path="joint_val.mp4"):
         of the dataset is used.
         """
         if video_dates is None:
-            video_dates = [yr for yr in range(len(y_da.yr.values))]
+            video_dates = [year for year in range(len(y_da.year.values))]
         make_frame = gen_frame_func(
-            x_da=x_da, y_da=y_da, pred_da=pred_da, mask_type=mask_type, cmap=cmap, figsize=figsize
+            x_da=x_da,
+            y_da=y_da,
+            pred_da=pred_da,
+            mask_type=mask_type,
+            cmap=cmap,
+            figsize=figsize,
         )
         imageio.mimsave(
             video_path,
@@ -369,7 +407,9 @@ def animate_prediction(x_da, y_da, pred_da, video_path="joint_val.mp4"):
         print("Video " + video_path + " made.")
 
     xarray_to_video(
-        x_da, y_da, pred_da,
+        x_da,
+        y_da,
+        pred_da,
         video_path,
         mask_type=None,
         fps=5,
@@ -382,140 +422,163 @@ def _return_x_y_da(
     use_mfd=True,
 ):
     """
-    Load the preprocced Landsat and ESA cci data on the same format of xarray.dataaray grids.
-    # TODO: Find a way to memoise this so that it doesn't need to be repeated every time.
+    This function is memoised by return_x_y_da() so that if it's already been run with 
+    the same inputs, it will load the preprocessed data.
+    Load the preprocced Landsat and ESA-CCI data on the same format of xarray.dataaray.
     :param take_esa_coords: bool, if true use the lower resolution grid from esa ccis
+    :param 
     current time taken to run: 'return_x_y_da'  431.59196 s
-    TODO: Currently when take_esa_coords=False, the process runs out of memory.
     """
     mn_l = ["JFM", "AMJ", "JAS", "OND"]
 
     @timeit
     def return_y_da():
         input_filepaths = [
-                GWS_DATA_DIR / "esa_cci_rois" / f"esa_cci_{year}_chernobyl.geojson"
-                for year in range(1992, 2016)
-            ]
+            GWS_DATA_DIR / "esa_cci_rois" / f"esa_cci_{year}_chernobyl.geojson"
+            for year in range(1992, 2016)
+        ]
         da_list = []
         for i in range(len(input_filepaths)):
             file_name = input_filepaths[i]
             da_list.append(xr.open_rasterio(file_name).isel(band=0))
-        return xr.concat(da_list, "yr").assign_coords(yr=("yr", list(range(1992, 2016))))
+        return xr.concat(da_list, "year").assign_coords(
+            year=("year", list(range(1992, 2016)))
+        )
 
     @timeit
     def return_part_x_da(ty_v="chern", mn_v="JAS"):
-        directory = os.path.join(SAT_DIR, "nc_"+ ty_v)
-        return xr.open_dataset(os.path.join(directory, ty_v + "_" + mn_v + ".nc")).norm_refl
-    
+        directory = os.path.join(SAT_DIR, "nc_" + ty_v)
+        return xr.open_dataset(
+            os.path.join(directory, ty_v + "_" + mn_v + ".nc")
+        ).norm_refl
+
     def return_x_name_list(ty_v="chern"):
-        directory = os.path.join(SAT_DIR, "nc_"+ ty_v)
-        return [os.path.join(directory, ty_v + "_" + mn_v + ".nc") for mn_v in mn_l],
-    
+        directory = os.path.join(SAT_DIR, "nc_" + ty_v)
+        return ([os.path.join(directory, ty_v + "_" + mn_v + ".nc") for mn_v in mn_l],)
+
     @timeit
     def reindex_da(mould_da, putty_da):
-        putty_da.reindex(
-                x=mould_da.coords["x"].values,
-                y=mould_da.coords["y"].values,
-                method="nearest",
-            )
+        return putty_da.reindex(
+            x=mould_da.coords["x"].values,
+            y=mould_da.coords["y"].values,
+            method="nearest",
+        )
 
     if take_esa_coords:
         y_full_da = return_y_da()
         x_full_da = xr.concat(
-            [reindex_da(y_full_da, return_part_x_da(mn_v=mn_v)) for mn_v in mn_l],
-            "mn").assign_coords(mn=("mn", mn_l))
+            [reindex_da(y_full_da, return_part_x_da(mn_v=mn_v)) for mn_v in mn_l], "mn"
+        ).assign_coords(mn=("mn", mn_l))
     else:
         if not use_mfd:
             x_full_da = xr.concat(
-                [return_part_x_da(mn_v=mn_v) for mn_v in mn_l],
-                "mn").assign_coords(mn=("mn", mn_l))
+                [return_part_x_da(mn_v=mn_v) for mn_v in mn_l], "mn"
+            ).assign_coords(mn=("mn", mn_l))
         else:
             print(return_x_name_list(ty_v="chern"))
-            x_full_da= xr.open_mfdataset(return_x_name_list(ty_v="chern"), 
-                        concat_dim="mn", chunks={"yr": 1}).norm_refl.assign_coords(mn=("mn", mn_l))
+            x_full_da = xr.open_mfdataset(
+                return_x_name_list(ty_v="chern"), concat_dim="mn", chunks={"year": 1}
+            ).norm_refl.assign_coords(mn=("mn", mn_l))
         y_full_da = reindex_da(x_full_da, return_y_da())
-        
+
     def intersection(lst1, lst2):
         return [value for value in lst1 if value in lst2]
 
-    y_years = y_full_da.coords["yr"].values.tolist()
-    x_years = x_full_da.coords["yr"].yr.to_dict()["coords"]["year"]["data"]
+    y_years = y_full_da.coords["year"].values.tolist()
+    x_years = x_full_da.coords["year"].values.tolist()
     int_years = intersection(y_years, x_years)
-    x_yr_i = [x_years.index(x) for x in int_years];  y_yr_i = [y_years.index(x) for x in int_years]
-    return x_full_da.isel(yr=x_yr_i), y_full_da.isel(yr=y_yr_i)
+    x_year_i = [x_years.index(x) for x in int_years]
+    y_year_i = [y_years.index(x) for x in int_years]
+    return x_full_da.isel(year=x_year_i), y_full_da.isel(year=y_year_i)
 
 
 @timeit
 def return_x_y_da(
     take_esa_coords=False,
     use_mfd=True,
-    ):
-    names = ["take_esa_coords_" + str(take_esa_coords) + "_use_mfd_" 
-             + str(use_mfd) + "_" + v + ".nc" for v in ["x", "y"]]
+):
+    """
+    Uses _return_x_y_da() only if the netcdf has not already been made.
+    :param take_esa_coords: lower resolution
+    :param use_mfd: use mfd
+    """
+    names = [
+        "take_esa_coords_"
+        + str(take_esa_coords)
+        + "_use_mfd_"
+        + str(use_mfd)
+        + "_"
+        + v
+        + ".nc"
+        for v in ["x", "y"]
+    ]
     direc = os.path.join(SAT_DIR, "inputs")
     if not os.path.exists(direc):
         os.mkdir(direc)
     full_names = [os.path.join(direc, name) for name in names]
-    if not os.path.exists(full_names[0]) or not os.path.exists(full_names[0]):
+    if (not os.path.exists(full_names[0])) or (not os.path.exists(full_names[1])):
+        print("x/y values not discovered. Remaking them.")
         x_da, y_da = _return_x_y_da(take_esa_coords=take_esa_coords, use_mfd=use_mfd)
+        x_ds, y_ds = x_da.to_dataset(name="norm_refl"), y_da.to_dataset(name="esa_cci")
         if use_mfd:
-            xr.save_mfdataset([y_da.to_dataset()], [full_names[0]])
-            xr.save_mfdataset([y_da.to_dataset()], [full_names[1]])
+            xr.save_mfdataset([x_ds], [full_names[0]])
+            xr.save_mfdataset([y_ds], [full_names[1]])
         else:
-            x_da.to_netcdf(full_names[0])
-            y_da.to_netcdf(full_names[1])
+            x_ds.to_netcdf(full_names[0])
+            y_ds.to_netcdf(full_names[1])
     else:
+        print("x/y values premade. Reusing them.")
         if use_mfd:
-            x_da = xr.open_mfdataset([full_names[0]])
-            y_da = xr.open_mfdataset([full_names[1]])
+            x_ds = xr.open_mfdataset([full_names[0]])
+            y_ds = xr.open_mfdataset([full_names[1]])
         else:
-            x_da = xr.open_dataset(full_names[0]).to_dataarray()
-            y_da = xr.open_dataset(full_names[1]).to_dataarray()
-    return x_da, y_da
+            x_ds = xr.open_dataset(full_names[0])
+            y_ds = xr.open_dataset(full_names[1])
+    return x_ds.norm_refl, y_ds.esa_cci
 
 
 @timeit
-def return_xy_npa(x_da, y_da, yr=5):
+def return_xy_npa(x_da, y_da, year=5):
     """
     return the x and y numpy arrays for a given number of years.
     :param x_da: xarray.dataarray, inputs
     :param y_da: xarray.dataarray, labels
-    :param yr: ints, single or list
+    :param year: ints, single or list
     :return: x_val, y_val
     """
     x_val = np.asarray(
-            [ 
-                x_da.isel(yr=yr, mn=mn, band=band).values.ravel()
-                for mn in range(4)
-                for band in range(3)
-            ]
-        )
+        [
+            x_da.isel(year=year, mn=mn, band=band).values.ravel()
+            for mn in range(4)
+            for band in range(3)
+        ]
+    )
     x_val = np.swapaxes(x_val, 0, 1)
-    y_val = y_da.isel(yr=yr).values.ravel()
+    y_val = y_da.isel(year=year).values.ravel()
     return x_val, y_val
 
 
 @timeit
 def npa_to_xarray(npa, da):
     """
-       Reformat numpy array to be like a given xarray.dataarray. 
-       Inverse of return_xy for the y values at least.
-       :param npa: numpy array, float.
-       :param da: xarray.dataarray, the mould da for the output.
-       :return: xarray.dataarray, containing npa.
+    Reformat numpy array to be like a given xarray.dataarray.
+    Inverse of return_xy for the y values at least.
+    :param npa: numpy array, float.
+    :param da: xarray.dataarray, the mould da for the output.
+    :return: xarray.dataarray, containing npa.
     """
     x = da.x.values
     y = da.y.values
-    yr = da.yr.values
+    year = da.year.values
     return xr.DataArray(
-                data=npa.reshape(da.values.shape),
-                dims=da.dims,
-                coords=dict(
-                    x=(["x"], x),
-                    y=(["y"], y),
-                    yr=yr,
-                ),
-            )
+        data=npa.reshape(da.values.shape),
+        dims=da.dims,
+        coords=dict(
+            x=(["x"], x),
+            y=(["y"], y),
+            year=year,
+        ),
+    )
 
 
 @timeit
@@ -528,18 +591,18 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
     :param test_Y: npa, int16
     TODO: Make mapping between esa_cci and a reduced list of labels.
     """
-    wandb.init(project="xgbc-esa-cci", entity="sdat2")   # my id for wandb
+    wandb.init(project="xgbc-esa-cci", entity="sdat2")  # my id for wandb
     # label need to be 0 to num_class -1
-    xg_train = xgb.DMatrix(train_X, label=train_Y)     # make train DMatrix
-    xg_test = xgb.DMatrix(test_X, label=test_Y)        # make test DMatrix
+    xg_train = xgb.DMatrix(train_X, label=train_Y)  # make train DMatrix
+    xg_test = xgb.DMatrix(test_X, label=test_Y)  # make test DMatrix
     # setup parameters for xgboost
     param = {}
-    param["objective"] = "multi:softmax"      # use softmax multi-class classification
-    param["eta"] = 0.1                        # scale weight of positive examples
-    param["max_depth"] = 6                    # max_depth
+    param["objective"] = "multi:softmax"  # use softmax multi-class classification
+    param["eta"] = 0.1  # scale weight of positive examples
+    param["max_depth"] = 6  # max_depth
     param["silent"] = 1
-    param["nthread"] = 16                     # number of threads
-    param['num_class'] = np.max(train_Y) + 1  # max size of labels.
+    param["nthread"] = 16  # number of threads
+    param["num_class"] = np.max(train_Y) + 1  # max size of labels.
     wandb.config.update(param)
     watchlist = [(xg_train, "train"), (xg_test, "test")]
     num_round = 15  # how many training epochs
@@ -551,7 +614,7 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
         callbacks=[wandb.xgboost.wandb_callback()],
     )
     # get prediction
-    pred = bst.predict(xg_test)                                 # predict for the test set.
+    pred = bst.predict(xg_test)  # predict for the test set.
     error_rate = np.sum(pred != test_Y) / test_Y.shape[0]
     print("Test error using softmax = {}".format(error_rate))
     wandb.log({"Error Rate": error_rate})
@@ -560,22 +623,48 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
 
 if __name__ == "__main__":
     # usage:  python3 src/models/xgb.py > log.txt
-    create_netcdfs() # uncomment to preprocess data.
-    run_name = "6-MS"                                      # memorable run-name for saving.
+    # create_netcdfs() # uncomment to preprocess data.
+    run_name = "6-MS-F"  # memorable run-name for saving.
     direc = run_name
-    if not os.path.exists(direc):                          # check if the direc exists.
-        os.mkdir(direc)                                    # make the directory if it doesn't exist.
-    x_da, y_da = return_x_y_da()                           # load preprocessed data from netcdfs
-    print(x_da.yr.values)
-    x_tr, y_tr = return_xy_npa(x_da, y_da, yr=range(0, 15))    # load numpy training data 
-    x_te, y_te = return_xy_npa(x_da, y_da, yr=range(15, 20))   # load numpy test data
-    bst = train_xgb(x_tr, y_tr, x_te, y_te)                # train xgboost model
-    x_all, y_all = return_xy_npa(x_da, y_da, yr=range(0, 20))  # load all data as numpy.
-    xg_all = xgb.DMatrix(x_all, label=y_all)               # pass all data to xgb data matrix
-    y_pr_all = bst.predict(xg_all)                         # predict whole time period using model
-    y_pr_da = npa_to_xarray(y_pr_all, y_da)                    # transform full prediction to dataarray.
-    y_pr_da.to_netcdf(os.path.join(direc, run_name  + "_y.nc"))     # save to netcdf
-    bst.save_model(os.path.join(direc, run_name + "_xgb.model"))     # save model using xgboost
-    animate_prediction(x_da, y_da, y_pr_da, 
-                       video_path=os.path.join(direc, 
-                                   run_name + "_joint_val.mp4"))  # animate prediction vs inputs.
+    if not os.path.exists(direc):  # check if the direc exists.
+        os.mkdir(direc)  # make the directory if it doesn't exist.
+    x_da, y_da = return_x_y_da(
+        take_esa_coords=True
+    )  # load preprocessed data from netcdfs
+    # there are now 24 years to choose from.
+    # train set goes from 0 to 1.
+    start_year_i = 0
+    mid_year_i = 17
+    end_year_i = 24
+
+    # print(x_da.year.values)
+    x_tr, y_tr = return_xy_npa(
+        x_da, y_da, year=range(start_year_i, mid_year_i)
+    )  # load numpy train data
+    x_te, y_te = return_xy_npa(
+        x_da, y_da, year=range(mid_year_i, end_year_i)
+    )  # load numpy test data
+    bst = train_xgb(x_tr, y_tr, x_te, y_te)  # train xgboost model
+    bst.save_model(os.path.join(direc, run_name + "_xgb.model"))  # save model
+    wandb.log(
+        {
+            "start_year_i": start_year_i,
+            "mid_year_i": mid_year_i,
+            "end_year_i": end_year_i,
+            'take_esa_coords': True, 
+        }
+    )
+    x_all, y_all = return_xy_npa(
+    x_da, y_da, year=range(start_year_i, end_year_i)
+    )  # all data as numpy.
+    xg_all = xgb.DMatrix(x_all, label=y_all)  # pass all data to xgb data matrix
+    y_pr_all = bst.predict(xg_all)  # predict whole time period using model
+    y_pr_da = npa_to_xarray(
+        y_pr_all, y_da.isel(year=range(start_year_i, end_year_i))
+    )  # transform full prediction to dataarray.
+    y_pr_da.to_netcdf(os.path.join(direc, run_name + "_y.nc"))  # save to netcdf
+    animate_prediction(
+        x_da.isel(year=range(start_year_i, end_year_i)), 
+        y_da.isel(year=range(start_year_i, end_year_i)), 
+        y_pr_da, video_path=os.path.join(direc, run_name + "_joint_val.mp4")
+    )  # animate prediction vs inputs.
