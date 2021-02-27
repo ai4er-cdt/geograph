@@ -16,8 +16,10 @@ from typing import Dict, List, Optional, Tuple, Union
 import geopandas as gpd
 import networkx as nx
 import numpy as np
+import pyproj
 import rasterio
 import shapely
+from shapely.prepared import prep
 from src.data_loading.rasterio_utils import polygonise
 from tqdm import tqdm
 
@@ -50,7 +52,7 @@ class GeoGraph:
     def __init__(
         self,
         data,
-        crs: Union[str, pyproj.CRS], 
+        crs: Union[str, pyproj.CRS],
         graph_save_path: Optional[Union[str, os.PathLike]] = None,
         raster_save_path: Optional[Union[str, os.PathLike]] = None,
         columns_to_rename: Optional[Dict[str, str]] = None,
@@ -377,11 +379,11 @@ class GeoGraph:
         ):
             if tolerance > 0:
                 # find the indexes of all polygons which intersect with this one
-                neighbours = self.rtree.query(
+                neighbours = df.sindex.query(
                     new_polygons[index], predicate="intersects"
                 )
             else:
-                neighbours = self.rtree.query(polygon, predicate="intersects")
+                neighbours = df.sindex.query(polygon, predicate="intersects")
 
             graph_dict[index] = neighbours
             # add each polygon as a node to the graph with useful attributes
@@ -518,22 +520,24 @@ class GeoGraph:
                 invalid_indexes.append(node)
                 continue
 
-            polygon = polygons[node]
+            polygon = prep(polygons[node])
             if max_travel_distance > 0:
-                buff_poly = buff_polygons[node]
+                buff_poly_bounds = buff_polygons[node].bounds
+                buff_poly = prep(buff_polygons[node])
             else:
                 buff_poly = polygon
+                buff_poly_bounds = polygons[node].bounds
             # Query rtree for all polygons within `max_travel_distance` of the original
-            for nbr in self.rtree.intersection(buff_poly.bounds):
+            for nbr in self.rtree.intersection(buff_poly_bounds):
                 # If a node is not a habitat class node, don't add the edge
                 if hgraph.nodes[nbr]["class_label"] not in valid_classes_set:
                     continue
                 # Otherwise add the edge with distance attribute
                 nbr_polygon = polygons[nbr]
-                if not hgraph.has_edge(node, nbr) and nbr_polygon.intersects(buff_poly):
+                if not hgraph.has_edge(node, nbr) and buff_poly.intersects(nbr_polygon):
                     if add_distance:
                         hgraph.add_edge(
-                            node, nbr, distance=polygon.distance(nbr_polygon)
+                            node, nbr, distance=polygons[node].distance(nbr_polygon)
                         )
                     else:
                         hgraph.add_edge(node, nbr)
