@@ -16,6 +16,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import geopandas as gpd
 import networkx as nx
 import numpy as np
+import pyproj
 import rasterio
 import shapely
 from src.data_loading.rasterio_utils import polygonise
