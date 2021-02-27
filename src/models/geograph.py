@@ -378,11 +378,11 @@ class GeoGraph:
         ):
             if tolerance > 0:
                 # find the indexes of all polygons which intersect with this one
-                neighbours = self.rtree.query(
+                neighbours = df.sindex.query(
                     new_polygons[index], predicate="intersects"
                 )
             else:
-                neighbours = self.rtree.query(polygon, predicate="intersects")
+                neighbours = df.sindex.query(polygon, predicate="intersects")
 
             graph_dict[index] = neighbours
             # add each polygon as a node to the graph with useful attributes
