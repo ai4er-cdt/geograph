@@ -74,6 +74,34 @@ def timeit(method):
     return timed
 
 
+def make_esa_map_d():
+    a= [0, 10, 11, 30, 40, 60, 61, 70, 80, 90, 100, 110, 130,
+        150, 160, 180, 190, 200, 201, 210]   
+    b = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+         12, 13, 14, 15, 16, 17, 18, 19]
+    forw_d = {}
+    rev_d = {}
+    for i in range(len(a)):
+        forw_d[a[i]] = b[i]
+        rev_d[b[i]] = a[i]
+    return forw_d, rev_d
+
+
+FORW_D, REV_D = make_esa_map_d()
+
+
+def _compress_esa(x):
+    return FORW_D[x]
+
+
+def _decompress_esa(x):
+    return REV_D[x]
+
+
+compress_esa = np.vectorize(_compress_esa)
+decompress_esa = np.vectorize(_decompress_esa)
+
+
 @timeit
 def return_path_dataarray():
     """
@@ -615,19 +643,20 @@ def x_npa_to_xarray(npa, da):
     for i in range(map_to_feat.shape[0]):
         if len(n_l) <= map_to_feat[i][0]:
             n_l.append([])
-        n_l[-1].append(npa[:, i].reshape((len(da.year.values),
-                          len(da.y.values), len(da.x.values))))
-    
+        n_l[-1].append(
+            npa[:, i].reshape((len(da.year.values), len(da.y.values), len(da.x.values)))
+        )
+
     dims = ("mn", "band", "year", "y", "x")
     coords_d = {}
     for dim in dims:
         coords_d[dim] = da.coords[dim].values
 
     return xr.DataArray(
-            data=np.array(n_l),
-            dims=dims,
-            coords=coords_d,
-        )
+        data=np.array(n_l),
+        dims=dims,
+        coords=coords_d,
+    )
 
 
 @timeit
@@ -638,7 +667,6 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
     :param train_Y: npa, int16
     :param test_X: npa, float32
     :param test_Y: npa, int16
-    TODO: Make mapping between esa_cci and a reduced list of labels.
     """
     wandb.init(project="xgbc-esa-cci", entity="sdat2")  # my id for wandb
     # label need to be 0 to num_class -1
@@ -711,7 +739,9 @@ if __name__ == "__main__":
     x_te, y_te = return_xy_npa(
         x_da, y_da, year=range(cfd["mid_year_i"], cfd["end_year_i"])
     )  # load numpy test data
-    bst = train_xgb(x_tr, y_tr, x_te, y_te)  # train xgboost model
+    bst = train_xgb(
+        x_tr, compress_esa(y_tr), x_te, compress_esa(y_te)
+    )  # train xgboost model
     bst.save_model(
         os.path.join(wandb.run.dir, wandb.run.name + "_xgb.model")
     )  # save model
@@ -719,8 +749,12 @@ if __name__ == "__main__":
     x_all, y_all = return_xy_npa(
         x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
     )  # all data as numpy.
-    xg_all = xgb.DMatrix(x_all, label=y_all)  # pass all data to xgb data matrix
-    y_pr_all = bst.predict(xg_all)  # predict whole time period using model
+    xg_all = xgb.DMatrix(
+        x_all, label=compress_esa(y_all)
+    )  # pass all data to xgb data matrix
+    y_pr_all = decompress_esa(
+        bst.predict(xg_all)
+    )  # predict whole time period using model
     y_pr_da = y_npa_to_xarray(
         y_pr_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
     )  # transform full prediction to dataarray.
