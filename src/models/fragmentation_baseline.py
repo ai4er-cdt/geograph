@@ -223,7 +223,6 @@ def fragmentation_analysis(
         logging.info("Analysing data for %s", date)
         fragmentation_statistics[date] = _analyse_fragmentation(
             landcover=landcover,
-            landcover_classes=landcover_classes,
             rois=rois,
             target_crs=target_crs,
             target_x_res=target_x_res,
