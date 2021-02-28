@@ -18,6 +18,16 @@ Currently training parameters are changed inside train_xgb()
 TODO: some functions need to be moved to separate files.
 TODO: the animation function could be generalised.
 TODO: Should add hydra to allow a lot of different model hyperparameters to be passed in.
+TODO: Implement xgboost dask to let the model run with full resolution data.
+TODO: Implement GPU usage in xgboost.
+TODO: Fix bug with loading full res data xarray.
+TODO: Look at trends in landsat bands to see if preprocessing can be improved.
+TODO: Download extra landsat infra-red band if possible to allow more differentiation.
+TODO: Plot class imbalance.
+TODO: Research which metrics best capture the classification.
+TODO: Implement UNET.
+TODO: Implement imputation if needed for UNET.
+TODO: Test if classification can be stabilised/improved using multi-year voting.
 """
 import os
 import copy
@@ -75,8 +85,14 @@ def timeit(method):
 
 
 def make_esa_map_d():
+    """
+    This function creats the mapping between the esa cci habitat labels and
+    a reduced set of the same length. Only usable if the same habitat labels as in the
+    Chernobyl region are used.
+    :return: forw_d, rev_d; two dictionaries for the forwards / reverse transformation.
+    """
     a= [0, 10, 11, 30, 40, 60, 61, 70, 80, 90, 100, 110, 130,
-        150, 160, 180, 190, 200, 201, 210]   
+        150, 160, 180, 190, 200, 201, 210]
     b = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
          12, 13, 14, 15, 16, 17, 18, 19]
     forw_d = {}
@@ -87,8 +103,10 @@ def make_esa_map_d():
     return forw_d, rev_d
 
 
-FORW_D, REV_D = make_esa_map_d()
+FORW_D, REV_D = make_esa_map_d()  # Makes global objects for the mapping dicts.
 
+
+# Create the unvectorised functions.
 
 def _compress_esa(x):
     return FORW_D[x]
@@ -97,6 +115,8 @@ def _compress_esa(x):
 def _decompress_esa(x):
     return REV_D[x]
 
+
+# Vectorize the functions
 
 compress_esa = np.vectorize(_compress_esa)
 decompress_esa = np.vectorize(_decompress_esa)
@@ -107,6 +127,7 @@ def return_path_dataarray():
     """
     makes path to the google earth engine landsat data.
     if the file doesn't exist, it becomes 'None' in the netcdf.
+    :return: xarray.DataArray containing paths to Landsat data.
     """
     incomplete_years = []  # [1984, 1994, 2002, 2003, 2008]
     # previously these were ignored, now algorithm is robust to absence.
@@ -667,6 +688,14 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
     :param train_Y: npa, int16
     :param test_X: npa, float32
     :param test_Y: npa, int16
+
+    significant algorithm parameter:
+
+    eta [default=0.3, alias: learning_rate]
+
+    Step size shrinkage used in update to prevents overfitting. 
+    After each boosting step, we can directly get the weights of new features, 
+    and eta shrinks the feature weights to make the boosting process more conservative.
     """
     wandb.init(project="xgbc-esa-cci", entity="sdat2")  # my id for wandb
     # label need to be 0 to num_class -1
@@ -675,14 +704,14 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
     # setup parameters for xgboost
     param = {}
     param["objective"] = "multi:softmax"  # use softmax multi-class classification
-    param["eta"] = 0.1  # scale weight of positive examples
-    param["max_depth"] = 6  # max_depth
+    param["eta"] = 0.3  # scale weight of positive examples
+    param["max_depth"] = 12  # max_depth
     param["silent"] = 1
     param["nthread"] = 16  # number of threads
     param["num_class"] = np.max(train_Y) + 1  # max size of labels.
     wandb.config.update(param)
     watchlist = [(xg_train, "train"), (xg_test, "test")]
-    num_round = 15  # how many training epochs
+    num_round = 100  # how many training epochs
     bst = xgb.train(
         param,
         xg_train,
@@ -731,8 +760,7 @@ if __name__ == "__main__":
         )
         assert np.all(y_all == y_rp)
 
-    test_inversibility()
-
+    # test_inversibility()
     x_tr, y_tr = return_xy_npa(
         x_da, y_da, year=range(cfd["start_year_i"], cfd["mid_year_i"])
     )  # load numpy train data

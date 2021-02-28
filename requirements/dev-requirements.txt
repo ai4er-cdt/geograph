@@ -55,3 +55,7 @@ imageio-ffmpeg
 xgboost
 sklearn
 graphviz        # can plot the decission tree
+
+# 
+pillow
+pytorch-lightning
