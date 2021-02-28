@@ -43,7 +43,7 @@ def get_square_row(
     square_coords = [(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]
     # scaling up by square_side_len
     square_coords = [
-        tuple([coord * square_side_len for coord in coords]) for coords in square_coords
+        tuple(coord * square_side_len for coord in coords) for coords in square_coords
     ]
     # setting to origin coords
     square_coords = [[sum(x) for x in zip(coords, origin)] for coords in square_coords]
