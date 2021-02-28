@@ -498,7 +498,6 @@ class GeoGraph:
         """
         if max_travel_distance < 0:
             raise ValueError("`max_travel_distance` must be greater than 0.")
-        valid_classes_set = set(valid_classes)
         hgraph: nx.Graph = deepcopy(self.graph)
         # Remove all edges in the graph, then at the end we only have edges
         # between nodes less than `max_travel_distance` apart
@@ -510,40 +509,36 @@ class GeoGraph:
             # Vectorised buffer on the entire df to calculate the expanded polygons
             # used to get intersections.
             buff_polygons = self.df.geometry.buffer(max_travel_distance).tolist()
-        # List of nodes that are not in the habitat
-        invalid_indexes: List[int] = []
+        # Remove non-habitat nodes from habitat graph
+        invalid_idx = set(
+            self.df.loc[~self.df["class_label"].isin(set(valid_classes))].index
+        )
+        hgraph.remove_nodes_from(invalid_idx)
 
         for node in tqdm(
             hgraph.nodes, desc="Generating habitat graph", total=len(hgraph)
         ):
-            if hgraph.nodes[node]["class_label"] not in valid_classes_set:
-                invalid_indexes.append(node)
-                continue
-
-            polygon = prep(polygons[node])
+            polygon = polygons[node]
             if max_travel_distance > 0:
                 buff_poly_bounds = buff_polygons[node].bounds
                 buff_poly = prep(buff_polygons[node])
             else:
-                buff_poly = polygon
-                buff_poly_bounds = polygons[node].bounds
+                buff_poly_bounds = polygon.bounds
+                buff_poly = prep(polygon)
             # Query rtree for all polygons within `max_travel_distance` of the original
             for nbr in self.rtree.intersection(buff_poly_bounds):
                 # If a node is not a habitat class node, don't add the edge
-                if hgraph.nodes[nbr]["class_label"] not in valid_classes_set:
+                if nbr in invalid_idx:
                     continue
                 # Otherwise add the edge with distance attribute
                 nbr_polygon = polygons[nbr]
                 if not hgraph.has_edge(node, nbr) and buff_poly.intersects(nbr_polygon):
                     if add_distance:
                         hgraph.add_edge(
-                            node, nbr, distance=polygons[node].distance(nbr_polygon)
+                            node, nbr, distance=polygon.distance(nbr_polygon)
                         )
                     else:
                         hgraph.add_edge(node, nbr)
-
-        # Remove non-habitat nodes from habitat graph
-        hgraph.remove_nodes_from(invalid_indexes)
         # Add habitat to habitats dict
         habitat = Habitat(
             name=name,
