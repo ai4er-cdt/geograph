@@ -9,14 +9,25 @@ Y: ESA CCI.
 
 Also animates the result.
 
-Usage: 
-    python3 src/models/xgb.py 
+Usage:
+
+    python3 src/models/xgb.py
 
 Currently training parameters are changed inside train_xgb()
 
 TODO: some functions need to be moved to separate files.
 TODO: the animation function could be generalised.
 TODO: Should add hydra to allow a lot of different model hyperparameters to be passed in.
+TODO: Implement xgboost dask to let the model run with full resolution data.
+TODO: Implement GPU usage in xgboost.
+TODO: Fix bug with loading full res data xarray.
+TODO: Look at trends in landsat bands to see if preprocessing can be improved.
+TODO: Download extra landsat infra-red band if possible to allow more differentiation.
+TODO: Plot class imbalance.
+TODO: Research which metrics best capture the classification.
+TODO: Implement UNET.
+TODO: Implement imputation if needed for UNET.
+TODO: Test if classification can be stabilised/improved using multi-year voting.
 """
 import os
 import copy
@@ -24,6 +35,7 @@ import numpy as np
 import numpy.ma as ma
 import wandb
 import xgboost as xgb
+from sklearn import metrics
 import rioxarray
 import dask
 import xarray as xr
@@ -72,11 +84,50 @@ def timeit(method):
     return timed
 
 
+def make_esa_map_d():
+    """
+    This function creats the mapping between the esa cci habitat labels and
+    a reduced set of the same length. Only usable if the same habitat labels as in the
+    Chernobyl region are used.
+    :return: forw_d, rev_d; two dictionaries for the forwards / reverse transformation.
+    """
+    a= [0, 10, 11, 30, 40, 60, 61, 70, 80, 90, 100, 110, 130,
+        150, 160, 180, 190, 200, 201, 210]
+    b = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+         12, 13, 14, 15, 16, 17, 18, 19]
+    forw_d = {}
+    rev_d = {}
+    for i in range(len(a)):
+        forw_d[a[i]] = b[i]
+        rev_d[b[i]] = a[i]
+    return forw_d, rev_d
+
+
+FORW_D, REV_D = make_esa_map_d()  # Makes global objects for the mapping dicts.
+
+
+# Create the unvectorised functions.
+
+def _compress_esa(x):
+    return FORW_D[x]
+
+
+def _decompress_esa(x):
+    return REV_D[x]
+
+
+# Vectorize the functions
+
+compress_esa = np.vectorize(_compress_esa)
+decompress_esa = np.vectorize(_decompress_esa)
+
+
 @timeit
 def return_path_dataarray():
     """
     makes path to the google earth engine landsat data.
     if the file doesn't exist, it becomes 'None' in the netcdf.
+    :return: xarray.DataArray containing paths to Landsat data.
     """
     incomplete_years = []  # [1984, 1994, 2002, 2003, 2008]
     # previously these were ignored, now algorithm is robust to absence.
@@ -422,11 +473,11 @@ def _return_x_y_da(
     use_mfd=True,
 ):
     """
-    This function is memoised by return_x_y_da() so that if it's already been run with 
+    This function is memoised by return_x_y_da() so that if it's already been run with
     the same inputs, it will load the preprocessed data.
     Load the preprocced Landsat and ESA-CCI data on the same format of xarray.dataaray.
     :param take_esa_coords: bool, if true use the lower resolution grid from esa ccis
-    :param 
+    :param
     current time taken to run: 'return_x_y_da'  431.59196 s
     """
     mn_l = ["JFM", "AMJ", "JAS", "OND"]
@@ -458,6 +509,7 @@ def _return_x_y_da(
 
     @timeit
     def reindex_da(mould_da, putty_da):
+        """reindex the putty_da to become like the mould_da"""
         return putty_da.reindex(
             x=mould_da.coords["x"].values,
             y=mould_da.coords["y"].values,
@@ -529,8 +581,8 @@ def return_x_y_da(
     else:
         print("x/y values premade. Reusing them.")
         if use_mfd:
-            x_ds = xr.open_mfdataset([full_names[0]])
-            y_ds = xr.open_mfdataset([full_names[1]])
+            x_ds = xr.open_mfdataset([full_names[0]], chunks={"year": 1})
+            y_ds = xr.open_mfdataset([full_names[1]], chunks={"year": 1})
         else:
             x_ds = xr.open_dataset(full_names[0])
             y_ds = xr.open_dataset(full_names[1])
@@ -546,20 +598,41 @@ def return_xy_npa(x_da, y_da, year=5):
     :param year: ints, single or list
     :return: x_val, y_val
     """
-    x_val = np.asarray(
-        [
-            x_da.isel(year=year, mn=mn, band=band).values.ravel()
-            for mn in range(4)
-            for band in range(3)
-        ]
-    )
-    x_val = np.swapaxes(x_val, 0, 1)
-    y_val = y_da.isel(year=year).values.ravel()
+
+    def combine_first_two_indices(x_val, y_val):
+        return (
+            np.swapaxes(
+                np.array([x_val[:, :, i].ravel() for i in range(x_val.shape[2])]), 0, 1
+            ),
+            y_val.ravel(),
+        )
+
+    def _return_xy_npa(x_da, y_da, yr=5):
+        assert isinstance(yr, int)
+        x_val = np.asarray(
+            [
+                x_da.isel(year=yr, mn=mn, band=band).values.ravel()
+                for mn in range(4)
+                for band in range(3)
+            ]
+        )
+        # [mn, band]
+        return np.swapaxes(x_val, 0, 1), y_da.isel(year=yr).values.ravel()
+
+    if isinstance(year, range) or isinstance(year, list):
+        x_val_l, y_val_l = [], []
+        for yr in year:
+            x_val_p, y_val_p = _return_xy_npa(x_da, y_da, yr=yr)
+            x_val_l.append(x_val_p)
+            y_val_l.append(y_val_p)
+        x_val, y_val = combine_first_two_indices(np.array(x_val_l), np.array(y_val_l))
+    else:
+        x_val, y_val = _return_xy_npa(x_da, y_da, yr=year)
     return x_val, y_val
 
 
 @timeit
-def npa_to_xarray(npa, da):
+def y_npa_to_xarray(npa, da):
     """
     Reformat numpy array to be like a given xarray.dataarray.
     Inverse of return_xy for the y values at least.
@@ -569,15 +642,41 @@ def npa_to_xarray(npa, da):
     """
     x = da.x.values
     y = da.y.values
-    year = da.year.values
+    coords_d = dict(x=(["x"], x), y=(["y"], y))
+    coords_d["year"] = da.year.values
     return xr.DataArray(
         data=npa.reshape(da.values.shape),
         dims=da.dims,
-        coords=dict(
-            x=(["x"], x),
-            y=(["y"], y),
-            year=year,
-        ),
+        coords=coords_d,
+    )
+
+
+@timeit
+def x_npa_to_xarray(npa, da):
+    """
+    Reformat numpy array to be like a given xarray.dataarray.
+    :param npa: numpy array, float.
+    :param da: xarray.dataarray, the mould da for the output.
+    :return: xarray.dataarray, containing npa.
+    """
+    map_to_feat = np.array([[mn, band] for mn in range(4) for band in range(3)])
+    n_l = []
+    for i in range(map_to_feat.shape[0]):
+        if len(n_l) <= map_to_feat[i][0]:
+            n_l.append([])
+        n_l[-1].append(
+            npa[:, i].reshape((len(da.year.values), len(da.y.values), len(da.x.values)))
+        )
+
+    dims = ("mn", "band", "year", "y", "x")
+    coords_d = {}
+    for dim in dims:
+        coords_d[dim] = da.coords[dim].values
+
+    return xr.DataArray(
+        data=np.array(n_l),
+        dims=dims,
+        coords=coords_d,
     )
 
 
@@ -589,7 +688,14 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
     :param train_Y: npa, int16
     :param test_X: npa, float32
     :param test_Y: npa, int16
-    TODO: Make mapping between esa_cci and a reduced list of labels.
+
+    significant algorithm parameter:
+
+    eta [default=0.3, alias: learning_rate]
+
+    Step size shrinkage used in update to prevents overfitting. 
+    After each boosting step, we can directly get the weights of new features, 
+    and eta shrinks the feature weights to make the boosting process more conservative.
     """
     wandb.init(project="xgbc-esa-cci", entity="sdat2")  # my id for wandb
     # label need to be 0 to num_class -1
@@ -598,14 +704,14 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
     # setup parameters for xgboost
     param = {}
     param["objective"] = "multi:softmax"  # use softmax multi-class classification
-    param["eta"] = 0.1  # scale weight of positive examples
-    param["max_depth"] = 6  # max_depth
+    param["eta"] = 0.3  # scale weight of positive examples
+    param["max_depth"] = 12  # max_depth
     param["silent"] = 1
     param["nthread"] = 16  # number of threads
     param["num_class"] = np.max(train_Y) + 1  # max size of labels.
     wandb.config.update(param)
     watchlist = [(xg_train, "train"), (xg_test, "test")]
-    num_round = 15  # how many training epochs
+    num_round = 100  # how many training epochs
     bst = xgb.train(
         param,
         xg_train,
@@ -624,47 +730,69 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
 if __name__ == "__main__":
     # usage:  python3 src/models/xgb.py > log.txt
     # create_netcdfs() # uncomment to preprocess data.
-    run_name = "6-MS-F"  # memorable run-name for saving.
-    direc = run_name
-    if not os.path.exists(direc):  # check if the direc exists.
-        os.mkdir(direc)  # make the directory if it doesn't exist.
+    cfd = {
+        "start_year_i": 0,
+        "mid_year_i": 19,
+        "end_year_i": 24,
+        "take_esa_coords": True,
+    }
+
     x_da, y_da = return_x_y_da(
-        take_esa_coords=True
+        take_esa_coords=cfd["take_esa_coords"]
     )  # load preprocessed data from netcdfs
+
     # there are now 24 years to choose from.
     # train set goes from 0 to 1.
-    start_year_i = 0
-    mid_year_i = 17
-    end_year_i = 24
-
     # print(x_da.year.values)
+
+    @timeit
+    def test_inversibility():
+        # run-20210225_161033-yxyit68w/
+        x_all, y_all = return_xy_npa(
+            x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
+        )  # all data as numpy.
+        x_rp, y_rp = return_xy_npa(
+            x_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
+            y_npa_to_xarray(
+                y_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
+            ),
+            year=range(cfd["start_year_i"], cfd["end_year_i"]),
+        )
+        assert np.all(y_all == y_rp)
+
+    # test_inversibility()
     x_tr, y_tr = return_xy_npa(
-        x_da, y_da, year=range(start_year_i, mid_year_i)
+        x_da, y_da, year=range(cfd["start_year_i"], cfd["mid_year_i"])
     )  # load numpy train data
     x_te, y_te = return_xy_npa(
-        x_da, y_da, year=range(mid_year_i, end_year_i)
+        x_da, y_da, year=range(cfd["mid_year_i"], cfd["end_year_i"])
     )  # load numpy test data
-    bst = train_xgb(x_tr, y_tr, x_te, y_te)  # train xgboost model
-    bst.save_model(os.path.join(direc, run_name + "_xgb.model"))  # save model
-    wandb.log(
-        {
-            "start_year_i": start_year_i,
-            "mid_year_i": mid_year_i,
-            "end_year_i": end_year_i,
-            'take_esa_coords': True, 
-        }
-    )
+    bst = train_xgb(
+        x_tr, compress_esa(y_tr), x_te, compress_esa(y_te)
+    )  # train xgboost model
+    bst.save_model(
+        os.path.join(wandb.run.dir, wandb.run.name + "_xgb.model")
+    )  # save model
+    wandb.log(cfd)
     x_all, y_all = return_xy_npa(
-    x_da, y_da, year=range(start_year_i, end_year_i)
+        x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
     )  # all data as numpy.
-    xg_all = xgb.DMatrix(x_all, label=y_all)  # pass all data to xgb data matrix
-    y_pr_all = bst.predict(xg_all)  # predict whole time period using model
-    y_pr_da = npa_to_xarray(
-        y_pr_all, y_da.isel(year=range(start_year_i, end_year_i))
+    xg_all = xgb.DMatrix(
+        x_all, label=compress_esa(y_all)
+    )  # pass all data to xgb data matrix
+    y_pr_all = decompress_esa(
+        bst.predict(xg_all)
+    )  # predict whole time period using model
+    y_pr_da = y_npa_to_xarray(
+        y_pr_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
     )  # transform full prediction to dataarray.
-    y_pr_da.to_netcdf(os.path.join(direc, run_name + "_y.nc"))  # save to netcdf
+    y_pr_da.to_netcdf(
+        os.path.join(wandb.run.dir, wandb.run.name + "_y.nc")
+    )  # save to netcdf
     animate_prediction(
-        x_da.isel(year=range(start_year_i, end_year_i)), 
-        y_da.isel(year=range(start_year_i, end_year_i)), 
-        y_pr_da, video_path=os.path.join(direc, run_name + "_joint_val.mp4")
+        x_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
+        y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
+        y_pr_da,
+        video_path=os.path.join(wandb.run.dir, wandb.run.name + "_joint_val.mp4"),
     )  # animate prediction vs inputs.
+    print("Classification accuracy: {}".format(metrics.accuracy_score(y_all, y_pr_all)))
