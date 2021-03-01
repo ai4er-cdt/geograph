@@ -2,33 +2,329 @@
 This module contains visualisation functions for GeoGraphs.
 """
 from __future__ import annotations
-from typing import Optional, List, Tuple, Callable
+from typing import Optional, List, Tuple, Callable, Dict
 
 import folium
+import pandas as pd
 import geopandas as gpd
 import networkx as nx
 import shapely.geometry
-from src.constants import CHERNOBYL_COORDS_WGS84, UTM35N, CEZ_DATA_PATH
+import ipywidgets as widgets
+import ipyleaflet
+import markdown
+
+
+from src.constants import CHERNOBYL_COORDS_WGS84, WGS84, UTM35N, CEZ_DATA_PATH
 from src.models import geograph
 
 
-class GeoGraphViewer:
-    """Class for viewing GeoGraph object"""
+class GeoGraphViewer(ipyleaflet.Map):
+    """Class for interactively viewing a GeoGraph."""
 
-    def __init__(self, map_type: str = "folium") -> None:
-        """Class for viewing GeoGraph object.
+    log_out = widgets.Output(layout={"border": "1px solid black"})
+
+    def __init__(
+        self,
+        center: List[int, int] = CHERNOBYL_COORDS_WGS84,
+        zoom: int = 7,
+        crs: Dict = ipyleaflet.projections.EPSG3857,
+        **kwargs
+    ) -> None:
+        """Class for interactively viewing a GeoGraph.
 
         Args:
-            map_type (str, optional): defines which package is used for creating the
-                map. One of ["folium","ipyleaflet"]. Folium is more widely compatible
-                and may also run on google colab but the viewer functionality is
-                limited, whereas ipyleaflet won't run on google colab but offers the
-                full viewer functionality.
-                Defaults to "folium".
+            center ([type], optional): center of the map. Defaults to
+                CHERNOBYL_COORDS_WGS84.
+            zoom (int, optional): [description]. Defaults to 7.
+            crs ([type], optional): [description]. Defaults to
+                ipyleaflet.projections.EPSG3857.
         """
-        if map_type == "ipyleaflet":
-            raise NotImplementedError
-        self.map_type = map_type
+        super().__init__(
+            center=center,
+            zoom=zoom,
+            scroll_wheel_zoom=True,
+            crs=crs,
+            zoom_snap=0.1,
+            **kwargs
+        )
+        self.layer_dict = dict(
+            Basemap=dict(
+                layer=ipyleaflet.TileLayer(base=True, max_zoom=19, min_zoom=4),
+                active=True,
+                layer_type="map",
+            )
+        )
+        self.custom_style = dict(
+            style={"color": "black", "fillColor": "#3366cc"},
+            hover_style={"fillColor": "red", "fillOpacity": 0.2},
+            point_style={
+                "radius": 10,
+                "color": "red",
+                "fillOpacity": 0.8,
+                "fillColor": "blue",
+                "weight": 3,
+            },
+        )
+        self._widget_output = {}
+
+    @log_out.capture()
+    def add_graph(self, graph: geograph.GeoGraph, name: str = "Graph") -> None:
+        """Add GeoGraph to viewer.
+
+        Args:
+            graph (geograph.GeoGraph): graph to be added
+            name (str, optional): name shown in control panel. Defaults to "Graph".
+        """
+        nodes, edges = create_node_edge_geometries(graph.graph)
+        graph_geometries = pd.concat([nodes, edges]).reset_index()
+        graph_geo_data = ipyleaflet.GeoData(
+            geo_dataframe=graph_geometries.to_crs(WGS84),
+            style={"color": "black", "fillColor": "#3366cc"},
+            hover_style={"fillColor": "red", "fillOpacity": 0.2},
+            point_style={
+                "radius": 10,
+                "color": "red",
+                "fillOpacity": 0.8,
+                "fillColor": "blue",
+                "weight": 3,
+            },
+            name=name,
+        )
+        self.layer_dict[name] = dict(
+            layer=graph_geo_data, active=True, layer_type="graph"
+        )
+        self._layer_update()
+
+    @log_out.capture()
+    def _layer_update(self):
+        """Update `self.layer` tuple from `self.layer_dict`."""
+        self.layers = tuple(
+            [entry["layer"] for entry in self.layer_dict.values() if entry["active"]]
+        )
+
+    @log_out.capture()
+    def set_graph_style(self, radius: float = 10):
+        """Set the style of any graphs added to viewer.
+
+        Args:
+            radius (float): radius of nodes in graph. Defaults to 10.
+        """
+
+        for name, entry in self.layer_dict.items():
+            if entry["layer_type"] == "graph":
+                layer = entry["layer"]
+
+                # Below doesn't work because traitlet change not observed
+                # layer.point_style['radius'] = radius
+
+                self.custom_style["point_style"]["radius"] = radius
+                layer = ipyleaflet.GeoData(
+                    geo_dataframe=layer.geo_dataframe,
+                    name=layer.name,
+                    **self.custom_style
+                )
+                self.layer_dict[name]["layer"] = layer
+        self._layer_update()
+
+    @log_out.capture()
+    def remove_graphs(
+        self,
+        button: widgets.widget_button.Button = None,  # pylint: disable=unused-argument
+    ) -> None:
+        """Temporarily remove all graphs.
+
+        Args:
+            button (widgets.widget_button.Button): button object that is passed by the
+                observe method of a ipywidgets button. Is ignored. Defaults to None.
+        """
+        for layer in self.layers:
+            if layer.name[0:5] == "Graph":
+                self.remove_layer(layer)
+
+    @log_out.capture()
+    def _checkbox_layer_switch(self, change_dict: Dict) -> None:
+        """Adapt `self.layer_dict` according to checkboxes
+
+        This method adapts the `self.layer_dict` to correspond to the current state of
+        the layer checkboxes This state is passed as change_dict.
+
+        Args:
+            change_dict (Dict): change dict returned by ipywidgets.checkbox
+        """
+        if change_dict["name"] == "value":
+            layer_name = change_dict["owner"].description
+            self.layer_dict[layer_name]["active"] = change_dict["new"]
+
+        self._layer_update()
+
+    @log_out.capture()
+    def _create_habitat_tab(self) -> widgets.VBox:
+        """Create tab widget for habitats.
+
+        Returns:
+            widgets.VBox: widget
+        """
+        checkboxes = []
+        for layer_name in self.layer_dict:
+            checkbox = widgets.Checkbox(
+                value=True, description=layer_name, disabled=False, indent=False
+            )
+            checkbox.observe(self._checkbox_layer_switch)
+            checkboxes.append(checkbox)
+
+        self.add_habitat_button = widgets.Button(
+            description="Remove graph",
+            disabled=False,
+            button_style="",  # 'success', 'info', 'warning', 'danger' or ''
+            tooltip="Click me",
+            icon="plus",  # (FontAwesome names without the `fa-` prefix)
+        )
+        self.add_habitat_button.on_click(self.remove_graphs)
+
+        habitat_accordion = widgets.Accordion(children=[self.add_habitat_button])
+        habitat_accordion.set_title(0, "Habitats")
+
+        checkboxes.append(habitat_accordion)
+
+        habitat_tab = widgets.VBox(checkboxes)
+
+        return habitat_tab
+
+    @log_out.capture()
+    def _create_diff_tab(self) -> widgets.VBox:
+        """Create tab widget for diff.
+
+        Returns:
+            widgets.VBox: widget
+        """
+
+        time_slider1 = widgets.IntSlider(
+            min=1960, max=2021, step=1, value=1990, description="Start time:"
+        )
+        time_slider2 = widgets.IntSlider(
+            min=1960, max=2021, step=1, value=2010, description="End time:"
+        )
+
+        compute_node_button = widgets.Button(
+            description="Compute node diff",
+            disabled=False,
+            button_style="",  # 'success', 'info', 'warning', 'danger' or ''
+            tooltip=(
+                "This computes the differences between of the nodes in the graph"
+                " at start time and the graph at end time."
+            ),
+            icon="",  # (FontAwesome names without the `fa-` prefix)
+        )
+
+        compute_pgon_button = widgets.Button(
+            description="Compute polygon diff",
+            disabled=False,
+            button_style="",  # 'success', 'info', 'warning', 'danger' or ''
+            tooltip=(
+                "This computes the differences between of the polygons in the"
+                " graph at start time and the graph at end time."
+            ),
+            icon="",  # (FontAwesome names without the `fa-` prefix)
+        )
+
+        diff_tab = widgets.VBox(
+            [time_slider1, time_slider2, compute_node_button, compute_pgon_button]
+        )
+
+        return diff_tab
+
+    @log_out.capture()
+    def _create_settings_tab(self) -> widgets.VBox:
+        """Create tab widget for settings.
+
+        Returns:
+            widgets.VBox: tab widget
+        """
+
+        radius_slider = widgets.FloatSlider(
+            min=0.01, max=100.0, step=0.005, value=5.0, description="Node radius:"
+        )
+        self._widget_output["settings_tab"] = widgets.interactive_output(
+            self.set_graph_style, dict(radius=radius_slider)
+        )
+
+        zoom_slider = widgets.FloatSlider(
+            description="Zoom level:", min=0, max=15, value=7
+        )
+        widgets.jslink((zoom_slider, "value"), (self, "zoom"))
+
+        settings_tab = widgets.VBox(
+            [
+                zoom_slider,
+                radius_slider,
+                radius_slider,
+                radius_slider,
+                radius_slider,
+                radius_slider,
+            ]
+        )
+
+        return settings_tab
+
+    @log_out.capture()
+    def _create_metrics_widget(self) -> widgets.VBox:
+        """Create metrics visualisation widget.
+
+        Returns:
+            widgets.VBox: metrics widget
+        """
+
+        widget = widgets.VBox(
+            widgets.HTML(markdown.markdown("""&nbsp;&nbsp;Metrics&nbsp;&nbsp;"""))
+        )
+        return widget
+
+    @log_out.capture()
+    def add_settings_widget(self) -> None:
+        """Add settings widget to viewer."""
+
+        habitats_tab = self._create_habitat_tab()
+        diff_tab = self._create_diff_tab()
+        settings_tab = self._create_settings_tab()
+
+        tab_nest_dict = dict(
+            Habitat=habitats_tab,
+            Diff=diff_tab,
+            Settings=settings_tab,
+            Log=self.log_out,
+        )
+
+        tab_nest = widgets.Tab()
+        tab_nest.children = list(tab_nest_dict.values())
+        for i, title in enumerate(tab_nest_dict):
+            tab_nest.set_title(i, title)
+
+        self.add_control(ipyleaflet.WidgetControl(widget=tab_nest, position="topright"))
+
+        metrics_widget = self.create_metrics_widget()
+        self.add_control(
+            ipyleaflet.WidgetControl(widget=metrics_widget, position="topright")
+        )
+
+        # self.add_control(ipyleaflet.LayersControl(position="topleft"))
+
+        header = widgets.HTML(markdown.markdown("""&nbsp;&nbsp;GeoGraph&nbsp;&nbsp;"""))
+        self.add_control(
+            ipyleaflet.WidgetControl(widget=header, position="bottomright")
+        )
+
+    @log_out.capture()
+    def add_widgets(self) -> None:
+        """Add all widgets to viewer"""
+        self.add_settings_widget()
+        self.add_control(ipyleaflet.FullScreenControl())
+
+
+class FoliumGeoGraphViewer:
+    """Class for viewing GeoGraph object without ipywidgets"""
+
+    def __init__(self) -> None:
+        """Class for viewing GeoGraph object without ipywidgets."""
         self.widget = None
 
     def _repr_html_(self) -> str:
@@ -49,13 +345,11 @@ class GeoGraphViewer:
             graph (geograph.GeoGraph): GeoGraph to be shown.
         """
 
-        if self.map_type == "folium":
-            self._add_graph_to_folium_map(graph)
+        self._add_graph_to_folium_map(graph)
 
     def add_layer_control(self) -> None:
         """Add layer control to the viewer."""
-        if self.map_type == "folium":
-            folium.LayerControl().add_to(self.widget)
+        folium.LayerControl().add_to(self.widget)
 
     def _add_graph_to_folium_map(self, graph: geograph.GeoGraph) -> None:
         """Add graph to folium map.
