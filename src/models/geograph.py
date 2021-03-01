@@ -12,7 +12,7 @@ import pickle
 from copy import deepcopy
 from dataclasses import dataclass
 from itertools import zip_longest
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Sequence
 
 import geopandas as gpd
 import networkx as nx
@@ -194,6 +194,14 @@ class GeoGraph:
     def crs(self):
         """Return crs of dataframe."""
         return self.df.crs
+
+    def _class_label(self, node_ids: Sequence[int]):
+        """Return class label of `node_ids` directly from underlying numpy array"""
+        return self.df.class_label.values[node_ids]
+
+    def _geometry(self, node_ids: Sequence[int]):
+        """Return geometry of `node_ids` directly from underlying numpy array"""
+        return self.df.geometry.values[node_ids]
 
     def _load_from_vector_path(
         self,
