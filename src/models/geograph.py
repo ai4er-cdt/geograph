@@ -12,7 +12,7 @@ import pickle
 from copy import deepcopy
 from dataclasses import dataclass
 from itertools import zip_longest
-from typing import Dict, List, Optional, Tuple, Union, Sequence
+from typing import Dict, Iterable, List, Optional, Tuple, Union, Sequence
 
 import geopandas as gpd
 import networkx as nx
@@ -194,6 +194,11 @@ class GeoGraph:
     def crs(self):
         """Return crs of dataframe."""
         return self.df.crs
+
+    @property
+    def bounds(self):
+        """Return bounds of entire graph"""
+        return self.df.total_bounds
 
     def _class_label(self, node_ids: Sequence[int]):
         """Return class label of `node_ids` directly from underlying numpy array"""
@@ -453,28 +458,14 @@ class GeoGraph:
             adjacency_set.update(list(self.graph.neighbors(node)))
         adjacency_set -= adjacency_set.intersection(node_list)
         # Build union polygon.
-        polygon = self.df.geometry.iloc[node_list].unary_union
+        # TODO: Fix indexing issue (need one positional and one `hash`
+        # TODO:  index (like iloc & loc))
+        polygon = self.df.geometry.values[node_list].unary_union
         # Remove nodes from graph and rows from df
-        self.graph.remove_nodes_from(node_list)
-        self.df = self.df.drop(node_list)
+        self._remove_nodes(node_list)
         # Add final node to graph and df
-        self.graph.add_node(
-            final_index,
-            rep_point=polygon.representative_point(),
-            area=polygon.area,
-            perimeter=polygon.length,
-            class_label=class_label,
-            bounds=polygon.bounds,
-        )
-        data = {"class_label": class_label, "geometry": polygon}
-        missing_cols = {key: None for key in set(self.df.columns) - set(data.keys())}
-        self.df.loc[final_index] = gpd.GeoSeries(
-            {**data, **missing_cols}, crs=self.df.crs
-        )
-        self.df = self.df.sort_index()
-        # Add edges from final node to all neighbours of the original
-        self.graph.add_edges_from(
-            zip_longest([final_index], adjacency_set, fillvalue=final_index)
+        self._add_node(
+            final_index, adjacency_set, geometry=polygon, class_label=class_label
         )
 
     def add_habitat(
@@ -606,3 +597,52 @@ class GeoGraph:
         self, node_id: int, other_graph: GeoGraph, mode: str
     ) -> List[int]:
         return identify_node(self.df.iloc[node_id], other_graph=other_graph, mode=mode)
+
+    def _remove_node(self, node_id: int):
+        self._remove_nodes([node_id])
+
+    def _remove_nodes(self, node_ids: Iterable[int]):
+        # Remove node from graph (automatically removes edges)
+        self.graph.remove_nodes_from(node_ids)
+        # Remove data of node from df
+        self.df.drop(index=node_ids, inplace=True)
+
+    def _add_node(self, node_id, adjacencies, node_data={}, **data):  # TODO: vectorize
+        """Add node to graph #TODO Docstring """
+        # pylint: disable=dangerous-default-value
+        # Collect all data on node in one dict
+        for key, val in data.items():
+            node_data[key] = val
+
+        # Add node to graph
+        self.graph.add_node(
+            node_id,
+            rep_point=node_data["geometry"].representative_point(),
+            area=node_data["geometry"].area,
+            perimeter=node_data["geometry"].length,
+            class_label=node_data["class_label"],
+            bounds=node_data["geometry"].bounds,
+        )
+
+        # Add node data to dataframe
+        missing_cols = {
+            key: None for key in set(self.df.columns) - set(node_data.keys())
+        }
+        self.df.loc[node_id] = gpd.GeoSeries({**data, **missing_cols}, crs=self.df.crs)
+        self.df = self.df.sort_index()
+
+        # Add edges to adjacency list
+        self.graph.add_edges_from(
+            zip_longest([node_id], adjacencies, fillvalue=node_id)
+        )
+
+    # pylint: disable=dangerous-default-value
+    def _add_nodes(self, node_ids, adjacencies, node_data={}, **data):
+        raise NotImplementedError
+
+    def _merge_graph(self, other: GeoGraph) -> GeoGraph:
+
+        for node_id in self.rtree.intersection(other.bounds):
+            print(self.identify_node(node_id, other, mode="edge"))
+
+        raise NotImplementedError
