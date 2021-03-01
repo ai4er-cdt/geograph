@@ -55,7 +55,7 @@ def identify_node(node: dict, other_graph: "GeoGraph", mode: str = "corner") -> 
     label = node["class_label"]
 
     # Get potential candidates for overlap
-    candidate_ids = other_graph.rtree.query(poly)
+    candidate_ids = other_graph.rtree.query(poly, sort=True)
     # Filter candidates according to the same class label
     # fmt: off
     candidate_ids = candidate_ids[
