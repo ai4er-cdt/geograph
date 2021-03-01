@@ -48,7 +48,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             **kwargs
         )
         self.layer_dict = dict(
-            Basemap=dict(
+            Map=dict(
                 layer=ipyleaflet.TileLayer(base=True, max_zoom=19, min_zoom=4),
                 active=True,
                 layer_type="map",
@@ -75,35 +75,39 @@ class GeoGraphViewer(ipyleaflet.Map):
             graph (geograph.GeoGraph): graph to be added
             name (str, optional): name shown in control panel. Defaults to "Graph".
         """
-        nodes, edges = create_node_edge_geometries(graph.graph)
-        graph_geometries = pd.concat([nodes, edges]).reset_index()
-        graph_geo_data = ipyleaflet.GeoData(
-            geo_dataframe=graph_geometries.to_crs(WGS84),
-            style={"color": "black", "fillColor": "#3366cc"},
-            hover_style={"fillColor": "red", "fillOpacity": 0.2},
-            point_style={
-                "radius": 10,
-                "color": "red",
-                "fillOpacity": 0.8,
-                "fillColor": "blue",
-                "weight": 3,
-            },
-            name=name,
-        )
-        self.layer_dict[name] = dict(
-            layer=graph_geo_data, active=True, layer_type="graph"
-        )
+        nx_graphs = {name: graph.graph}
+        for habitat_name, habitat in graph.habitats.items():
+            nx_graphs[habitat_name] = habitat.graph
+
+        for idx, (graph_name, nx_graph) in enumerate(nx_graphs.items()):
+            nodes, edges = create_node_edge_geometries(nx_graph)
+            graph_geometries = pd.concat([nodes, edges]).reset_index()
+            graph_geo_data = ipyleaflet.GeoData(
+                geo_dataframe=graph_geometries.to_crs(WGS84),
+                name=graph_name,
+                **self.custom_style
+            )
+            if idx < 1:
+                layer_type = "graph"
+            else:
+                layer_type = "graph_habitat"
+            self.layer_dict[graph_name] = dict(
+                layer=graph_geo_data, active=True, layer_type=layer_type
+            )
         self._layer_update()
 
+    # @log_out.capture()
+    # def _add_nx_graph(self):
+
     @log_out.capture()
-    def _layer_update(self):
+    def _layer_update(self) -> None:
         """Update `self.layer` tuple from `self.layer_dict`."""
         self.layers = tuple(
             [entry["layer"] for entry in self.layer_dict.values() if entry["active"]]
         )
 
     @log_out.capture()
-    def set_graph_style(self, radius: float = 10):
+    def set_graph_style(self, radius: float = 10, node_color="blue") -> None:
         """Set the style of any graphs added to viewer.
 
         Args:
@@ -111,13 +115,14 @@ class GeoGraphViewer(ipyleaflet.Map):
         """
 
         for name, entry in self.layer_dict.items():
-            if entry["layer_type"] == "graph":
+            if entry["layer_type"] in ["graph", "graph_habitat"]:
                 layer = entry["layer"]
 
                 # Below doesn't work because traitlet change not observed
                 # layer.point_style['radius'] = radius
 
                 self.custom_style["point_style"]["radius"] = radius
+                self.custom_style["style"]["fillColor"] = node_color
                 layer = ipyleaflet.GeoData(
                     geo_dataframe=layer.geo_dataframe,
                     name=layer.name,
@@ -165,26 +170,23 @@ class GeoGraphViewer(ipyleaflet.Map):
             widgets.VBox: widget
         """
         checkboxes = []
-        for layer_name in self.layer_dict:
+        for layer_name, layer_dict in self.layer_dict.items():
+
+            # indenting habitat checkboxes
+            if layer_dict["layer_type"] == "graph_habitat":
+                layout = widgets.Layout(padding="0px 0px 0px 25px")
+            else:
+                layout = widgets.Layout(padding="0px 0px 0px 0px")
+
             checkbox = widgets.Checkbox(
-                value=True, description=layer_name, disabled=False, indent=False
+                value=True,
+                description=layer_name,
+                disabled=False,
+                indent=False,
+                layout=layout,
             )
             checkbox.observe(self._checkbox_layer_switch)
             checkboxes.append(checkbox)
-
-        self.add_habitat_button = widgets.Button(
-            description="Remove graph",
-            disabled=False,
-            button_style="",  # 'success', 'info', 'warning', 'danger' or ''
-            tooltip="Click me",
-            icon="plus",  # (FontAwesome names without the `fa-` prefix)
-        )
-        self.add_habitat_button.on_click(self.remove_graphs)
-
-        habitat_accordion = widgets.Accordion(children=[self.add_habitat_button])
-        habitat_accordion.set_title(0, "Habitats")
-
-        checkboxes.append(habitat_accordion)
 
         habitat_tab = widgets.VBox(checkboxes)
 
@@ -244,8 +246,14 @@ class GeoGraphViewer(ipyleaflet.Map):
         radius_slider = widgets.FloatSlider(
             min=0.01, max=100.0, step=0.005, value=5.0, description="Node radius:"
         )
+
+        node_color_picker = widgets.ColorPicker(
+            concise=True, description="Node color", value="blue", disabled=False
+        )
+
         self._widget_output["settings_tab"] = widgets.interactive_output(
-            self.set_graph_style, dict(radius=radius_slider)
+            self.set_graph_style,
+            dict(radius=radius_slider, node_color=node_color_picker),
         )
 
         zoom_slider = widgets.FloatSlider(
@@ -256,10 +264,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         settings_tab = widgets.VBox(
             [
                 zoom_slider,
-                radius_slider,
-                radius_slider,
-                radius_slider,
-                radius_slider,
+                node_color_picker,
                 radius_slider,
             ]
         )
@@ -275,7 +280,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         """
 
         widget = widgets.VBox(
-            widgets.HTML(markdown.markdown("""&nbsp;&nbsp;Metrics&nbsp;&nbsp;"""))
+            [widgets.HTML(markdown.markdown("""&nbsp;&nbsp;Metrics&nbsp;&nbsp;"""))]
         )
         return widget
 
@@ -288,7 +293,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         settings_tab = self._create_settings_tab()
 
         tab_nest_dict = dict(
-            Habitat=habitats_tab,
+            Layers=habitats_tab,
             Diff=diff_tab,
             Settings=settings_tab,
             Log=self.log_out,
@@ -301,7 +306,7 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         self.add_control(ipyleaflet.WidgetControl(widget=tab_nest, position="topright"))
 
-        metrics_widget = self.create_metrics_widget()
+        metrics_widget = self._create_metrics_widget()
         self.add_control(
             ipyleaflet.WidgetControl(widget=metrics_widget, position="topright")
         )
