@@ -47,7 +47,7 @@ def identify_node(
     identifies_with = []
     for candidate_id in other_graph.rtree.intersection(node["geometry"].bounds):
 
-        candidate_node = other_graph.graph.nodes[candidate_id]
+        candidate_node = other_graph.df.iloc[candidate_id]
         have_same_class_label = node["class_label"] == candidate_node["class_label"]
 
         if have_same_class_label and have_valid_overlap(

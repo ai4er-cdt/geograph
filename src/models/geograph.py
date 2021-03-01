@@ -54,7 +54,7 @@ class GeoGraph:
     def __init__(
         self,
         data,
-        crs: Union[str, pyproj.CRS],
+        crs: Union[str, pyproj.CRS] = None,
         graph_save_path: Optional[Union[str, os.PathLike]] = None,
         raster_save_path: Optional[Union[str, os.PathLike]] = None,
         columns_to_rename: Optional[Dict[str, str]] = None,
@@ -405,6 +405,8 @@ class GeoGraph:
                 if polygon_id != neighbour_id:
                     self.graph.add_edge(polygon_id, neighbour_id)
 
+        # add index name
+        df.index.name = "node_index"
         return df
 
     def merge_nodes(
@@ -595,4 +597,4 @@ class GeoGraph:
     def identify_node(
         self, node_id: int, other_graph: GeoGraph, mode: str
     ) -> List[int]:
-        return identify_node(self.nodes[node_id], other_graph=other_graph, mode=mode)
+        return identify_node(self.df.iloc[node_id], other_graph=other_graph, mode=mode)

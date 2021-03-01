@@ -123,9 +123,7 @@ def plot_identified_nodes(
     candidate_ids = list(other_graph.rtree.intersection(node["geometry"].bounds))
 
     # Create color palette dependent on existing class labels
-    class_labels = set(
-        other_graph.graph.nodes[node_id]["class_label"] for node_id in candidate_ids
-    )
+    class_labels = set(other_graph.df.loc[candidate_ids, "class_label"])
     class_labels.add(node["class_label"])
     colors = sns.color_palette("hls", len(class_labels))
     map_to_color = dict(zip(class_labels, colors))
@@ -135,12 +133,12 @@ def plot_identified_nodes(
     plt.plot(xs, ys, color="blue", linewidth=6)
 
     for node_id in candidate_ids:
-        other_node = other_graph.graph.nodes[node_id]
+        other_node = other_graph.df.iloc[node_id]
         xs, ys = other_node["geometry"].exterior.xy
         plt.fill(xs, ys, alpha=0.4, fc=map_to_color[other_node["class_label"]], ec=None)
 
     for node_id in identified_nodes:
-        other_node = other_graph.graph.nodes[node_id]
+        other_node = other_graph.df.iloc[node_id]
         xs, ys = other_node["geometry"].exterior.xy
         plt.fill(xs, ys, alpha=0.4, fc=map_to_color[other_node["class_label"]], ec=None)
         plt.plot(xs, ys, color="green", linewidth=3)
