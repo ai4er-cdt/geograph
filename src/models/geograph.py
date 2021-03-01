@@ -540,7 +540,7 @@ class GeoGraph:
             # Query rtree for all polygons within `max_travel_distance` of the original
             for nbr in self.rtree.intersection(buff_poly_bounds):
                 # If a node is not a habitat class node, don't add the edge
-                if nbr in invalid_idx:
+                if nbr != node or nbr in invalid_idx:
                     continue
                 # Otherwise add the edge with distance attribute
                 nbr_polygon = polygons[nbr]
