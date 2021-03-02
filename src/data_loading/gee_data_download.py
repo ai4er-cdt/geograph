@@ -3,18 +3,21 @@
 import pathlib
 import logging
 import argparse
-from tqdm import tqdm
+import tqdm
 
 from src.constants import GWS_DATA_DIR
 from src.data_loading.google_drive import DriveAPI
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
 DEFAULT_SAVE_PATH = GWS_DATA_DIR / "gee_satellite_data"
 
 
-def download_tif(folder_id: str, save_path: str, recursive=True) -> None:
+def download_tif(
+    folder_id: str,
+    save_path: str,
+    recursive: bool = True,
+    overwrite: bool = False,
+    logger: logging.Logger = logging.getLogger(),
+) -> None:
     """
     Download all .tif files in a given directory. Can work recursively.
 
@@ -23,14 +26,23 @@ def download_tif(folder_id: str, save_path: str, recursive=True) -> None:
         save_path (pathlib.Path): path to save the downloaded data at
         recursive (bool, optional): If True, downloads all subfolders recursively.
             Defaults to True.
+        overwrite (bool): Whether to overwrite existing files. Defaults to False.
+        logger (logging.Logger): Optional argument to pass a logger to the download
+            script for debugging. Defaults to logging.getLogger().
     """
 
     elements = gdrive.list_files_in_folder(folder_id)
     save_path.mkdir(exist_ok=True)
 
-    for element in tqdm(elements, position=0, leave=True):
+    progress_bar = tqdm.tqdm(
+        elements,
+        position=0,
+        leave=True,
+    )
+    for element in progress_bar:
         file_id = element["id"]
         file_name = element["name"]
+        progress_bar.set_description(f"Working on {file_name}")
 
         # If element is a directory, recursively clone:
         if recursive and gdrive.is_folder(file_id):
@@ -38,22 +50,25 @@ def download_tif(folder_id: str, save_path: str, recursive=True) -> None:
             logger.debug("Creating path at %s", subdir_path)
 
             # Create subfolder and start recursive download
-            subdir_path.mkdir(mode=0o777)
+            subdir_path.mkdir(mode=0o777, exist_ok=True)
             download_tif(file_id, subdir_path)
 
         # Download tifs
         elif gdrive.is_tif(file_id):
             file_path = save_path / file_name
-            logger.debug("Saving file at %s", file_path)
 
-            # Save file
-            gdrive.file_download(
-                file_id,
-                save_path=file_path,
-                chunksize=800 * 1024 * 1024,  # 800 MB
-                verbose=False,
-            )
-            file_path.chmod(0o664)
+            if file_path.exists() and not overwrite:
+                logger.info("File %s already exists. Not overwriting.", file_path)
+            else:
+                logger.debug("Saving file at %s", file_path)
+                # Save file
+                gdrive.file_download(
+                    file_id,
+                    save_path=file_path,
+                    chunksize=800 * 1024 * 1024,  # 800 MB
+                    verbose=False,
+                )
+                file_path.chmod(0o664)
 
         # Print warnings for other files
         else:
@@ -79,8 +94,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "-r",
         "--recursive",
-        help="If True, copy content of gdrive folder recursively. Defaults to False.",
-        action="store_true",
+        help="If True, copy content of gdrive folder recursively. Defaults to True.",
+        type=bool,
+        default=True,
+        nargs="?",  # Argument is optional
+    )
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        help=(
+            "If True, existing files are downloaded again and overwritten. "
+            "Defaults to False."
+        ),
+        type=bool,
+        default=False,
+        nargs="?",  # Argument is optional
     )
 
     args = parser.parse_args()
@@ -96,4 +124,9 @@ if __name__ == "__main__":
     print(
         f"Starting download of {args.gdrive_folder_name}. Saving to {local_save_path}"
     )
-    download_tif(folder_id=gdrive_folder_id, save_path=local_save_path)
+    download_tif(
+        folder_id=gdrive_folder_id,
+        save_path=local_save_path,
+        recursive=args.recursive,
+        overwrite=args.overwrite,
+    )
