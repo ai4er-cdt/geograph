@@ -48,12 +48,16 @@ class GeoGraphViewer(ipyleaflet.Map):
             **kwargs
         )
         self.layer_dict = dict(
-            Map=dict(
-                layer=ipyleaflet.TileLayer(base=True, max_zoom=19, min_zoom=4),
-                active=True,
-                layer_type="map",
-            )
+            maps=dict(
+                Map=dict(
+                    layer=ipyleaflet.TileLayer(base=True, max_zoom=19, min_zoom=4),
+                    active=True,
+                    layer_type="map",
+                )
+            ),
+            graphs=dict(),
         )
+        self.graph_dict = dict()
         self.custom_style = dict(
             style={"color": "black", "fillColor": "#3366cc"},
             hover_style={"fillColor": "red", "fillOpacity": 0.2},
@@ -87,12 +91,14 @@ class GeoGraphViewer(ipyleaflet.Map):
                 name=graph_name,
                 **self.custom_style
             )
-            if idx < 1:
-                layer_type = "graph"
-            else:
-                layer_type = "graph_habitat"
-            self.layer_dict[graph_name] = dict(
-                layer=graph_geo_data, active=True, layer_type=layer_type
+
+            is_habitat = idx < 1
+
+            self.layer_dict["graphs"][graph_name] = dict(
+                active=True,
+                is_habitat=is_habitat,
+                graph=graph_geo_data,
+                pgons=None,
             )
         self._layer_update()
 
@@ -103,8 +109,15 @@ class GeoGraphViewer(ipyleaflet.Map):
     def _layer_update(self) -> None:
         """Update `self.layer` tuple from `self.layer_dict`."""
         self.layers = tuple(
-            [entry["layer"] for entry in self.layer_dict.values() if entry["active"]]
+            layer["layer"]
+            for layer in self.layer_dict["maps"].values()
+            if layer["active"]
         )
+        for graph in self.layer_dict["graphs"].values():
+            if graph["graph"]["active"]:
+                self.layers += tuple(graph["graph"])
+            if graph["pgons"]["active"]:
+                self.layers += tuple(graph["pgons"]["layer"])
 
     @log_out.capture()
     def set_graph_style(self, radius: float = 10, node_color="blue") -> None:
@@ -114,21 +127,18 @@ class GeoGraphViewer(ipyleaflet.Map):
             radius (float): radius of nodes in graph. Defaults to 10.
         """
 
-        for name, entry in self.layer_dict.items():
-            if entry["layer_type"] in ["graph", "graph_habitat"]:
-                layer = entry["layer"]
+        for name, layer_dict in self.layer_dict["graphs"].items():
+            layer = layer_dict["layer"]
 
-                # Below doesn't work because traitlet change not observed
-                # layer.point_style['radius'] = radius
+            # Below doesn't work because traitlet change not observed
+            # layer.point_style['radius'] = radius
 
-                self.custom_style["point_style"]["radius"] = radius
-                self.custom_style["style"]["fillColor"] = node_color
-                layer = ipyleaflet.GeoData(
-                    geo_dataframe=layer.geo_dataframe,
-                    name=layer.name,
-                    **self.custom_style
-                )
-                self.layer_dict[name]["layer"] = layer
+            self.custom_style["point_style"]["radius"] = radius
+            self.custom_style["style"]["fillColor"] = node_color
+            layer = ipyleaflet.GeoData(
+                geo_dataframe=layer.geo_dataframe, name=layer.name, **self.custom_style
+            )
+            self.layer_dict["graphs"][name]["layer"] = layer
         self._layer_update()
 
     @log_out.capture()
@@ -147,20 +157,25 @@ class GeoGraphViewer(ipyleaflet.Map):
                 self.remove_layer(layer)
 
     @log_out.capture()
-    def _checkbox_layer_switch(self, change_dict: Dict) -> None:
-        """Adapt `self.layer_dict` according to checkboxes
+    def _create_checkbox_layer_switch(self, layer_name: str, layer_type: str) -> None:
+        """Returns a switch function that turns a specific layer on or off.
 
-        This method adapts the `self.layer_dict` to correspond to the current state of
-        the layer checkboxes This state is passed as change_dict.
+        A special function for each layer is needed because the checkbox
+        widget doesn't return any customizable hidden variables when changed.
 
         Args:
-            change_dict (Dict): change dict returned by ipywidgets.checkbox
+            layer_name (str): layer name for which the check box is
+            layer_type (str): type of layer, one of ["graph", "map"].
         """
-        if change_dict["name"] == "value":
-            layer_name = change_dict["owner"].description
-            self.layer_dict[layer_name]["active"] = change_dict["new"]
 
-        self._layer_update()
+        @self.log_out.capture()
+        def checkbox_layer_switch(change: Dict):
+            if change["name"] == "value":
+                self.layer_dict[layer_type][layer_name]["active"] = change["new"]
+
+            self._layer_update()
+
+        return checkbox_layer_switch
 
     @log_out.capture()
     def _create_habitat_tab(self) -> widgets.VBox:
@@ -170,7 +185,15 @@ class GeoGraphViewer(ipyleaflet.Map):
             widgets.VBox: widget
         """
         checkboxes = []
-        for layer_name, layer_dict in self.layer_dict.items():
+        graphs = [
+            (name, "graph", graph["layer"])
+            for name, graph in self.layer_dict["graphs"].items()
+        ]
+        maps = [
+            (name, "map", map_layer["layer"])
+            for name, map_layer in self.layer_dict["maps"].items()
+        ]
+        for layer_name, layer_type, layer_dict in graphs + maps:
 
             # indenting habitat checkboxes
             if layer_dict["layer_type"] == "graph_habitat":
@@ -185,7 +208,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                 indent=False,
                 layout=layout,
             )
-            checkbox.observe(self._checkbox_layer_switch)
+            checkbox.observe(self._create_checkbox_layer_switch(layer_name, layer_type))
             checkboxes.append(checkbox)
 
         habitat_tab = widgets.VBox(checkboxes)
