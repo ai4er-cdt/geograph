@@ -1,11 +1,13 @@
 """Wrapper around Google Drive API (v3) to download files from GDrive"""
 
 import io
+from os import PathLike
 import os.path
+import pathlib
 import pickle
 import shutil
 from mimetypes import MimeTypes
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -32,12 +34,15 @@ class DriveAPI:
     # Define GDrive types
     GDRIVE_FOLDER = "application/vnd.google-apps.folder"
 
-    def __init__(self, credentials_path: str = SECRETS_PATH / "credentials.json"):
+    def __init__(
+        self,
+        credentials_path: Union[str, PathLike] = SECRETS_PATH / "credentials.json",
+    ):
 
         # Variable self.creds will store the user access token.
         # If no valid token found we will create one.
         self.creds = None
-        self.credentials_path = credentials_path
+        self.credentials_path = pathlib.Path(credentials_path)
         self._user_data = None
 
         # Authenticate
