@@ -101,7 +101,9 @@ class GeoGraphViewer(ipyleaflet.Map):
                 **self.custom_style
             )
 
-            pgon_df = graph.df.loc[list(nx_graph)].to_crs(WGS84)
+            pgon_df = graph.df.loc[list(nx_graph)]
+            pgon_df["area_in_m2"] = pgon_df.area
+            pgon_df = pgon_df.to_crs(WGS84)
             pgon_geo_data = pgon_df.__geo_interface__
 
             # ipyleaflet.choropleth can't reach individual properties for key
@@ -135,10 +137,10 @@ class GeoGraphViewer(ipyleaflet.Map):
                     new_value = """<b>Current Patch</b></br>
                         <b>Class label:</b> {}</br>
 
-                        <b>Area:</b> {:}
+                        <b>Area:</b> {:.2f} m^2
                     """.format(
                         feature["properties"]["class_label"],
-                        feature["properties"]["area"],
+                        feature["properties"]["area_in_m2"],
                     )
                     hover_html.value = new_value  # pylint: disable=cell-var-from-loop
 
@@ -248,9 +250,12 @@ class GeoGraphViewer(ipyleaflet.Map):
             (name, "maps", "map", map_layer["map"])
             for name, map_layer in self.layer_dict["maps"].items()
         ]
-        for layer_name, layer_type, layer_subtype, layer_dict in maps + graphs:
+        for idx, (layer_name, layer_type, layer_subtype, layer_dict) in enumerate(
+            maps + graphs
+        ):
 
             layout = widgets.Layout(padding="0px 0px 0px 0px")
+
             # indenting habitat checkboxes
             if layer_type == "graphs":
                 if layer_dict["is_habitat"]:
@@ -273,7 +278,29 @@ class GeoGraphViewer(ipyleaflet.Map):
             checkbox.layer_subtype = layer_subtype
 
             checkbox.observe(self._switch_layer_visibility)
+
+            if idx == 0:
+                checkboxes.append(widgets.HTML("<b>Map Data</b>"))
+
             checkboxes.append(checkbox)
+
+            # Add habitats header if last part of main graph
+            if (
+                layer_type == "graphs"
+                and layer_subtype == "pgons"
+                and not layer_dict["is_habitat"]
+            ):
+                checkboxes.append(
+                    widgets.HTML(
+                        "<b>Habitats in {}:</b>".format(layer_name),
+                        layout=widgets.Layout(padding="0px 0px 0px 25px"),
+                    )
+                )
+
+            # Add horizontal rule if last map to separate from graphs
+            if idx == len(maps) - 1:
+                checkboxes.append(widgets.HTML("<hr/>"))
+                checkboxes.append(widgets.HTML("<b>Graph Data</b>"))
 
         habitat_tab = widgets.VBox(checkboxes)
 
