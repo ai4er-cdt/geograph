@@ -8,11 +8,14 @@ import shapely
 from src.models import geograph
 
 
-@dataclass
+# define a metric dataclass with order = true, which means that
+# two different Metrics with the same `name` will work with < <= => > ==
+# comparisons as you would expect intuitively
+@dataclass(order=True)
 class Metric:
     name: str
-    description: str
     value: Any  # No good Numpy type hints
+    description: str
     variant: Optional[str]
     unit: Optional[str] = None
 
