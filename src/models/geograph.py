@@ -527,7 +527,7 @@ class GeoGraph:
         hgraph.clear_edges()
         # Get dict to convert between iloc indexes and loc indexes
         # These are different only if nodes have been removed from the df
-        idx_dict = {i: j for (i, j) in zip(range(len(self.df)), self.df.index.values)}
+        idx_dict: Dict[int, int] = dict(zip(range(len(self.df)), self.df.index.values))
         # Get lists of polygons and buff polygons to avoid repeatedly querying
         # the dataframe. These lists accept loc indexes
         polygons: Dict[int, shapely.Polygon] = self.df.geometry.to_dict()
@@ -562,15 +562,17 @@ class GeoGraph:
                 # Necessary to correct for the rtree returning iloc indexes
                 nbr = idx_dict[nbr]
                 # If a node is not a habitat class node, don't add the edge
-                if nbr != node or nbr in invalid_idx:
+                if nbr == node or nbr in invalid_idx:
                     continue
                 # Otherwise add the edge with distance attribute
                 nbr_polygon = polygons[nbr]
                 if not hgraph.has_edge(node, nbr) and buff_poly.intersects(nbr_polygon):
                     if add_distance:
-                        hgraph.add_edge(
-                            node, nbr, distance=polygon.distance(nbr_polygon)
-                        )
+                        if max_travel_distance == 0:
+                            dist = 0.0
+                        else:
+                            dist = polygon.distance(nbr_polygon)
+                        hgraph.add_edge(node, nbr, distance=dist)
                     else:
                         hgraph.add_edge(node, nbr)
         # Add habitat to habitats dict
@@ -620,7 +622,7 @@ class GeoGraph:
             graph components.
         """
         components: List[set] = list(nx.connected_components(graph))
-        geom = [self.df.geometry.loc[list(comp)].unary_union for comp in components]
+        geom = [self.df.geometry.loc[comp].unary_union for comp in components]
         gdf = gpd.GeoDataFrame({"geometry": geom}, crs=self.df.crs)
         return gdf, components
 
