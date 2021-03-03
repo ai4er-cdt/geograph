@@ -100,7 +100,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                 **self.custom_style
             )
 
-            pgon_df = graph.df.loc[list(nx_graph)]
+            pgon_df = graph.df.loc[list(nx_graph)].to_crs(WGS84)
             pgon_geo_data = pgon_df.__geo_interface__
 
             # ipyleaflet.choropleth can't reach individual properties for key
@@ -115,7 +115,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                 choro_data=choro_data,
                 key_on="class_label",
                 border_color="black",
-                # style={"fillOpacity": 0.8, "dashArray": "5, 5"},
+                style={"fillOpacity": 0.8},
             )
 
             self.layer_dict["graphs"][graph_name] = dict(
@@ -137,10 +137,10 @@ class GeoGraphViewer(ipyleaflet.Map):
             if map_layer["map"]["active"]
         ]
         for graph in self.layer_dict["graphs"].values():
-            if graph["graph"]["active"]:
-                layers.append(graph["graph"]["layer"])
             if graph["pgons"]["active"]:
                 layers.append(graph["pgons"]["layer"])
+            if graph["graph"]["active"]:
+                layers.append(graph["graph"]["layer"])
 
         self.layers = tuple(layers)
 
