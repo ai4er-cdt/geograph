@@ -73,6 +73,8 @@ class GeoGraphViewer(ipyleaflet.Map):
                 "weight": 3,
             },
         )
+
+        self.hover_widget = None
         self._widget_output = {}
 
     @log.capture()
@@ -115,44 +117,48 @@ class GeoGraphViewer(ipyleaflet.Map):
                 key_on="class_label",
                 border_color="black",
                 hover_style={"fillOpacity": 1},
-                style={"fillOpacity": 0.7},
+                style={"fillOpacity": 0.5},
             )
 
-            hover_html = widgets.HTML("""Hover over patches""")
-            hover_html.layout.margin = "10px 10px 10px 10px"
-            hover_html.layout.max_width = "300px"
+            if self.hover_widget is None:
+                # TODO: refactor this into separate methods that are called in init.
 
-            @self.log.capture()
-            def hover_callback(feature, **kwargs):  # pylint: disable=unused-argument
-                """Adapt text of `hover_html` widget to patch"""
-                new_value = """<b>Current Patch</b></br>
-                    <b>Class label:</b> {}</br>
+                hover_html = widgets.HTML("""Hover over patches""")
+                hover_html.layout.margin = "10px 10px 10px 10px"
+                hover_html.layout.max_width = "300px"
 
-                    <b>Area:</b> {:}
-                """.format(
-                    feature["properties"]["class_label"],
-                    feature["properties"]["area"],
-                )
-                hover_html.value = new_value  # pylint: disable=cell-var-from-loop
+                @self.log.capture()
+                def hover_callback(
+                    feature, **kwargs
+                ):  # pylint: disable=unused-argument
+                    """Adapt text of `hover_html` widget to patch"""
+                    new_value = """<b>Current Patch</b></br>
+                        <b>Class label:</b> {}</br>
 
-            pgon_choropleth.on_hover(hover_callback)
+                        <b>Area:</b> {:}
+                    """.format(
+                        feature["properties"]["class_label"],
+                        feature["properties"]["area"],
+                    )
+                    hover_html.value = new_value  # pylint: disable=cell-var-from-loop
+
+                self.hover_callback = hover_callback
+                self.hover_widget = hover_html
+
+            pgon_choropleth.on_hover(self.hover_callback)
 
             self.layer_dict["graphs"][graph_name] = dict(
                 is_habitat=is_habitat,
                 graph=dict(layer=graph_geo_data, active=True),
                 pgons=dict(layer=pgon_choropleth, active=True),
-                hover_widget=hover_html,
             )
         self._layer_update()
 
-    def add_hover_widget(self, graph_name: str) -> None:
-        """Add hover widget for graph
-
-        Args:
-            graph_name ([type]): name of graph
-        """
-        hover_widget = self.layer_dict["graphs"][graph_name]["hover_widget"]
-        control = ipyleaflet.WidgetControl(widget=hover_widget, position="topright")
+    def add_hover_widget(self) -> None:
+        """Add hover widget for graph."""
+        control = ipyleaflet.WidgetControl(
+            widget=self.hover_widget, position="topright"
+        )
         self.add_control(control)
 
     @log.capture()
