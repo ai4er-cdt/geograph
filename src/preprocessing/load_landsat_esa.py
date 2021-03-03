@@ -9,15 +9,13 @@ import os
 import numpy as np
 import xarray as xr
 from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, SAT_DIR
-from src.preprocessing.esa_comp import compress_esa, decompress_esa, FORW_D, REV_D
+from src.preprocessing.esa_compress import compress_esa, decompress_esa, FORW_D, REV_D
 from src.utils import timeit
-from src.preprocessing.landsat import create_netcdfs
-from src.visualisation.ani import animate_prediction
 
 
 @timeit
 def test_inversibility(x_da, y_da, cfd):
-        # run-20210225_161033-yxyit68w/
+    # run-20210225_161033-yxyit68w/
     x_all, y_all = return_xy_npa(
         x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
         )  # all data as numpy.
@@ -36,6 +34,7 @@ def _return_x_y_da(
     take_esa_coords=False,
     use_mfd=True,
     use_ffil=True,
+    use_ir=False,
 ):
     """
     This function is memoised by return_x_y_da() so that if it's already been run with
@@ -124,6 +123,7 @@ def return_x_y_da(
     take_esa_coords=False,
     use_mfd=True,
     use_ffil=False,
+    #use_=False
 ):
     """
     Uses _return_x_y_da() only if the netcdf has not already been made.
@@ -259,3 +259,47 @@ def x_npa_to_xarray(npa, da):
         dims=dims,
         coords=coords_d,
     )
+
+
+@timeit
+def return_xy_np_grid(x_da, y_da, year=5):
+    """
+    return the x and y numpy arrays for a given number of years.
+    Currently this function just returns (N, D) for x and (N,) for Y
+    for UNET we want a function that returns (yr, y, xr, D) for x and (yr, y, x, D) for y
+    :param x_da: xarray.dataarray, inputs
+    :param y_da: xarray.dataarray, labels
+    :param year: ints, single or list
+    :return: x_val, y_val
+    """
+
+    def combine_first_two_indices(x_val, y_val):
+        return (
+            np.swapaxes(
+                np.array([x_val[:, :, i].ravel() for i in range(x_val.shape[2])]), 0, 1
+            ),
+            y_val.ravel(),
+        )
+
+    def _return_xy_npa(x_da, y_da, yr=5):
+        assert isinstance(yr, int)
+        x_val = np.asarray(
+            [
+                x_da.isel(year=yr, mn=mn, band=band).values.ravel()
+                for mn in range(4)
+                for band in range(3)
+            ]
+        )
+        # [mn, band]
+        return np.swapaxes(x_val, 0, 1), y_da.isel(year=yr).values.ravel()
+
+    if isinstance(year, range) or isinstance(year, list):
+        x_val_l, y_val_l = [], []
+        for yr in year:
+            x_val_p, y_val_p = _return_xy_npa(x_da, y_da, yr=yr)
+            x_val_l.append(x_val_p)
+            y_val_l.append(y_val_p)
+        x_val, y_val = combine_first_two_indices(np.array(x_val_l), np.array(y_val_l))
+    else:
+        x_val, y_val = _return_xy_npa(x_da, y_da, yr=year)
+    return x_val, y_val

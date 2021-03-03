@@ -1,6 +1,7 @@
 """
-landsat.py
-============
+src/preprocessing/landsat.py
+================================================================
+from src.preprocessing.landsat import return_path_dataarray
 """
 import os 
 import numpy as np
@@ -25,9 +26,10 @@ def return_path_dataarray():
     years = [year for year in range(1984, 2021) if year not in incomplete_years]
     im_type = ["hab", "chern"]
     month_groups = ["JFM", "AMJ", "JAS", "OND"]
+    ir = [0, 1]
     directory = SAT_DIR
     # year, month_group, im_type
-    path_array = np.empty([len(years), len(month_groups), len(im_type)], dtype=object)
+    path_array = np.empty([len(years), len(month_groups), len(im_type), len(ir)], dtype=object)
     for year in years:
         if year not in incomplete_years:
             path = os.path.join(directory, str(year))
@@ -39,14 +41,18 @@ def return_path_dataarray():
                     for counter, value in enumerate(coord):
                         if str(value) in full_name:
                             indices.append(counter)
-                path_array[indices[0], indices[1], indices[2]] = full_name
+                if "IR" in full_name:
+                    path_array[indices[0], indices[1], indices[2], 1] = full_name
+                else:
+                    path_array[indices[0], indices[1], indices[2], 0] = full_name
     return xr.DataArray(
         data=path_array,
-        dims=["year", "mn", "ty"],
+        dims=["year", "mn", "ty", "ir"],
         coords=dict(
             year=years,
             mn=month_groups,
             ty=im_type,
+            ir=ir,
         ),
         attrs=dict(
             description="Paths to tif.",
@@ -56,20 +62,19 @@ def return_path_dataarray():
 
 @timeit
 def return_normalized_array(
-    file_name=os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"),
+    one, two, three,
     filter_together=True,
-    high_limit=3e3,
+    high_limit=2e3,
     low_limit=0,
     high_filter=True,
     low_filter=True,
     common_norm=True,
 ):
     """
-    Function takes name of geotiff and converts it to a preprocessed numpy array.
+    Function takes numpy bands and converts it to a preprocessed numpy array.
     TODO: Change names to make it more obvious what's going on.
-    :param file_name: full path to .tif image.
     :param filter_together: if True will only display points where all 3 members of a band
-            are below the threshold.
+    are below the threshold.
     :param high_limit: The aforementioned threshold.
     :param low_limit: Adding a lower threshold.
     :param high_filter: Bool, whether to turn the high limit on.
@@ -77,19 +82,9 @@ def return_normalized_array(
     :param common_norm: Bool, whether to norm between the upper and lower limit.
     :return: numpy float array
     """
-    # Open the file:
-    raster = rasterio.open(file_name)
-
-    # Convert to numpy arrays
-    if "L8" in file_name:
-        # LandSat8 currently stored in different bands for R, G, B.
-        red, green, blue = raster.read(2), raster.read(3), raster.read(4)
-    else:
-        red, green, blue = raster.read(1), raster.read(2), raster.read(3)
 
     # Normalize bands into 0.0 - 1.0 scale
-    ##njit
-    def norm(array, low_limit=low_limit, high_limit=high_limit, common_norm=common_norm):
+    def norm(array):
         array_min, array_max = np.nanmin(array), np.nanmax(array)
         if common_norm:
             # This doesn't guarantee it's between 0 and 1 if the filter is off.
@@ -97,29 +92,23 @@ def return_normalized_array(
         else:
             return (array - array_min) / (array_max - array_min)
 
-    ##njit
     def filt(data_array, filter_array):
         return ma.masked_where(filter_array, data_array).filled(np.nan)
     
-    ##njit
     def comb_and_filt(red, green, blue, filter_red, filter_green, filter_blue):
         filter_array = np.logical_or(
                 np.logical_or(filter_red, filter_green), filter_blue
             )
         return filt(red, filter_array), filt(green, filter_array), filt(blue, filter_array)
 
-    ##njit
-    def filter_sep_and_norm(array, high_filter=high_filter, low_filter=low_filter, 
-                            low_limit=low_limit, high_limit=high_limit):
+    def filter_sep_and_norm(array):
         if high_filter:
             array = filt(array, array >= high_limit).filled(np.nan)
         if low_filter:
             array = filt(array, array <= low_limit).filled(np.nan)
         return norm(array)
 
-    ##njit
-    def filter_tog_and_norm(red, green, blue, high_filter=high_filter, low_filter=low_filter, 
-                            low_limit=low_limit, high_limit=high_limit):
+    def filter_tog_and_norm(red, green, blue):
         if high_filter:
             filter_red, filter_green, filter_blue = (
                 red >= high_limit,
@@ -142,19 +131,39 @@ def return_normalized_array(
 
     # Normalize band DN
     if not filter_together:
-        blue_norm, green_norm, red_norm = (
-            filter_sep_and_norm(blue),
-            filter_sep_and_norm(green),
-            filter_sep_and_norm(red),
+        one_norm, two_norm, three_norm = (
+            filter_sep_and_norm(one),
+            filter_sep_and_norm(two),
+            filter_sep_and_norm(three),
         )
     else:
-        red_norm, green_norm, blue_norm = filter_tog_and_norm(red, green, blue)
+        one_norm, two_norm, three_norm = filter_tog_and_norm(one, two, three)
     # Stack bands
     # TODO: Have I put these in the wrong order?
     # WARNING: Possible bug
-    bgr = np.dstack((blue_norm, green_norm, red_norm))
-    # View the color composite
-    return bgr
+    return np.dstack((one_norm, two_norm, three_norm))
+
+
+def load_rgb_data(file_name=os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"), 
+                  **kwargs):
+    """
+    :param file_name: full path to .tif image.
+    """
+    # Open the file:
+    raster = rasterio.open(file_name)
+    # Convert to numpy arrays
+    if "L8" in file_name and "IR" not in file_name:
+        # LandSat8 currently stored in different bands for R, G, B.
+        ins = [2, 3, 4]
+    else:
+        ins = [1, 2, 3]
+
+    one, two, three = raster.read(ins[0]), raster.read(ins[1]), raster.read(ins[2])
+    print(raster.descriptions)
+    descriptions = [raster.descriptions[ins[0]-1], 
+                    raster.descriptions[ins[1]-1], 
+                    raster.descriptions[ins[2]-1]]
+    return return_normalized_array(one, two, three, **kwargs), descriptions
 
 
 @timeit
@@ -176,7 +185,7 @@ def create_netcdfs():
                 ascii=True,
                 desc=ty_v + "  " + mn_v,
             ):
-                file_name = path_da.isel(year=year, mn=mn, ty=ty).values.tolist()
+                file_name = path_da.isel(year=year, mn=mn, ty=ty, ir=0).values.tolist()
                 tmp_name = os.path.join(
                     tmp_path,
                     ty_v
@@ -188,14 +197,14 @@ def create_netcdfs():
                 )
                 if file_name != None and os.path.exists(file_name):
                     xr_da = xr.open_rasterio(file_name)
-                    data = return_normalized_array(file_name)
+                    data = load_rgb_data(file_name)
                 else:
                     if ty_v == "chern":
                         file_name = os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif")
                     elif ty_v == "hab":
                         file_name = os.path.join(SAT_DIR, "2012/L7_hab_2012_AMJ.tif")
                     xr_da = xr.open_rasterio(file_name)
-                    data = return_normalized_array(file_name)
+                    data = load_rgb_data(file_name)
                     data[:] = np.nan  # make everything nan if the file didn't exist.
                 xr.DataArray(
                     data=np.expand_dims(np.expand_dims(data, axis=3), axis=4),
@@ -203,7 +212,7 @@ def create_netcdfs():
                     coords=dict(
                         y=xr_da.coords["y"].values,
                         x=xr_da.coords["x"].values,
-                        band=["red", "green", "blue"],
+                        band=["red", "green", "blue"], # 'B5', 'B6', 'B7'
                         year=[path_da.isel(year=year).coords["year"].values],
                         mn=[mn_v],
                     ),
@@ -214,7 +223,6 @@ def create_netcdfs():
                 del data
                 del xr_da
                 path_list.append(tmp_name)
-
             # this option should override chunk size to prevent chunks from being too large.
             with dask.config.set(**{"array.slicing.split_large_chunks": True}):
                 # https://github.com/pydata/xarray/issues/3961

@@ -19,7 +19,6 @@ TODO: Implement xgboost dask to let the model run with full resolution data.
 TODO: Implement GPU usage in xgboost.
 TODO: Fix bug with loading full res data xarray.
 TODO: Look at trends in landsat bands to see if preprocessing can be improved.
-TODO: Download extra landsat infra-red band if possible to allow more differentiation.
 TODO: Plot class imbalance. Katie might have already done this.
 TODO: Research which metrics best capture the classification.
 TODO: Implement UNET.
@@ -32,10 +31,10 @@ import xgboost as xgb
 from sklearn import metrics
 import xarray as xr
 from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, SAT_DIR
-from src.preprocessing.esa_comp import compress_esa, decompress_esa, FORW_D, REV_D
+from src.preprocessing.esa_compress import compress_esa, decompress_esa, FORW_D, REV_D
 from src.preprocessing.load_landsat_esa import return_xy_npa, y_npa_to_xarray, x_npa_to_xarray, return_x_y_da
 from src.utils import timeit
-from src.preprocessing.landsat import create_netcdfs
+from src.preprocessing.landsat_to_ncf import create_netcdfs
 from src.visualisation.ani import animate_prediction
 
 
@@ -89,7 +88,7 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
 
 if __name__ == "__main__":
     # usage:  python3 src/models/xgb.py > log.txt
-    # create_netcdfs() # uncomment to preprocess data.
+    create_netcdfs() # uncomment to preprocess data.
     cfd = {
         "start_year_i": 0,
         "mid_year_i": 19,
@@ -104,8 +103,8 @@ if __name__ == "__main__":
         use_ffil=cfd["use_ffil"],
         use_mfd=cfd["use_mfd"]
     )  # load preprocessed data from netcdfs
-    # there are now 24 years to choose from. # train set goes from 0 to 1. # print(x_da.year.values)
-
+    # there are now 24 years to choose from. 
+    # train set goes from 0 to 1. # print(x_da.year.values)
     # test_inversibility()
     x_tr, y_tr = return_xy_npa(
         x_da, y_da, year=range(cfd["start_year_i"], cfd["mid_year_i"])
