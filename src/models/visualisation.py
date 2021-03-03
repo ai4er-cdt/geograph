@@ -12,6 +12,7 @@ import shapely.geometry
 import ipywidgets as widgets
 import ipyleaflet
 import markdown
+import traitlets
 
 
 from src.constants import CHERNOBYL_COORDS_WGS84, WGS84, UTM35N, CEZ_DATA_PATH
@@ -21,7 +22,7 @@ from src.models import geograph
 class GeoGraphViewer(ipyleaflet.Map):
     """Class for interactively viewing a GeoGraph."""
 
-    log_out = widgets.Output(layout={"border": "1px solid black"})
+    log = widgets.Output(layout={"border": "1px solid black"})
 
     def __init__(
         self,
@@ -47,12 +48,16 @@ class GeoGraphViewer(ipyleaflet.Map):
             zoom_snap=0.1,
             **kwargs
         )
+        # Note: entries in layer dict follow the convention:
+        # ipywidgets_layer = layer_dict[type][name][subtype]["layer"]
+        # Layers of type "maps" only have subtype "map".
         self.layer_dict = dict(
             maps=dict(
                 Map=dict(
-                    layer=ipyleaflet.TileLayer(base=True, max_zoom=19, min_zoom=4),
-                    active=True,
-                    layer_type="map",
+                    map=dict(
+                        layer=ipyleaflet.TileLayer(base=True, max_zoom=19, min_zoom=4),
+                        active=True,
+                    )
                 )
             ),
             graphs=dict(),
@@ -71,7 +76,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         )
         self._widget_output = {}
 
-    @log_out.capture()
+    @log.capture()
     def add_graph(self, graph: geograph.GeoGraph, name: str = "Graph") -> None:
         """Add GeoGraph to viewer.
 
@@ -84,42 +89,62 @@ class GeoGraphViewer(ipyleaflet.Map):
             nx_graphs[habitat_name] = habitat.graph
 
         for idx, (graph_name, nx_graph) in enumerate(nx_graphs.items()):
+
+            is_habitat = idx > 0
+
             nodes, edges = create_node_edge_geometries(nx_graph)
             graph_geometries = pd.concat([nodes, edges]).reset_index()
             graph_geo_data = ipyleaflet.GeoData(
                 geo_dataframe=graph_geometries.to_crs(WGS84),
-                name=graph_name,
+                name=graph_name + "_graph",
                 **self.custom_style
             )
 
-            is_habitat = idx < 1
+            pgon_df = graph.df.loc[list(nx_graph)]
+            pgon_geo_data = pgon_df.__geo_interface__
+
+            # ipyleaflet.choropleth can't reach individual properties for key
+            for feature in pgon_geo_data["features"]:
+                feature["class_label"] = feature["properties"]["class_label"]
+
+            unique_classes = list(graph.df.class_label.unique())
+            choro_data = dict(zip(unique_classes, range(len(unique_classes))))
+
+            pgon_choropleth = ipyleaflet.Choropleth(
+                geo_data=pgon_geo_data,
+                choro_data=choro_data,
+                key_on="class_label",
+                border_color="black",
+                # style={"fillOpacity": 0.8, "dashArray": "5, 5"},
+            )
 
             self.layer_dict["graphs"][graph_name] = dict(
-                active=True,
                 is_habitat=is_habitat,
-                graph=graph_geo_data,
-                pgons=None,
+                graph=dict(layer=graph_geo_data, active=True),
+                pgons=dict(layer=pgon_choropleth, active=True),
             )
         self._layer_update()
 
-    # @log_out.capture()
+    # @log.capture()
     # def _add_nx_graph(self):
 
-    @log_out.capture()
+    @log.capture()
     def _layer_update(self) -> None:
         """Update `self.layer` tuple from `self.layer_dict`."""
-        self.layers = tuple(
-            layer["layer"]
-            for layer in self.layer_dict["maps"].values()
-            if layer["active"]
-        )
+        layers = [
+            map_layer["map"]["layer"]
+            for map_layer in self.layer_dict["maps"].values()
+            if map_layer["map"]["active"]
+        ]
         for graph in self.layer_dict["graphs"].values():
             if graph["graph"]["active"]:
-                self.layers += tuple(graph["graph"])
+                layers.append(graph["graph"]["layer"])
             if graph["pgons"]["active"]:
-                self.layers += tuple(graph["pgons"]["layer"])
+                layers.append(graph["pgons"]["layer"])
 
-    @log_out.capture()
+        self.layers = tuple(layers)
+
+    @log.capture()
     def set_graph_style(self, radius: float = 10, node_color="blue") -> None:
         """Set the style of any graphs added to viewer.
 
@@ -141,7 +166,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             self.layer_dict["graphs"][name]["layer"] = layer
         self._layer_update()
 
-    @log_out.capture()
+    @log.capture()
     def remove_graphs(
         self,
         button: widgets.widget_button.Button = None,  # pylint: disable=unused-argument
@@ -156,28 +181,24 @@ class GeoGraphViewer(ipyleaflet.Map):
             if layer.name[0:5] == "Graph":
                 self.remove_layer(layer)
 
-    @log_out.capture()
-    def _create_checkbox_layer_switch(self, layer_name: str, layer_type: str) -> None:
-        """Returns a switch function that turns a specific layer on or off.
-
-        A special function for each layer is needed because the checkbox
-        widget doesn't return any customizable hidden variables when changed.
+    @log.capture()
+    def _switch_layer_visibility(self, change: Dict):
+        """Switch layer visibility according to change.
 
         Args:
-            layer_name (str): layer name for which the check box is
-            layer_type (str): type of layer, one of ["graph", "map"].
+            change (Dict): change dict provided by checkbox widget
         """
+        if change["name"] == "value":
+            layer_type = change["owner"].layer_type
+            layer_name = change["owner"].layer_name
+            layer_subtype = change["owner"].layer_subtype
+            self.layer_dict[layer_type][layer_name][layer_subtype]["active"] = change[
+                "new"
+            ]
 
-        @self.log_out.capture()
-        def checkbox_layer_switch(change: Dict):
-            if change["name"] == "value":
-                self.layer_dict[layer_type][layer_name]["active"] = change["new"]
+        self._layer_update()
 
-            self._layer_update()
-
-        return checkbox_layer_switch
-
-    @log_out.capture()
+    @log.capture()
     def _create_habitat_tab(self) -> widgets.VBox:
         """Create tab widget for habitats.
 
@@ -186,36 +207,46 @@ class GeoGraphViewer(ipyleaflet.Map):
         """
         checkboxes = []
         graphs = [
-            (name, "graph", graph["layer"])
+            (name, "graphs", layer_subtype, graph)
             for name, graph in self.layer_dict["graphs"].items()
+            for layer_subtype in ["graph", "pgons"]
         ]
         maps = [
-            (name, "map", map_layer["layer"])
+            (name, "maps", "map", map_layer["map"])
             for name, map_layer in self.layer_dict["maps"].items()
         ]
-        for layer_name, layer_type, layer_dict in graphs + maps:
+        for layer_name, layer_type, layer_subtype, layer_dict in maps + graphs:
 
+            layout = widgets.Layout(padding="0px 0px 0px 0px")
             # indenting habitat checkboxes
-            if layer_dict["layer_type"] == "graph_habitat":
-                layout = widgets.Layout(padding="0px 0px 0px 25px")
-            else:
-                layout = widgets.Layout(padding="0px 0px 0px 0px")
+            if layer_type == "graphs":
+                if layer_dict["is_habitat"]:
+                    layout = widgets.Layout(padding="0px 0px 0px 25px")
 
             checkbox = widgets.Checkbox(
                 value=True,
-                description=layer_name,
+                description="_".join([layer_name, layer_subtype]),
                 disabled=False,
                 indent=False,
                 layout=layout,
             )
-            checkbox.observe(self._create_checkbox_layer_switch(layer_name, layer_type))
+            checkbox.add_traits(
+                layer_type=traitlets.Unicode().tag(sync=True),
+                layer_subtype=traitlets.Unicode().tag(sync=True),
+                layer_name=traitlets.Unicode().tag(sync=True),
+            )
+            checkbox.layer_type = layer_type
+            checkbox.layer_name = layer_name
+            checkbox.layer_subtype = layer_subtype
+
+            checkbox.observe(self._switch_layer_visibility)
             checkboxes.append(checkbox)
 
         habitat_tab = widgets.VBox(checkboxes)
 
         return habitat_tab
 
-    @log_out.capture()
+    @log.capture()
     def _create_diff_tab(self) -> widgets.VBox:
         """Create tab widget for diff.
 
@@ -258,7 +289,7 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         return diff_tab
 
-    @log_out.capture()
+    @log.capture()
     def _create_settings_tab(self) -> widgets.VBox:
         """Create tab widget for settings.
 
@@ -294,7 +325,7 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         return settings_tab
 
-    @log_out.capture()
+    @log.capture()
     def _create_metrics_widget(self) -> widgets.VBox:
         """Create metrics visualisation widget.
 
@@ -307,7 +338,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         )
         return widget
 
-    @log_out.capture()
+    @log.capture()
     def add_settings_widget(self) -> None:
         """Add settings widget to viewer."""
 
@@ -319,7 +350,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             Layers=habitats_tab,
             Diff=diff_tab,
             Settings=settings_tab,
-            Log=self.log_out,
+            Log=self.log,
         )
 
         tab_nest = widgets.Tab()
@@ -341,7 +372,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             ipyleaflet.WidgetControl(widget=header, position="bottomright")
         )
 
-    @log_out.capture()
+    @log.capture()
     def add_widgets(self) -> None:
         """Add all widgets to viewer"""
         self.add_settings_widget()
