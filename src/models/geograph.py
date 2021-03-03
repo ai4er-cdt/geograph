@@ -22,10 +22,9 @@ import pyproj
 import rasterio
 import shapely
 from shapely.prepared import prep
-from tqdm import tqdm
-
 from src.data_loading import rasterio_utils
 from src.models import binary_graph_operations
+from tqdm import tqdm
 
 VALID_EXTENSIONS = (
     ".pickle",
@@ -56,7 +55,7 @@ class GeoGraph:
     def __init__(
         self,
         data,
-        crs: Union[str, pyproj.CRS] = None,
+        crs: Optional[Union[str, pyproj.CRS]] = None,
         graph_save_path: Optional[Union[str, os.PathLike]] = None,
         raster_save_path: Optional[Union[str, os.PathLike]] = None,
         columns_to_rename: Optional[Dict[str, str]] = None,
@@ -120,7 +119,7 @@ class GeoGraph:
         super().__init__()
         self.graph = nx.Graph()
         self._habitats: Dict[str, Habitat] = {}
-        self._crs: Union[str, pyproj.CRS] = crs
+        self._crs: Optional[Union[str, pyproj.CRS]] = crs
         self._columns_to_rename: Optional[Dict[str, str]] = columns_to_rename
         self._tolerance: float = tolerance
 
@@ -300,6 +299,7 @@ class GeoGraph:
                 vector_df.to_file(save_path, driver="GPKG")
             else:
                 vector_df.to_file(save_path, driver="ESRI Shapefile")
+            save_path.chmod(0o664)
         return self._load_from_dataframe(vector_df, tolerance=self._tolerance)
 
     def _load_from_graph_path(self, graph_path: pathlib.Path) -> gpd.GeoDataFrame:
@@ -344,6 +344,7 @@ class GeoGraph:
         else:
             with open(save_path, "wb") as file:
                 pickle.dump(data, file)
+        save_path.chmod(0o664)
 
     def _load_from_dataframe(
         self,
@@ -515,17 +516,26 @@ class GeoGraph:
         # Remove all edges in the graph, then at the end we only have edges
         # between nodes less than `max_travel_distance` apart
         hgraph.clear_edges()
+        # Get dict to convert between iloc indexes and loc indexes
+        # These are different only if nodes have been removed from the df
+        idx_dict = {i: j for (i, j) in zip(range(len(self.df)), self.df.index.values)}
         # Get lists of polygons and buff polygons to avoid repeatedly querying
-        # the dataframe
-        polygons: List[shapely.Polygon] = self.df.geometry.tolist()
+        # the dataframe. These lists accept loc indexes
+        polygons: Dict[int, shapely.Polygon] = self.df.geometry.to_dict()
         if max_travel_distance > 0:
             # Vectorised buffer on the entire df to calculate the expanded polygons
             # used to get intersections.
-            buff_polygons = self.df.geometry.buffer(max_travel_distance).tolist()
+            buff_polygons = self.df.geometry.buffer(max_travel_distance).to_dict()
         # Remove non-habitat nodes from habitat graph
-        invalid_idx = set(
-            self.df.loc[~self.df["class_label"].isin(set(valid_classes))].index
-        )
+        # np.where is very fast here and gets the iloc based indexes
+        # Combining it with the set comprehension reduces time by an order of
+        # magnitude compared to `set(self.df.loc()`
+        invalid_idx = {
+            idx_dict[i]
+            for i in np.where(~self.df["class_label"].isin(set(valid_classes)).values)[
+                0
+            ]
+        }
         hgraph.remove_nodes_from(invalid_idx)
 
         for node in tqdm(
@@ -540,6 +550,8 @@ class GeoGraph:
                 buff_poly = prep(polygon)
             # Query rtree for all polygons within `max_travel_distance` of the original
             for nbr in self.rtree.intersection(buff_poly_bounds):
+                # Necessary to correct for the rtree returning iloc indexes
+                nbr = idx_dict[nbr]
                 # If a node is not a habitat class node, don't add the edge
                 if nbr != node or nbr in invalid_idx:
                     continue
@@ -599,7 +611,7 @@ class GeoGraph:
             graph components.
         """
         components: List[set] = list(nx.connected_components(graph))
-        geom = [self.df.geometry.iloc[list(comp)].unary_union for comp in components]
+        geom = [self.df.geometry.loc[list(comp)].unary_union for comp in components]
         gdf = gpd.GeoDataFrame({"geometry": geom}, crs=self.df.crs)
         return gdf, components
 
@@ -607,7 +619,7 @@ class GeoGraph:
         self, node_id: int, other_graph: GeoGraph, mode: str
     ) -> List[int]:
         return binary_graph_operations.identify_node(
-            self.df.iloc[node_id], other_graph=other_graph, mode=mode
+            self.df.loc[node_id], other_graph=other_graph, mode=mode
         )
 
     def _remove_node(self, node_id: int):

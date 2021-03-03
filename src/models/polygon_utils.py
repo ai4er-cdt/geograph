@@ -1,7 +1,7 @@
-"""Helper functions for overlap computations with polygons in shapely"""
+"""Helper functions for overlap computations with polygons in shapely."""
 from typing import List
 
-from geopandas.geoseries import GeometryArray
+from geopandas.array import GeometryArray
 from numpy import ndarray
 from shapely.geometry.polygon import Polygon
 
@@ -30,7 +30,6 @@ def de9im_match(pattern: str, target_pattern: str) -> bool:
     Returns:
         bool: True, iff pattern matches with target_pattern
     """
-
     for char, target_char in zip(pattern, target_pattern):
         if target_char == "*":
             continue
