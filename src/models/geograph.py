@@ -464,7 +464,7 @@ class GeoGraph:
             adjacency_set.update(list(self.graph.neighbors(node)))
         adjacency_set -= adjacency_set.intersection(node_list)
         # Build union polygon.
-        polygon = self.df.geometry.iloc[node_list].unary_union
+        polygon = self.df.geometry.loc[node_list].unary_union
         # Remove nodes from graph and rows from df
         self.graph.remove_nodes_from(node_list)
         self.df = self.df.drop(node_list)
