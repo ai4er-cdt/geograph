@@ -631,4 +631,4 @@ class GeoGraph:
     ) -> List[int]:
         return binary_graph_operations.identify_node(
             self.df.loc[node_id], other_graph=other_graph, mode=mode
-        )
+        ).tolist()
