@@ -2,7 +2,7 @@
 This module contains visualisation functions for GeoGraphs.
 """
 from __future__ import annotations
-from typing import Optional, List, Tuple, Callable, Dict
+from typing import Optional, List, Tuple, Callable, Dict, Union
 
 import folium
 import pandas as pd
@@ -29,6 +29,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         center: List[int, int] = CHERNOBYL_COORDS_WGS84,
         zoom: int = 7,
         crs: Dict = ipyleaflet.projections.EPSG3857,
+        layout: Union[widgets.Layout, None] = None,
         **kwargs
     ) -> None:
         """Class for interactively viewing a GeoGraph.
@@ -39,6 +40,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             zoom (int, optional): [description]. Defaults to 7.
             crs ([type], optional): [description]. Defaults to
                 ipyleaflet.projections.EPSG3857.
+            layout (widgets.Layout, optional): layout passed to ipyleaflet.Map
         """
         super().__init__(
             center=center,
@@ -48,6 +50,8 @@ class GeoGraphViewer(ipyleaflet.Map):
             zoom_snap=0.1,
             **kwargs
         )
+        if layout is None:
+            self.layout = widgets.Layout(height="700px")
         # Note: entries in layer dict follow the convention:
         # ipywidgets_layer = layer_dict[type][name][subtype]["layer"]
         # Layers of type "maps" only have subtype "map".
@@ -241,6 +245,9 @@ class GeoGraphViewer(ipyleaflet.Map):
             widgets.VBox: widget
         """
         checkboxes = []
+        pgons_checkboxes = []
+        graph_checkboxes = []
+
         graphs = [
             (name, "graphs", layer_subtype, graph)
             for name, graph in self.layer_dict["graphs"].items()
@@ -284,6 +291,11 @@ class GeoGraphViewer(ipyleaflet.Map):
 
             checkboxes.append(checkbox)
 
+            if layer_subtype == "graph":
+                graph_checkboxes.append(checkbox)
+            elif layer_subtype == "pgons":
+                pgons_checkboxes.append(checkbox)
+
             # Add habitats header if last part of main graph
             if (
                 layer_type == "graphs"
@@ -301,6 +313,34 @@ class GeoGraphViewer(ipyleaflet.Map):
             if idx == len(maps) - 1:
                 checkboxes.append(widgets.HTML("<hr/>"))
                 checkboxes.append(widgets.HTML("<b>Graph Data</b>"))
+
+        # Create button to toggle all polygons at once
+        hide_pgon_button = widgets.ToggleButton(description="Toggle all polygons")
+
+        @self.log.capture()
+        def hide_all_pgons(change):
+            print(change)
+            if change["name"] == "value":
+                for box in pgons_checkboxes:
+                    box.value = change["new"]
+
+        hide_pgon_button.observe(hide_all_pgons)
+
+        # Create button to toggle all graphs at once
+        hide_graph_button = widgets.ToggleButton(description="Toggle all graphs")
+
+        @self.log.capture()
+        def hide_all_graphs(change):
+            print(change)
+            if change["name"] == "value":
+                for box in graph_checkboxes:
+                    box.value = change["new"]
+
+        hide_graph_button.observe(hide_all_graphs)
+
+        checkboxes.append(widgets.HTML("<hr/>"))
+        buttons = widgets.HBox([hide_pgon_button, hide_graph_button])
+        checkboxes.append(buttons)
 
         habitat_tab = widgets.VBox(checkboxes)
 
