@@ -319,7 +319,6 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         @self.log.capture()
         def hide_all_pgons(change):
-            print(change)
             if change["name"] == "value":
                 for box in pgons_checkboxes:
                     box.value = change["new"]
@@ -331,7 +330,6 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         @self.log.capture()
         def hide_all_graphs(change):
-            print(change)
             if change["name"] == "value":
                 for box in graph_checkboxes:
                     box.value = change["new"]
