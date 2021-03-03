@@ -528,8 +528,8 @@ class GeoGraph:
         # Get dict to convert between iloc indexes and loc indexes
         # These are different only if nodes have been removed from the df
         idx_dict: Dict[int, int] = dict(zip(range(len(self.df)), self.df.index.values))
-        # Get lists of polygons and buff polygons to avoid repeatedly querying
-        # the dataframe. These lists accept loc indexes
+        # Get dicts of polygons and buff polygons to avoid repeatedly querying
+        # the dataframe. These dicts accept loc indexes
         polygons: Dict[int, shapely.Polygon] = self.df.geometry.to_dict()
         if max_travel_distance > 0:
             # Vectorised buffer on the entire df to calculate the expanded polygons
