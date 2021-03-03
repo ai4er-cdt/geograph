@@ -18,11 +18,10 @@ class Metric:
 
 
 def _get_num_components(geo_graph: geograph.GeoGraph) -> Metric:
-    components: List[set] = list(nx.connected_components(geo_graph.graph))
     return Metric(
         name="num_components",
         description="The number of connected components in the graph.",
-        value=len(components),
+        value=nx.number_connected_components(geo_graph.graph),
         variant="component",
     )
 
