@@ -1,11 +1,8 @@
-"""Contains tools for binary operations between GeoGraph objects"""
+"""Contains tools for binary operations between GeoGraph objects."""
 from numpy import ndarray
-
 from src.models.polygon_utils import (
-    connect_with_interior_bulk,
-    connect_with_interior_or_edge_bulk,
-    connect_with_interior_or_edge_or_corner_bulk,
-)
+    connect_with_interior_bulk, connect_with_interior_or_edge_bulk,
+    connect_with_interior_or_edge_or_corner_bulk)
 
 # For switching identifiction mode in `identify_node`
 _BULK_SPATIAL_IDENTIFICATION_FUNCTION = {
@@ -37,7 +34,6 @@ def identify_node(node: dict, other_graph: "GeoGraph", mode: str = "corner") -> 
     Returns:
         np.ndarray: List of node ids in `other_graph` which identify with `node`.
     """
-
     # Mode switch
     assert mode in ["corner", "edge", "interior"]
     have_valid_overlap = _BULK_SPATIAL_IDENTIFICATION_FUNCTION[mode]
