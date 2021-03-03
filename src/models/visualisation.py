@@ -413,6 +413,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         """Add all widgets to viewer"""
         self.add_settings_widget()
         self.add_control(ipyleaflet.FullScreenControl())
+        self.add_control(ipyleaflet.ScaleControl(position="bottomleft"))
 
 
 class FoliumGeoGraphViewer:
