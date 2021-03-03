@@ -1,12 +1,14 @@
 """Contains tools for binary operations between GeoGraph objects"""
 from typing import List
+
 from numpy import ndarray
+
 from src.models.polygon_utils import (
     connect_with_interior,
-    connect_with_interior_or_edge,
-    connect_with_interior_or_edge_or_corner,
     connect_with_interior_bulk,
+    connect_with_interior_or_edge,
     connect_with_interior_or_edge_bulk,
+    connect_with_interior_or_edge_or_corner,
     connect_with_interior_or_edge_or_corner_bulk,
 )
 

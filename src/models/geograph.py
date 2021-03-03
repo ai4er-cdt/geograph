@@ -4,6 +4,7 @@ Module for processing and analysis of the geospatial graph.
 See https://networkx.org/documentation/stable/index.html for graph operations.
 """
 from __future__ import annotations
+
 import bz2
 import gzip
 import os
@@ -21,9 +22,10 @@ import pyproj
 import rasterio
 import shapely
 from shapely.prepared import prep
+from tqdm import tqdm
+
 from src.data_loading import rasterio_utils
 from src.models import binary_graph_operations
-from tqdm import tqdm
 
 VALID_EXTENSIONS = (
     ".pickle",

@@ -1,10 +1,10 @@
 """Convenience functions for creating and analysing test data for GeoGraph"""
-from typing import Tuple, Iterable
+from typing import Iterable, Tuple
 
 import affine
 import geopandas as gpd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 
 from src.data_loading.rasterio_utils import polygonise
