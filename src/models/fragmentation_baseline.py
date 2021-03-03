@@ -5,7 +5,7 @@ import os
 import pathlib
 from copy import copy
 from datetime import datetime
-from typing import Dict, Optional, Union, List
+from typing import Dict, List, Optional, Union
 
 import geopandas as gpd
 import numpy as np
