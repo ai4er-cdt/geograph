@@ -1,5 +1,6 @@
 """Helper functions for overlap computations with polygons in shapely"""
 from numpy import ndarray
+from typing import List
 from shapely.geometry.polygon import Polygon
 from geopandas.geoseries import GeometryArray
 
@@ -108,7 +109,7 @@ def connect_with_interior_or_edge_or_corner_bulk(
 
 def connect_with_interior_or_edge_bulk(
     polygon: Polygon, polygon_array: GeometryArray
-) -> ndarray:
+) -> List[bool]:
     """
     Return boolean array with True iff polys overlap in interior/edge, but not corner.
 
@@ -118,7 +119,7 @@ def connect_with_interior_or_edge_bulk(
             geometry array
 
     Returns:
-        np.array: Boolean array with value True, iff `polygon` and the polygon in
+        List[bool]: Boolean array with value True, iff `polygon` and the polygon in
             `polygon_array` at the given location overlap in their interior/edge.
     """
     patterns = polygon_array.relate(polygon)
@@ -130,7 +131,7 @@ def connect_with_interior_or_edge_bulk(
 
 def connect_with_interior_bulk(
     polygon: Polygon, polygon_array: GeometryArray
-) -> ndarray:
+) -> List[bool]:
     """
     Return boolean array with True iff polys overlap in interior, but not corner/edge.
 
@@ -140,7 +141,7 @@ def connect_with_interior_bulk(
             geometry array
 
     Returns:
-        np.array: Boolean array with value True, iff `polygon` and the polygon in
+        List[bool]: Boolean array with value True, iff `polygon` and the polygon in
             `polygon_array` at the given location overlap in their interior.
     """
     patterns = polygon_array.relate(polygon)
