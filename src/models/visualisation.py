@@ -64,13 +64,12 @@ class GeoGraphViewer(ipyleaflet.Map):
         )
         self.graph_dict = dict()
         self.custom_style = dict(
-            style={"color": "black", "fillColor": "#3366cc"},
+            style={"color": "black", "fillColor": "orange"},
             hover_style={"fillColor": "red", "fillOpacity": 0.2},
             point_style={
                 "radius": 10,
                 "color": "red",
                 "fillOpacity": 0.8,
-                "fillColor": "blue",
                 "weight": 3,
             },
         )
@@ -93,7 +92,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             is_habitat = idx > 0
 
             nodes, edges = create_node_edge_geometries(nx_graph)
-            graph_geometries = pd.concat([nodes, edges]).reset_index()
+            graph_geometries = pd.concat([edges, nodes]).reset_index()
             graph_geo_data = ipyleaflet.GeoData(
                 geo_dataframe=graph_geometries.to_crs(WGS84),
                 name=graph_name + "_graph",
@@ -115,18 +114,46 @@ class GeoGraphViewer(ipyleaflet.Map):
                 choro_data=choro_data,
                 key_on="class_label",
                 border_color="black",
-                style={"fillOpacity": 0.8},
+                hover_style={"fillOpacity": 1},
+                style={"fillOpacity": 0.7},
             )
+
+            hover_html = widgets.HTML("""Hover over patches""")
+            hover_html.layout.margin = "10px 10px 10px 10px"
+            hover_html.layout.max_width = "300px"
+
+            @self.log.capture()
+            def hover_callback(feature, **kwargs):  # pylint: disable=unused-argument
+                """Adapt text of `hover_html` widget to patch"""
+                new_value = """<b>Current Patch</b></br>
+                    <b>Class label:</b> {}</br>
+
+                    <b>Area:</b> {:}
+                """.format(
+                    feature["properties"]["class_label"],
+                    feature["properties"]["area"],
+                )
+                hover_html.value = new_value  # pylint: disable=cell-var-from-loop
+
+            pgon_choropleth.on_hover(hover_callback)
 
             self.layer_dict["graphs"][graph_name] = dict(
                 is_habitat=is_habitat,
                 graph=dict(layer=graph_geo_data, active=True),
                 pgons=dict(layer=pgon_choropleth, active=True),
+                hover_widget=hover_html,
             )
         self._layer_update()
 
-    # @log.capture()
-    # def _add_nx_graph(self):
+    def add_hover_widget(self, graph_name: str) -> None:
+        """Add hover widget for graph
+
+        Args:
+            graph_name ([type]): name of graph
+        """
+        hover_widget = self.layer_dict["graphs"][graph_name]["hover_widget"]
+        control = ipyleaflet.WidgetControl(widget=hover_widget, position="topright")
+        self.add_control(control)
 
     @log.capture()
     def _layer_update(self) -> None:
@@ -145,7 +172,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.layers = tuple(layers)
 
     @log.capture()
-    def set_graph_style(self, radius: float = 10, node_color="blue") -> None:
+    def set_graph_style(self, radius: float = 10, node_color=None) -> None:
         """Set the style of any graphs added to viewer.
 
         Args:
@@ -302,7 +329,10 @@ class GeoGraphViewer(ipyleaflet.Map):
         )
 
         node_color_picker = widgets.ColorPicker(
-            concise=True, description="Node color", value="blue", disabled=False
+            concise=True,
+            description="Node color",
+            value=self.custom_style["style"]["fillColor"],
+            disabled=False,
         )
 
         self._widget_output["settings_tab"] = widgets.interactive_output(
