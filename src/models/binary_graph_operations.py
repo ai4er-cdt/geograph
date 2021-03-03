@@ -1,8 +1,10 @@
 """Contains tools for binary operations between GeoGraph objects."""
 from numpy import ndarray
 from src.models.polygon_utils import (
-    connect_with_interior_bulk, connect_with_interior_or_edge_bulk,
-    connect_with_interior_or_edge_or_corner_bulk)
+    connect_with_interior_bulk,
+    connect_with_interior_or_edge_bulk,
+    connect_with_interior_or_edge_or_corner_bulk,
+)
 
 # For switching identifiction mode in `identify_node`
 _BULK_SPATIAL_IDENTIFICATION_FUNCTION = {

@@ -55,7 +55,7 @@ class GeoGraph:
     def __init__(
         self,
         data,
-        crs: Union[str, pyproj.CRS] = None,
+        crs: Optional[Union[str, pyproj.CRS]] = None,
         graph_save_path: Optional[Union[str, os.PathLike]] = None,
         raster_save_path: Optional[Union[str, os.PathLike]] = None,
         columns_to_rename: Optional[Dict[str, str]] = None,
@@ -119,7 +119,7 @@ class GeoGraph:
         super().__init__()
         self.graph = nx.Graph()
         self._habitats: Dict[str, Habitat] = {}
-        self._crs: Union[str, pyproj.CRS] = crs
+        self._crs: Optional[Union[str, pyproj.CRS]] = crs
         self._columns_to_rename: Optional[Dict[str, str]] = columns_to_rename
         self._tolerance: float = tolerance
 
@@ -539,7 +539,12 @@ class GeoGraph:
         # np.where is very fast here and gets the iloc based indexes
         # Combining it with the set comprehension reduces time by an order of
         # magnitude compared to `set(self.df.loc()`
-        invalid_idx = {idx_dict[i] for i in np.where(~self.df["class_label"].isin(set(valid_classes)).values)[0]}
+        invalid_idx = {
+            idx_dict[i]
+            for i in np.where(~self.df["class_label"].isin(set(valid_classes)).values)[
+                0
+            ]
+        }
         hgraph.remove_nodes_from(invalid_idx)
 
         for node in tqdm(
