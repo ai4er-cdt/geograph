@@ -152,8 +152,8 @@ class GeoGraphViewer(ipyleaflet.Map):
             radius (float): radius of nodes in graph. Defaults to 10.
         """
 
-        for name, layer_dict in self.layer_dict["graphs"].items():
-            layer = layer_dict["layer"]
+        for name, graph in self.layer_dict["graphs"].items():
+            layer = graph["graph"]["layer"]
 
             # Below doesn't work because traitlet change not observed
             # layer.point_style['radius'] = radius
@@ -163,7 +163,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             layer = ipyleaflet.GeoData(
                 geo_dataframe=layer.geo_dataframe, name=layer.name, **self.custom_style
             )
-            self.layer_dict["graphs"][name]["layer"] = layer
+            self.layer_dict["graphs"][name]["graph"]["layer"] = layer
         self._layer_update()
 
     @log.capture()
@@ -225,7 +225,7 @@ class GeoGraphViewer(ipyleaflet.Map):
 
             checkbox = widgets.Checkbox(
                 value=True,
-                description="_".join([layer_name, layer_subtype]),
+                description="{} ({})".format(layer_name, layer_subtype),
                 disabled=False,
                 indent=False,
                 layout=layout,
