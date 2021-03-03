@@ -8,7 +8,7 @@ from geopandas.geoseries import GeometryArray
 CORNER_ONLY_PATTERN = "FF*F0****"
 EDGE_ONLY_PATTERN = "FF*F1****"
 # Note: since we deal with polygons only, we can use a simplified overlap pattern:
-#  If polygons overlap with more than just their edge, they will autmoatically overlap
+#  If polygons overlap with more than just their edge, they will automatically overlap
 #  with their interiors
 OVERLAP_PATTERN = "T********"
 
