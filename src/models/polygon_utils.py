@@ -41,103 +41,107 @@ def de9im_match(pattern: str, target_pattern: str) -> bool:
     return True
 
 
-def connect_with_interior_or_edge_or_corner(poly1: Polygon, poly2: Polygon) -> bool:
+def connect_with_interior_or_edge_or_corner(
+    polygon1: Polygon, polygon2: Polygon
+) -> bool:
     """
-    Return True iff `poly1` and `poly2` overlap in their interior, edges or corners.
+    Return True iff `polygon1` and `polygon2` overlap in interior, edges or corners.
 
     Args:
-        poly1 (Polygon): A shapely Polygon
-        poly2 (Polygon): The other shapely Polygon
+        polygon1 (Polygon): A shapely Polygon
+        polygon2 (Polygon): The other shapely Polygon
 
     Returns:
-        bool: True, iff `poly1` and `poly2` intersect.
+        bool: True, iff `polygon1` and `polygon2` intersect.
     """
-    return poly1.intersects(poly2)
+    return polygon1.intersects(polygon2)
 
 
-def connect_with_interior_or_edge(poly1: Polygon, poly2: Polygon) -> bool:
+def connect_with_interior_or_edge(polygon1: Polygon, polygon2: Polygon) -> bool:
     """
-    Return True iff `poly1` and `poly2` overlap in their interior/edge, but not corner.
+    Return True iff `polygon1` and `polygon2` overlap in interior/edge, but not corner.
 
     Args:
-        poly1 (Polygon): A shapely Polygon
-        poly2 (Polygon): The other shapely Polygon
+        polygon1 (Polygon): A shapely Polygon
+        polygon2 (Polygon): The other shapely Polygon
 
     Returns:
-        bool: True, iff `poly1` and `poly2` overlap in their interior/edge.
+        bool: True, iff `polygon1` and `polygon2` overlap in their interior/edge.
     """
-    pattern = poly1.relate(poly2)
+    pattern = polygon1.relate(polygon2)
     return de9im_match(pattern, EDGE_ONLY_PATTERN) or de9im_match(
         pattern, OVERLAP_PATTERN
     )
 
 
-def connect_with_interior(poly1: Polygon, poly2: Polygon) -> bool:
+def connect_with_interior(polygon1: Polygon, polygon2: Polygon) -> bool:
     """
-    Return True iff `poly1` and `poly2` overlap in their interior, but not edge/corner.
+    Return True iff `polygon1` and `polygon2` overlap in interior, but not edge/corner.
 
     Args:
-        poly1 (Polygon): A shapely Polygon
-        poly2 (Polygon): The other shapely Polygon
+        polygon1 (Polygon): A shapely Polygon
+        polygon2 (Polygon): The other shapely Polygon
 
     Returns:
-        bool: True, iff `poly1` and `poly2` overlap in their interior.
+        bool: True, iff `polygon1` and `polygon2` overlap in their interior.
     """
-    return poly1.relate_pattern(poly2, OVERLAP_PATTERN)
+    return polygon1.relate_pattern(polygon2, OVERLAP_PATTERN)
 
 
 def connect_with_interior_or_edge_or_corner_bulk(
-    poly: Polygon, poly_array: GeometryArray
+    polygon: Polygon, polygon_array: GeometryArray
 ) -> ndarray:
     """
     Return boolean array with True iff polygons overlap in interior, edges or corners.
 
     Args:
-        poly (Polygon): A shapely Polygon
-        poly_array (GeometryArray): The other shapely Polygons in a geopandas geometry
-            array
+        polygon (Polygon): A shapely Polygon
+        polygon_array (GeometryArray): The other shapely Polygons in a geopandas
+            geometry array
 
     Returns:
-        np.array: Boolean array with value True, iff `poly` and the polygon in
-            `poly_array` at the given location intersect.
+        np.array: Boolean array with value True, iff `polygon` and the polygon in
+            `polygon_array` at the given location intersect.
     """
-    return poly_array.intersects(poly)
+    return polygon_array.intersects(polygon)
 
 
 def connect_with_interior_or_edge_bulk(
-    poly: Polygon, poly_array: GeometryArray
+    polygon: Polygon, polygon_array: GeometryArray
 ) -> ndarray:
     """
     Return boolean array with True iff polys overlap in interior/edge, but not corner.
 
     Args:
-        poly (Polygon): A shapely Polygon
-        poly_array (GeometryArray): The other shapely Polygons in a geopandas geometry
-            array
+        polygon (Polygon): A shapely Polygon
+        polygon_array (GeometryArray): The other shapely Polygons in a geopandas
+            geometry array
 
     Returns:
-        np.array: Boolean array with value True, iff `poly` and the polygon in
-            `poly_array` at the given location overlap in their interior/edge.
+        np.array: Boolean array with value True, iff `polygon` and the polygon in
+            `polygon_array` at the given location overlap in their interior/edge.
     """
-    patterns = poly_array.relate(poly)
+    patterns = polygon_array.relate(polygon)
     return [
         de9im_match(pattern, EDGE_ONLY_PATTERN) or de9im_match(pattern, OVERLAP_PATTERN)
         for pattern in patterns
     ]
 
 
-def connect_with_interior_bulk(poly: Polygon, poly_array: GeometryArray) -> ndarray:
+def connect_with_interior_bulk(
+    polygon: Polygon, polygon_array: GeometryArray
+) -> ndarray:
     """
     Return boolean array with True iff polys overlap in interior, but not corner/edge.
 
     Args:
-        poly (Polygon): A shapely Polygon
-        poly_array (GeometryArray): The other shapely Polygons in a geopandas geometry
-            array
+        polygon (Polygon): A shapely Polygon
+        polygon_array (GeometryArray): The other shapely Polygons in a geopandas
+            geometry array
 
     Returns:
-        np.array: Boolean array with value True, iff `poly` and the polygon in
-            `poly_array` at the given location overlap in their interior.
+        np.array: Boolean array with value True, iff `polygon` and the polygon in
+            `polygon_array` at the given location overlap in their interior.
     """
-    patterns = poly_array.relate(poly)
+    patterns = polygon_array.relate(polygon)
     return [de9im_match(pattern, OVERLAP_PATTERN) for pattern in patterns]

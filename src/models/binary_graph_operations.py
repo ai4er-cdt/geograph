@@ -51,11 +51,11 @@ def identify_node(node: dict, other_graph: "GeoGraph", mode: str = "corner") -> 
     have_valid_overlap = _BULK_SPATIAL_IDENTIFICATION_FUNCTION[mode]
 
     # Extract relevant node elements for legibility
-    poly = node["geometry"]
+    polygon = node["geometry"]
     label = node["class_label"]
 
     # Get potential candidates for overlap
-    candidate_ids = other_graph.rtree.query(poly, sort=True)
+    candidate_ids = other_graph.rtree.query(polygon, sort=True)
     # Filter candidates according to the same class label
     # fmt: off
     candidate_ids = candidate_ids[
@@ -65,7 +65,7 @@ def identify_node(node: dict, other_graph: "GeoGraph", mode: str = "corner") -> 
     # fmt: on
     candidate_ids = candidate_ids[
         have_valid_overlap(
-            poly,
+            polygon,
             other_graph._geometry(candidate_ids),  # pylint: disable=protected-access
         )
     ]

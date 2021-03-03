@@ -60,10 +60,10 @@ if __name__ == "__main__":
         "lower_right": ((2, 4), (0, 3)),
     }
     # Poligonise
-    polys1 = _polygonise_splits(arr1, splits_of_interest)
-    polys1["full"] = polygonise(arr1, transform=get_array_transform(arr1))
+    polygons1 = _polygonise_splits(arr1, splits_of_interest)
+    polygons1["full"] = polygonise(arr1, transform=get_array_transform(arr1))
     # Save
-    for save_name, df in polys1.items():
+    for save_name, df in polygons1.items():
         save_path = TEST_DATA_FOLDER / "adjacent" / f"{save_name}.gpkg"
         df.to_file(save_path, driver="GPKG")
 
@@ -80,10 +80,10 @@ if __name__ == "__main__":
         "lower_right": ((1, 4), (0, 3)),
     }
     # Polygonise
-    polys2 = _polygonise_splits(arr2, splits_of_interest)
-    polys2["full"] = polygonise(arr2, transform=get_array_transform(arr2))
+    polygons2 = _polygonise_splits(arr2, splits_of_interest)
+    polygons2["full"] = polygonise(arr2, transform=get_array_transform(arr2))
     # Save
-    for save_name, df in polys2.items():
+    for save_name, df in polygons2.items():
         save_path = TEST_DATA_FOLDER / "overlapping" / f"{save_name}.gpkg"
         df.to_file(save_path, driver="GPKG")
 
@@ -91,9 +91,9 @@ if __name__ == "__main__":
     print("(3/3) Create time slice data")
     # Settings
     np.random.seed(184)
-    # Create polys
+    # Create polygons
     for i in range(5):
         arr_t = np.random.randint(low=1, high=4, size=(4, 4), dtype=np.uint8)
-        polys_t = polygonise(arr_t, transform=get_array_transform(arr_t))
+        polygons_t = polygonise(arr_t, transform=get_array_transform(arr_t))
         save_path = TEST_DATA_FOLDER / "timestack" / f"time_{i}.gpkg"
-        polys_t.to_file(save_path, driver="GPKG")
+        polygons_t.to_file(save_path, driver="GPKG")
