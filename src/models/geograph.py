@@ -13,7 +13,7 @@ import pickle
 from copy import deepcopy
 from dataclasses import dataclass
 from itertools import zip_longest
-from typing import Dict, List, Optional, Tuple, Union, Iterable
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import geopandas as gpd
 import networkx as nx
@@ -469,9 +469,7 @@ class GeoGraph:
             adjacency_set.update(list(self.graph.neighbors(node)))
         adjacency_set -= adjacency_set.intersection(node_list)
         # Build union polygon.
-        # TODO: Fix indexing issue (need one positional and one `hash`
-        # TODO:  index (like iloc & loc))
-        polygon = self.df.geometry.values[node_list].unary_union
+        polygon = self.df.geometry.loc[node_list].unary_union
         # Remove nodes from graph and rows from df
         self._remove_nodes(node_list)
         # Add final node to graph and df
@@ -631,14 +629,12 @@ class GeoGraph:
         # Remove node from graph (automatically removes edges)
         self.graph.remove_nodes_from(node_ids)
         # Remove data of node from df
-        self.df.drop(index=node_ids, inplace=True)
+        self.df = self.df.drop(index=node_ids)
 
-    def _add_node(self, node_id, adjacencies, node_data={}, **data):  # TODO: vectorize
+    def _add_node(self, node_id, adjacencies, **data):  # TODO: vectorize
         """Add node to graph #TODO Docstring """
-        # pylint: disable=dangerous-default-value
         # Collect all data on node in one dict
-        for key, val in data.items():
-            node_data[key] = val
+        node_data = dict(data.items())
 
         # Add node to graph
         self.graph.add_node(
