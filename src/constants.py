@@ -21,6 +21,10 @@ CEDA_DIR = pathlib.Path("/neodc")
 # ESA Landcover directory in CEDA
 ESA_LANDCOVER_DIR = CEDA_DIR / "esacci/land_cover/data/land_cover_maps/v2.0.7"
 
+SAT_DIR = (
+    "/gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data"
+)
+
 # Coordinate reference systems (crs)
 WGS84 = "EPSG:4326"  # WGS84 standard crs (latitude, longitude)
 UTM35N = "EPSG:32635"  # https://epsg.io/32635 - preferred crs for chernobyl region

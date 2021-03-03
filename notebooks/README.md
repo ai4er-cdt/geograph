@@ -31,3 +31,8 @@ git add notebooks/explaratory/sdat2*
 git add 
 
 wandb login 42ceaac64e4f3ae24181369f4c77d9ba0d1c64e5
+
+    python3 src/models/xgb.py 
+    git add src/models/xgb.py
+    git add requirements/dev-requirements.txt
+    git commit -m "fix: dev-requirements.txt"
