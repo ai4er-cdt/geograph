@@ -115,9 +115,9 @@ def read_from_lat_lon(
 
 def polygonise(
     data_array: np.ndarray,
-    mask: Optional[np.ndarray],
-    transform: affine.Affine,
-    crs: Optional[str],
+    mask: Optional[np.ndarray] = None,
+    transform: affine.Affine = affine.identity,
+    crs: Optional[str] = None,
     connectivity: int = 4,
     apply_buffer: bool = True,
 ):
@@ -149,12 +149,12 @@ def polygonise(
     Returns:
         gpd.GeoDataFrame: GeoDataFrame containing polygon objects.
     """
-    poly_generator = shapes(
+    polygon_generator = shapes(
         data_array, mask=mask, connectivity=connectivity, transform=transform
     )
     results = list(
         {"properties": {"class_label": int(val)}, "geometry": shape}
-        for shape, val in poly_generator
+        for shape, val in polygon_generator
     )
     df = gpd.GeoDataFrame.from_features(results, crs=crs)
     if apply_buffer:
