@@ -9,12 +9,12 @@ from src.models import geograph
 
 
 # define a metric dataclass with order = true, which means that
-# two different Metrics with the same `name` will work with < <= => > ==
-# comparisons as you would expect intuitively
+# two different Metrics will obey with < <= => > == comparisons
+# as you would expect intuitively
 @dataclass(order=True)
 class Metric:
-    name: str
     value: Any  # No good Numpy type hints
+    name: str
     description: str
     variant: Optional[str]
     unit: Optional[str] = None
