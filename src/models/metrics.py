@@ -60,7 +60,7 @@ def _get_avg_component_isolation(geo_graph: geograph.GeoGraph) -> Metric:
     components_gdf, _ = geo_graph.get_graph_components(geo_graph.graph)
     comp_graph = nx.Graph()
 
-    geom: List[shapely.Polygon] = components_gdf.geometry.values
+    geom: List[shapely.Polygon] = components_gdf.geometry.tolist()
     graph_dict = {}
 
     # Creating nodes (=vertices) and finding neighbors
