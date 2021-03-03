@@ -149,12 +149,12 @@ def polygonise(
     Returns:
         gpd.GeoDataFrame: GeoDataFrame containing polygon objects.
     """
-    poly_generator = shapes(
+    polygon_generator = shapes(
         data_array, mask=mask, connectivity=connectivity, transform=transform
     )
     results = list(
         {"properties": {"class_label": int(val)}, "geometry": shape}
-        for shape, val in poly_generator
+        for shape, val in polygon_generator
     )
     df = gpd.GeoDataFrame.from_features(results, crs=crs)
     if apply_buffer:

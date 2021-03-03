@@ -4,6 +4,7 @@ Module for processing and analysis of the geospatial graph.
 See https://networkx.org/documentation/stable/index.html for graph operations.
 """
 from __future__ import annotations
+
 import bz2
 import gzip
 import os
@@ -12,7 +13,7 @@ import pickle
 from copy import deepcopy
 from dataclasses import dataclass
 from itertools import zip_longest
-from typing import Dict, Iterable, List, Optional, Tuple, Union, Sequence
+from typing import Dict, List, Optional, Tuple, Union, Iterable
 
 import geopandas as gpd
 import networkx as nx
@@ -21,9 +22,10 @@ import pyproj
 import rasterio
 import shapely
 from shapely.prepared import prep
-from src.data_loading.rasterio_utils import polygonise
-from src.models.binary_graph_operations import identify_node
 from tqdm import tqdm
+
+from src.data_loading import rasterio_utils
+from src.models import binary_graph_operations
 
 VALID_EXTENSIONS = (
     ".pickle",
@@ -200,13 +202,21 @@ class GeoGraph:
         """Return bounds of entire graph"""
         return self.df.total_bounds
 
-    def _class_label(self, node_ids: Sequence[int]):
-        """Return class label of `node_ids` directly from underlying numpy array"""
-        return self.df.class_label.values[node_ids]
+    @property
+    def class_label(self):
+        """Return class label of nodes directly from underlying numpy array.
 
-    def _geometry(self, node_ids: Sequence[int]):
-        """Return geometry of `node_ids` directly from underlying numpy array"""
-        return self.df.geometry.values[node_ids]
+        Note: Uses `iloc` type indexing.
+        """
+        return self.df.class_label.values
+
+    @property
+    def geometry(self):
+        """Return geometry of nodes from underlying numpy array.
+
+        Note: Uses `iloc` type indexing.
+        """
+        return self.df.geometry.values
 
     def _load_from_vector_path(
         self,
@@ -284,7 +294,7 @@ class GeoGraph:
         Returns:
             gpd.GeoDataFrame: The dataframe containing polygon objects.
         """
-        vector_df = polygonise(data_array=data_array, **raster_kwargs)
+        vector_df = rasterio_utils.polygonise(data_array=data_array, **raster_kwargs)
         if save_path is not None:
             if save_path.suffix == ".gpkg":
                 vector_df.to_file(save_path, driver="GPKG")
@@ -531,7 +541,7 @@ class GeoGraph:
             # Query rtree for all polygons within `max_travel_distance` of the original
             for nbr in self.rtree.intersection(buff_poly_bounds):
                 # If a node is not a habitat class node, don't add the edge
-                if nbr in invalid_idx:
+                if nbr != node or nbr in invalid_idx:
                     continue
                 # Otherwise add the edge with distance attribute
                 nbr_polygon = polygons[nbr]
@@ -596,7 +606,9 @@ class GeoGraph:
     def identify_node(
         self, node_id: int, other_graph: GeoGraph, mode: str
     ) -> List[int]:
-        return identify_node(self.df.iloc[node_id], other_graph=other_graph, mode=mode)
+        return binary_graph_operations.identify_node(
+            self.df.iloc[node_id], other_graph=other_graph, mode=mode
+        )
 
     def _remove_node(self, node_id: int):
         self._remove_nodes([node_id])
