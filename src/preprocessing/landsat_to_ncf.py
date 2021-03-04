@@ -239,7 +239,8 @@ def create_netcdfs():
     ir_name = ["", "_IR"]
     path_da = return_path_dataarray()
     for ty, ty_v in [(1, "chern")]: # enumerate(path_da.coords["ty"].values.tolist()):  # [(1, "chern")]:
-        for mn, mn_v in enumerate(path_da.coords["mn"].values.tolist()):
+        for mn, mn_v in enumerate(path_da.coords["mn"].values.tolist()):  
+            #  [(1, "AMJ"), (2, "JAS"), (3, "OND")]:  # enumerate(path_da.coords["mn"].values.tolist()):
             for ir in [0, 1]:
                 path_list = []
                 for year in tqdm(
@@ -273,24 +274,26 @@ def create_netcdfs():
                         xr_da = xr.open_rasterio(file_name)
                         data, descriptions = load_rgb_data(file_name)
                         data[:] = np.nan  # make everything nan if the file didn't exist.
+                    if ir == 0:
+                        band_names = ["red", "green", "blue"]
+                    else:
+                        band_names = ["nir", "swir1", "swir2"]
                     xr.DataArray(
-                        data=np.expand_dims(np.expand_dims(data, axis=3), axis=4),
-                        dims=["y", "x", "band", "year", "mn"],
-                        coords=dict(
-                            y=xr_da.coords["y"].values,
-                            x=xr_da.coords["x"].values,
-                            band=["A", "B", "C"],
-                            # band=["red", "green", "blue"], 
-                            # # 'B5', 'B6', 'B7'
-                            year=[path_da.isel(year=year).coords["year"].values],
-                            mn=[mn_v],
-                        ),
-                        attrs=dict(
-                            description=("Normalized reflectance at " + ty_v + "for " + mn_v 
-                                         + ". Bands order " + str(descriptions) +"."),
-                            bands=descriptions,
-                        ),
-                    ).astype("float32").to_dataset(name="norm_refl").to_netcdf(tmp_name)
+                            data=np.expand_dims(np.expand_dims(data, axis=3), axis=4),
+                            dims=["y", "x", "band", "year", "mn"],
+                            coords=dict(
+                                y=xr_da.coords["y"].values,
+                                x=xr_da.coords["x"].values,
+                                band=band_names,
+                                year=[path_da.isel(year=year).coords["year"].values],
+                                mn=[mn_v],
+                            ),
+                            attrs=dict(
+                                description=("Normalized reflectance at " + ty_v + " for " + mn_v
+                                             + ". Bands order " + str(descriptions) +"."),
+                                bands=descriptions,
+                            ),
+                        ).astype("float32").to_dataset(name="norm_refl").to_netcdf(tmp_name)
                     del data
                     del xr_da
                     path_list.append(tmp_name)

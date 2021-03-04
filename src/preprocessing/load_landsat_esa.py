@@ -21,7 +21,7 @@ def test_inversibility(x_da, y_da, cfd):
         )  # all data as numpy.
     x_rp, y_rp = return_xy_npa(
     x_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
-    y_npa_to_xarray(
+    y_npa_to_xr(
                 y_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
             ),
             year=range(cfd["start_year_i"], cfd["end_year_i"]),
@@ -123,12 +123,13 @@ def return_x_y_da(
     take_esa_coords=False,
     use_mfd=True,
     use_ffil=False,
-    #use_=False
+    use_ir=False,
 ):
     """
     Uses _return_x_y_da() only if the netcdf has not already been made.
     :param take_esa_coords: lower resolution
     :param use_mfd: use mfd
+    'return_x_y_da'  1106.26691 s
     """
     names = [
         "take_esa_coords_"
@@ -137,11 +138,14 @@ def return_x_y_da(
         + str(use_mfd)
         + "_use_ffil_"
         + str(use_ffil)
+        # + "_use_ir_"
+        # + str(use_ir)
         + "_"
         + v
         + ".nc"
         for v in ["x", "y"]
     ]
+    print(names)
     direc = os.path.join(SAT_DIR, "inputs")
     if not os.path.exists(direc):
         os.mkdir(direc)
@@ -164,7 +168,6 @@ def return_x_y_da(
         else:
             x_ds = xr.open_dataset(full_names[0])
             y_ds = xr.open_dataset(full_names[1])
-    
     return x_ds.norm_refl, y_ds.esa_cci
 
 
@@ -213,7 +216,7 @@ def return_xy_npa(x_da, y_da, year=5):
 
 
 @timeit
-def y_npa_to_xarray(npa, da):
+def y_npa_to_xr(npa, da, reshape=True):
     """
     Reformat numpy array to be like a given xarray.dataarray.
     Inverse of return_xy for the y values at least.
@@ -225,15 +228,21 @@ def y_npa_to_xarray(npa, da):
     y = da.y.values
     coords_d = dict(x=(["x"], x), y=(["y"], y))
     coords_d["year"] = da.year.values
+
+    if reshape:
+        data = npa.reshape(da.values.shape)
+    else:
+        data = npa
+    
     return xr.DataArray(
-        data=npa.reshape(da.values.shape),
+        data=data,
         dims=da.dims,
         coords=coords_d,
     )
 
 
 @timeit
-def x_npa_to_xarray(npa, da):
+def x_npa_to_xr(npa, da):
     """
     Reformat numpy array to be like a given xarray.dataarray.
     :param npa: numpy array, float.
@@ -273,25 +282,17 @@ def return_xy_np_grid(x_da, y_da, year=5):
     :return: x_val, y_val
     """
 
-    def combine_first_two_indices(x_val, y_val):
-        return (
-            np.swapaxes(
-                np.array([x_val[:, :, i].ravel() for i in range(x_val.shape[2])]), 0, 1
-            ),
-            y_val.ravel(),
-        )
-
     def _return_xy_npa(x_da, y_da, yr=5):
         assert isinstance(yr, int)
-        x_val = np.asarray(
+        x_val = np.swapaxes(np.swapaxes(np.asarray(
             [
-                x_da.isel(year=yr, mn=mn, band=band).values.ravel()
+                x_da.isel(year=yr, mn=mn, band=band).values #.ravel()
                 for mn in range(4)
                 for band in range(3)
             ]
-        )
-        # [mn, band]
-        return np.swapaxes(x_val, 0, 1), y_da.isel(year=yr).values.ravel()
+        ), 0, 1), 1, 2)
+        # x, y, z
+        return x_val, y_da.isel(year=yr).values #.ravel()
 
     if isinstance(year, range) or isinstance(year, list):
         x_val_l, y_val_l = [], []
@@ -299,7 +300,7 @@ def return_xy_np_grid(x_da, y_da, year=5):
             x_val_p, y_val_p = _return_xy_npa(x_da, y_da, yr=yr)
             x_val_l.append(x_val_p)
             y_val_l.append(y_val_p)
-        x_val, y_val = combine_first_two_indices(np.array(x_val_l), np.array(y_val_l))
+        x_val, y_val = np.array(x_val_l), np.array(y_val_l)
     else:
         x_val, y_val = _return_xy_npa(x_da, y_da, yr=year)
     return x_val, y_val

@@ -32,7 +32,7 @@ from sklearn import metrics
 import xarray as xr
 from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, SAT_DIR
 from src.preprocessing.esa_compress import compress_esa, decompress_esa, FORW_D, REV_D
-from src.preprocessing.load_landsat_esa import return_xy_npa, y_npa_to_xarray, x_npa_to_xarray, return_x_y_da
+from src.preprocessing.load_landsat_esa import return_xy_npa, y_npa_to_xr, x_npa_to_xr, return_x_y_da
 from src.utils import timeit
 from src.preprocessing.landsat_to_ncf import create_netcdfs
 from src.visualisation.ani import animate_prediction
@@ -88,7 +88,7 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
 
 if __name__ == "__main__":
     # usage:  python3 src/models/xgb.py > log.txt
-    create_netcdfs() # uncomment to preprocess data.
+    # create_netcdfs() # uncomment to preprocess data.
     cfd = {
         "start_year_i": 0,
         "mid_year_i": 19,
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     y_pr_all = decompress_esa(
         bst.predict(xg_all)
     )  # predict whole time period using model
-    y_pr_da = y_npa_to_xarray(
+    y_pr_da = y_npa_to_xr(
         y_pr_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
     )  # transform full prediction to dataarray.
     y_pr_da.to_netcdf(
