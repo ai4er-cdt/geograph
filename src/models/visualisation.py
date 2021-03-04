@@ -11,12 +11,11 @@ import networkx as nx
 import shapely.geometry
 import ipywidgets as widgets
 import ipyleaflet
-import markdown
 import traitlets
 
 
 from src.constants import CHERNOBYL_COORDS_WGS84, WGS84, UTM35N, CEZ_DATA_PATH
-from src.models import geograph
+from src.models import geograph, metrics
 
 
 class GeoGraphViewer(ipyleaflet.Map):
@@ -77,6 +76,14 @@ class GeoGraphViewer(ipyleaflet.Map):
                 "weight": 3,
             },
         )
+
+        self.metrics = [
+            "num_components",
+            "avg_patch_area",
+            "total_area",
+            "avg_component_area",
+            "avg_component_isolation",
+        ]
 
         self.hover_widget = None
         self._widget_output = {}
@@ -153,13 +160,22 @@ class GeoGraphViewer(ipyleaflet.Map):
 
             pgon_choropleth.on_hover(self.hover_callback)
 
+            graph_metrics = []
+
+            if not is_habitat:
+                print("computing metrics")
+                for metric in self.metrics:
+                    graph_metrics.append(metrics.get_metric(metric, graph))
+
             self.layer_dict["graphs"][graph_name] = dict(
                 is_habitat=is_habitat,
                 graph=dict(layer=graph_geo_data, active=True),
                 pgons=dict(layer=pgon_choropleth, active=True),
+                metrics=graph_metrics,
             )
         self._layer_update()
 
+    @log.capture()
     def add_hover_widget(self) -> None:
         """Add hover widget for graph."""
         control = ipyleaflet.WidgetControl(
@@ -304,7 +320,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             ):
                 checkboxes.append(
                     widgets.HTML(
-                        "<b>Habitats in {}:</b>".format(layer_name),
+                        "<b>Habitats in {}</b>".format(layer_name),
                         layout=widgets.Layout(padding="0px 0px 0px 25px"),
                     )
                 )
@@ -433,9 +449,40 @@ class GeoGraphViewer(ipyleaflet.Map):
         Returns:
             widgets.VBox: metrics widget
         """
+        available_metrics = [
+            (name, graph["metrics"])
+            for name, graph in self.layer_dict["graphs"].items()
+            if graph["metrics"]
+        ]
+
+        dropdown = widgets.Dropdown(
+            options=[("None selected", "nothing")] + available_metrics,
+            description="Graph:",
+        )
+
+        metrics_html = widgets.HTML("Select graph")
+
+        @self.log.capture()
+        def metrics_callback(change):
+            print(change)
+            metrics_str = ""
+            if change["name"] == "value":
+                if change["new"] != "nothing":
+                    for metric in change["new"]:
+                        metrics_str += """
+                        <b>{}:</b> {:.2f}</br>
+                        """.format(
+                            metric.name, metric.value
+                        )
+                metrics_html.value = metrics_str
+
+        dropdown.observe(metrics_callback)
 
         widget = widgets.VBox(
-            [widgets.HTML(markdown.markdown("""&nbsp;&nbsp;Metrics&nbsp;&nbsp;"""))]
+            [
+                dropdown,
+                metrics_html,
+            ]
         )
         return widget
 
@@ -446,9 +493,11 @@ class GeoGraphViewer(ipyleaflet.Map):
         habitats_tab = self._create_habitat_tab()
         diff_tab = self._create_diff_tab()
         settings_tab = self._create_settings_tab()
+        metrics_widget = self._create_metrics_widget()
 
         tab_nest_dict = dict(
             Layers=habitats_tab,
+            Metrics=metrics_widget,
             Diff=diff_tab,
             Settings=settings_tab,
             Log=self.log,
@@ -461,14 +510,11 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         self.add_control(ipyleaflet.WidgetControl(widget=tab_nest, position="topright"))
 
-        metrics_widget = self._create_metrics_widget()
-        self.add_control(
-            ipyleaflet.WidgetControl(widget=metrics_widget, position="topright")
-        )
-
         # self.add_control(ipyleaflet.LayersControl(position="topleft"))
 
-        header = widgets.HTML(markdown.markdown("""&nbsp;&nbsp;GeoGraph&nbsp;&nbsp;"""))
+        header = widgets.HTML(
+            """<b>GeoGraph</b>""", layout=widgets.Layout(padding="3px 10px 3px 10px")
+        )
         self.add_control(
             ipyleaflet.WidgetControl(widget=header, position="bottomright")
         )
