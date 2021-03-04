@@ -381,7 +381,7 @@ class GeoGraph:
         # Assign crs
         if df.crs is None:
             df.crs = self._crs
-        else:
+        if self._crs is not None:
             df = df.to_crs(self._crs)
 
         # Reset index to ensure consistent indices
