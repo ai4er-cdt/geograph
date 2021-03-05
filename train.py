@@ -40,7 +40,7 @@ x_all, y_all = return_xy_np_grid(
 
 x_tr, y_tr = return_xy_np_grid(
     x_da, y_da, year=range(cfd["start_year_i"], cfd["mid_year_i"])
-    )  # load numpy train data.
+    )  
 
 x_te, y_te = return_xy_np_grid(
     x_da, y_da, year=range(cfd["mid_year_i"], cfd["end_year_i"])
