@@ -1,71 +1,80 @@
 from os.path import splitext
 from os import listdir
-import numpy as np
 from glob import glob
 import torch
+from torch import random
 from torch.utils.data import Dataset
-import logging
-from PIL import Image
+
+
+import numpy as np
+import random
+import cv2
+
+from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, SAT_DIR
+from src.preprocessing.esa_compress import compress_esa, decompress_esa, FORW_D, REV_D
+from src.preprocessing.load_landsat_esa import return_xy_np_grid, y_npa_to_xr, x_npa_to_xr, return_x_y_da
+
+
+cfd = {
+        "start_year_i": 0,
+        "mid_year_i": 19,
+        "end_year_i": 24,
+        "take_esa_coords": True,
+        "use_ffil": True,
+        "use_mfd": False,
+    }
+
+x_da, y_da = return_x_y_da(
+        take_esa_coords=cfd["take_esa_coords"],
+        use_ffil=cfd["use_ffil"],
+        use_mfd=cfd["use_mfd"]
+    )  # load preprocessed data from netcdfs
+    # there are now 24 years to choose from. 
+    # train set goes from 0 to 1. # print(x_da.year.values)
+    # test_inversibility()
+x_tr, y_tr = return_xy_np_grid(
+        x_da, y_da, year=range(cfd["start_year_i"], cfd["mid_year_i"])
+    )  # load numpy train data.
 
 
 class BasicDataset(Dataset):
-    def __init__(self, imgs_dir, masks_dir, scale=1, mask_suffix=''):
-        self.imgs_dir = imgs_dir
-        self.masks_dir = masks_dir
-        self.scale = scale
-        self.mask_suffix = mask_suffix
-        assert 0 < scale <= 1, 'Scale must be between 0 and 1'
+    def __init__(self, data_path):
+        self.data_path = data_path
+    
+    #def augment(self, image, flipCode):
+        #use cv2.flip to augment data
+        #flip = cv2.flip(image, flipCode)
+        #return flip
 
-        self.ids = [splitext(file)[0] for file in listdir(imgs_dir)
-                    if not file.startswith('.')]
-        logging.info(f'Creating dataset with {len(self.ids)} examples')
-
+    def __getitem__(self, index):
+        image = x_tr
+        label = compress_esa(y_tr)
+        #image = image.reshape(19, , 512)
+        #label = label.reshape(19, 512, 512)
+        #Process the label, change the pixel from 255 to 1
+        if label.max() > 1:
+            label = label / 225
+        #Random to do the data augmentation
+        #flipCode = random.choice([-1, 0, 1, 2])
+        #if flipCode != 2:
+            #image = self.augment(image, flipCode)
+            #label = self.augment(label, flipCode)
+        
+        return image, label
+    
     def __len__(self):
-        return len(self.ids)
+        #return the training set
+        return len(self.data_path)
 
-    @classmethod
-    def preprocess(cls, pil_img, scale):
-        w, h = pil_img.size
-        newW, newH = int(scale * w), int(scale * h)
-        assert newW > 0 and newH > 0, 'Scale is too small'
-        pil_img = pil_img.resize((newW, newH))
+if __name__ == '__main__':
+    train_dataset = BasicDataset([
+            GWS_DATA_DIR / "esa_cci_rois" / f"esa_cci_{year}_chernobyl.geojson"
+            for year in range(1992, 2016)
+        ])
+    print(len(train_dataset))
+    train_loader = torch.utils.data.DataLoader(dataset = train_dataset,
+    batch_size=2,
+    shuffle=True)
 
-        img_nd = np.array(pil_img)
-
-        if len(img_nd.shape) == 2:
-            img_nd = np.expand_dims(img_nd, axis=2)
-
-        # HWC to CHW
-        img_trans = img_nd.transpose((2, 0, 1))
-        if img_trans.max() > 1:
-            img_trans = img_trans / 255
-
-        return img_trans
-
-    def __getitem__(self, i):
-        idx = self.ids[i]
-        mask_file = glob(self.masks_dir + idx + self.mask_suffix + '.*')
-        img_file = glob(self.imgs_dir + idx + '.*')
-
-        assert len(mask_file) == 1, \
-            f'Either no mask or multiple masks found for the ID {idx}: {mask_file}'
-        assert len(img_file) == 1, \
-            f'Either no image or multiple images found for the ID {idx}: {img_file}'
-        mask = Image.open(mask_file[0])
-        img = Image.open(img_file[0])
-
-        assert img.size == mask.size, \
-            f'Image and mask {idx} should be the same size, but are {img.size} and {mask.size}'
-
-        img = self.preprocess(img, self.scale)
-        mask = self.preprocess(mask, self.scale)
-
-        return {
-            'image': torch.from_numpy(img).type(torch.FloatTensor),
-            'mask': torch.from_numpy(mask).type(torch.FloatTensor)
-        }
-
-
-class ChernDataset(BasicDataset):
-    def __init__(self, imgs_dir, masks_dir, scale=1):
-        super().__init__(imgs_dir, masks_dir, scale, mask_suffix='_mask')
+    for image, label in train_loader:
+        print(image.shape)
