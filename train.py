@@ -20,7 +20,7 @@ from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, SAT_DIR
 from src.preprocessing.esa_compress import compress_esa
 from src.preprocessing.load_landsat_esa import return_xy_np_grid, return_x_y_da
 from src.unet_.dataset import BasicDataset
-
+#x represents landsat data, and y represents ESA CCI LC.
 cfd = {
     "start_year_i": 0,
     "mid_year_i": 19,
