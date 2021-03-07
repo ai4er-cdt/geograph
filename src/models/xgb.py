@@ -13,16 +13,12 @@ Usage:
 
     python3 src/models/xgb.py
 
-TODO: the animation function could be generalised.
 TODO: Should add hydra to allow a lot of different model hyperparameters to be passed in.
 TODO: Implement xgboost dask to let the model run with full resolution data.
 TODO: Implement GPU usage in xgboost.
 TODO: Fix bug with loading full res data xarray.
 TODO: Look at trends in landsat bands to see if preprocessing can be improved.
-TODO: Plot class imbalance. Katie might have already done this.
-TODO: Research which metrics best capture the classification.
-TODO: Implement UNET.
-TODO: Test if classification can be stabilised/improved using multi-year voting.
+
 """
 import os
 import numpy as np
@@ -39,7 +35,9 @@ from src.visualisation.ani import animate_prediction
 
 
 @timeit
-def train_xgb(train_X, train_Y, test_X, test_Y):
+def train_xgb(train_X, train_Y, test_X, test_Y, 
+              objective="multi:softmax", eta=0.3, max_depth=12,
+              nthread=16, num_round=20):
     """
     Train an xgboost model using numpy inputs.
     :param train_X: npa, float32
@@ -51,26 +49,24 @@ def train_xgb(train_X, train_Y, test_X, test_Y):
 
     eta [default=0.3, alias: learning_rate]
 
-    Step size shrinkage used in update to prevents overfitting. 
-    After each boosting step, we can directly get the weights of new features, 
+    Step size shrinkage used in update to prevents overfitting.
+    After each boosting step, we can directly get the weights of new features,
     and eta shrinks the feature weights to make the boosting process more conservative.
     """
-    wandb.init(project="xgbc-esa-cci", entity="sdat2")  # my id for wandb
     # replace with your id.
     # label need to be 0 to num_class -1
     xg_train = xgb.DMatrix(train_X, label=train_Y)  # make train DMatrix
     xg_test = xgb.DMatrix(test_X, label=test_Y)  # make test DMatrix
     # setup parameters for xgboost
     param = {}
-    param["objective"] = "multi:softmax"  # use softmax multi-class classification
-    param["eta"] = 0.3  # scale weight of positive examples
-    param["max_depth"] = 12  # max_depth
+    param["objective"] = objective  # use softmax multi-class classification
+    param["eta"] = eta # scale weight of positive examples
+    param["max_depth"] = max_depth  # max_depth
     param["silent"] = 1
-    param["nthread"] = 16  # number of threads
+    param["nthread"] = nthread  # number of threads
     param["num_class"] = np.max(train_Y) + 1  # max size of labels.
     wandb.config.update(param)
     watchlist = [(xg_train, "train"), (xg_test, "test")]
-    num_round = 20  # how many training epochs
     bst = xgb.train(
         param,
         xg_train,
@@ -90,22 +86,35 @@ if __name__ == "__main__":
     # usage:  python3 src/models/xgb.py > log.txt
     # create_netcdfs() # uncomment to preprocess data.
     cfd = {
-        "start_year_i": 0,
+        "start_year_i": 8,
         "mid_year_i": 19,
         "end_year_i": 24,
-        "take_esa_coords": True,
+        "take_esa_coords": True, # False,
         "use_ffil": True,
         "use_mfd": False,
+        "use_ir": False,
+        "objective": "multi:softmax",
+        "eta": 0.3,
+        "max_depth": 12,
+        "nthread": 16,
+        "num_round": 25
     }
+    print("cfd:\n", cfd)
+    wandb.init(project="xgbc-esa-cci", entity="sdat2")  # my id for wandb
+    wandb.config.update(cfd)
 
     x_da, y_da = return_x_y_da(
         take_esa_coords=cfd["take_esa_coords"],
         use_ffil=cfd["use_ffil"],
-        use_mfd=cfd["use_mfd"]
+        use_mfd=cfd["use_mfd"],
+        use_ir=cfd["use_ir"],
     )  # load preprocessed data from netcdfs
-    # there are now 24 years to choose from. 
+    # there are now 24 years to choose from.
     # train set goes from 0 to 1. # print(x_da.year.values)
     # test_inversibility()
+    # print("x_da", x_da)
+    # print("y_da", y_da)
+
     x_tr, y_tr = return_xy_npa(
         x_da, y_da, year=range(cfd["start_year_i"], cfd["mid_year_i"])
     )  # load numpy train data.

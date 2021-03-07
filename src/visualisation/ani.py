@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 def animate_prediction(x_da, y_da, pred_da, video_path="joint_val.mp4"):
     """
     This function animates the inputs, labels, and the corresponding predictions of the model.
-    TODO: improve resolution, and make it an input parameter.
     :param x_da: xarray.Dataarray, 3 bands, 4 seasons, 20 years
     :param y_da: xarray.Dataarray, 1 band, 20 years
     :param pred_da: xarray.Dataarray, 1 band, 20 years
@@ -46,18 +45,34 @@ def animate_prediction(x_da, y_da, pred_da, video_path="joint_val.mp4"):
         cm.set_bad("gray")
 
         def make_frame(year):
-            fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
-                3, 2, figsize=(10, 10)
-            )
+            if len(x_da.band.values) == 3:
+                fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
+                    3, 2, figsize=(10, 10)
+                )
+            elif len(x_da.band.values) == 6:
+                fig, ((ax1, ax2), (ax1b, ax2b), (ax3, ax4), (ax3b, ax4b), (ax5, ax6)) = plt.subplots(
+                    5, 2, figsize=(10, 17)
+                )
+            else:
+                assert(False)
             # da.sel(year=year).plot(cmap=cmap, clim=(min, max))
 
-            x_da.isel(year=year, mn=0).plot.imshow(ax=ax1)
-            x_da.isel(year=year, mn=1).plot.imshow(ax=ax2)
-            x_da.isel(year=year, mn=2).plot.imshow(ax=ax3)
-            x_da.isel(year=year, mn=3).plot.imshow(ax=ax4)
+            x_da.isel(year=year, mn=0, band=slice(0, 3)).plot.imshow(ax=ax1)
+            x_da.isel(year=year, mn=1, band=slice(0, 3)).plot.imshow(ax=ax2)
+            x_da.isel(year=year, mn=2, band=slice(0, 3)).plot.imshow(ax=ax3)
+            x_da.isel(year=year, mn=3, band=slice(0, 3)).plot.imshow(ax=ax4)
 
             for ax in [ax1, ax2, ax3, ax4]:
                 ax.set_xlabel("")
+
+            if len(x_da.band.values) == 6:
+                x_da.isel(year=year, mn=0, band=slice(3, 6)).plot.imshow(ax=ax1b)
+                x_da.isel(year=year, mn=1, band=slice(3, 6)).plot.imshow(ax=ax2b)
+                x_da.isel(year=year, mn=2, band=slice(3, 6)).plot.imshow(ax=ax3b)
+                x_da.isel(year=year, mn=3, band=slice(3, 6)).plot.imshow(ax=ax4b)
+                for ax in [ax1b, ax2b, ax3b, ax4b]:
+                    ax.set_xlabel("")
+
 
             da = xr.DataArray(
                 data=classes_to_rgb(y_da.isel(year=year).values),
