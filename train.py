@@ -84,14 +84,14 @@ The current problems for implementing UNet are:
 1. When do BasicDataset function(in src.unet_.dataset.py), image shpae become 5 dimension (2, 19, 681, 1086, 12) (batch size, yr, y, x, band).
 But the dimension in the model is 4 dimension (64, 3, 3, 3);
 
-2. The input size in UNet model should be (N, Cin, H, W): N is N is a batch size, CC denotes a number of channels, 
+2. The input size in UNet model should be (N, Cin, H, W): N is a batch size, CC denotes a number of channels, 
 H is a height of input planes in pixels, and W is width in pixels (https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html#torch.nn.Conv2d). 
 But input x and y are (yr, y, x, band), and the order should be changed. 
 Maybe permute function in torch.Tensor can help (https://pytorch.org/docs/stable/tensors.html#torch.Tensor.permute), but not sure how to use it;
 
-3. Plan to use 3 channels in UNet model, represented RGB images. But the x_tr seems to have 12 bands and be reduced to 3 RGB bands.
+3. Plan to use 3 channels in UNet model, represented RGB images. But the x_tr seems to have 12 bands (3 RGB bands * 4 seasons), and will it conflict with 3 bands in UNet (?);
 
-4. Still working on clarify whether n_classes requal to the number of classified land cover classes that we want
+4. Still working on clarify whether n_classes requal to the number of classified land cover classes that we want.
 '''
 
 if __name__ == '__main__':
