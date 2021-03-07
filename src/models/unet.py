@@ -23,7 +23,12 @@ import xarray as xr
 
 from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, SAT_DIR
 from src.preprocessing.esa_compress import compress_esa, decompress_esa, FORW_D, REV_D
-from src.preprocessing.load_landsat_esa import return_xy_np_grid, y_npa_to_xr, x_npa_to_xr, return_x_y_da
+from src.preprocessing.load_landsat_esa import (
+    return_xy_np_grid,
+    y_npa_to_xr,
+    x_npa_to_xr,
+    return_x_y_da,
+)
 from src.utils import timeit
 from src.preprocessing.landsat_to_ncf import create_netcdfs
 from src.visualisation.ani import animate_prediction
@@ -44,9 +49,9 @@ if __name__ == "__main__":
     x_da, y_da = return_x_y_da(
         take_esa_coords=cfd["take_esa_coords"],
         use_ffil=cfd["use_ffil"],
-        use_mfd=cfd["use_mfd"]
+        use_mfd=cfd["use_mfd"],
     )  # load preprocessed data from netcdfs
-    # there are now 24 years to choose from. 
+    # there are now 24 years to choose from.
     # train set goes from 0 to 1. # print(x_da.year.values)
     # test_inversibility()
     x_tr, y_tr = return_xy_np_grid(

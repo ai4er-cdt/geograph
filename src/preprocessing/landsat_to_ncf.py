@@ -56,7 +56,7 @@ http://web.pdx.edu/~nauna/resources/10_BandCombinations.htm
 
 
 """
-import os 
+import os
 import numpy as np
 import numpy.ma as ma
 from tqdm import tqdm
@@ -82,7 +82,9 @@ def return_path_dataarray():
     ir = [0, 1]
     directory = SAT_DIR
     # year, month_group, im_type
-    path_array = np.empty([len(years), len(month_groups), len(im_type), len(ir)], dtype=object)
+    path_array = np.empty(
+        [len(years), len(month_groups), len(im_type), len(ir)], dtype=object
+    )
     for year in years:
         if year not in incomplete_years:
             path = os.path.join(directory, str(year))
@@ -99,23 +101,25 @@ def return_path_dataarray():
                 else:
                     path_array[indices[0], indices[1], indices[2], 0] = full_name
     return xr.DataArray(
-            data=path_array,
-            dims=["year", "mn", "ty", "ir"],
-            coords=dict(
-                year=years,
-                mn=month_groups,
-                ty=im_type,
-                ir=ir,
-            ),
-            attrs=dict(
-                description="Paths to tif.",
-            ),
-        )
+        data=path_array,
+        dims=["year", "mn", "ty", "ir"],
+        coords=dict(
+            year=years,
+            mn=month_groups,
+            ty=im_type,
+            ir=ir,
+        ),
+        attrs=dict(
+            description="Paths to tif.",
+        ),
+    )
 
 
 @timeit
 def return_normalized_array(
-    one, two, three,
+    one,
+    two,
+    three,
     filter_together=True,
     high_limit=1.5e3,
     low_limit=0,
@@ -147,12 +151,16 @@ def return_normalized_array(
 
     def filt(data_array, filter_array):
         return ma.masked_where(filter_array, data_array).filled(np.nan)
-    
+
     def comb_and_filt(red, green, blue, filter_red, filter_green, filter_blue):
         filter_array = np.logical_or(
-                np.logical_or(filter_red, filter_green), filter_blue
-            )
-        return filt(red, filter_array), filt(green, filter_array), filt(blue, filter_array)
+            np.logical_or(filter_red, filter_green), filter_blue
+        )
+        return (
+            filt(red, filter_array),
+            filt(green, filter_array),
+            filt(blue, filter_array),
+        )
 
     def filter_sep_and_norm(array):
         if high_filter:
@@ -195,8 +203,9 @@ def return_normalized_array(
     return np.dstack((one_norm, two_norm, three_norm))
 
 
-def load_rgb_data(file_name=os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"), 
-                  **kwargs):
+def load_rgb_data(
+    file_name=os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"), **kwargs
+):
     """
     :param file_name: full path to .tif image.
     """
@@ -211,10 +220,12 @@ def load_rgb_data(file_name=os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"),
 
     one, two, three = raster.read(ins[0]), raster.read(ins[1]), raster.read(ins[2])
     print(raster.descriptions)
-    descriptions = [raster.descriptions[ins[0]-1],
-                    raster.descriptions[ins[1]-1],
-                    raster.descriptions[ins[2]-1]]
-    
+    descriptions = [
+        raster.descriptions[ins[0] - 1],
+        raster.descriptions[ins[1] - 1],
+        raster.descriptions[ins[2] - 1],
+    ]
+
     """
     if "IR" not in file_name:
         # for color arrays the order needs to be rgb not bgr
@@ -238,8 +249,10 @@ def create_netcdfs():
     print(tmp_path)
     ir_name = ["", "_IR"]
     path_da = return_path_dataarray()
-    for ty, ty_v in [(1, "chern")]: # enumerate(path_da.coords["ty"].values.tolist()):  # [(1, "chern")]:
-        for mn, mn_v in enumerate(path_da.coords["mn"].values.tolist()):  
+    for ty, ty_v in [
+        (1, "chern")
+    ]:  # enumerate(path_da.coords["ty"].values.tolist()):  # [(1, "chern")]:
+        for mn, mn_v in enumerate(path_da.coords["mn"].values.tolist()):
             #  [(1, "AMJ"), (2, "JAS"), (3, "OND")]:  # enumerate(path_da.coords["mn"].values.tolist()):
             for ir in [0, 1]:
                 path_list = []
@@ -248,7 +261,9 @@ def create_netcdfs():
                     ascii=True,
                     desc=ty_v + "  " + mn_v,
                 ):
-                    file_name = path_da.isel(year=year, mn=mn, ty=ty, ir=ir).values.tolist()
+                    file_name = path_da.isel(
+                        year=year, mn=mn, ty=ty, ir=ir
+                    ).values.tolist()
                     tmp_name = os.path.join(
                         tmp_path,
                         ty_v
@@ -263,37 +278,54 @@ def create_netcdfs():
                         xr_da = xr.open_rasterio(file_name)
                         data, descriptions = load_rgb_data(file_name)
                     else:
-                        if ty_v == "chern" and ir==0:
-                            file_name = os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif")
-                        if ty_v == "chern" and ir==1:
-                            file_name = os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ_IR.tif")
-                        elif ty_v == "hab" and ir==0:
-                            file_name = os.path.join(SAT_DIR, "2012/L7_hab_2012_AMJ.tif")
-                        elif ty_v == "hab" and ir==1:
-                            file_name = os.path.join(SAT_DIR, "2012/L7_hab_2012_AMJ_IR.tif")
+                        if ty_v == "chern" and ir == 0:
+                            file_name = os.path.join(
+                                SAT_DIR, "2012/L7_chern_2012_AMJ.tif"
+                            )
+                        if ty_v == "chern" and ir == 1:
+                            file_name = os.path.join(
+                                SAT_DIR, "2012/L7_chern_2012_AMJ_IR.tif"
+                            )
+                        elif ty_v == "hab" and ir == 0:
+                            file_name = os.path.join(
+                                SAT_DIR, "2012/L7_hab_2012_AMJ.tif"
+                            )
+                        elif ty_v == "hab" and ir == 1:
+                            file_name = os.path.join(
+                                SAT_DIR, "2012/L7_hab_2012_AMJ_IR.tif"
+                            )
                         xr_da = xr.open_rasterio(file_name)
                         data, descriptions = load_rgb_data(file_name)
-                        data[:] = np.nan  # make everything nan if the file didn't exist.
+                        data[
+                            :
+                        ] = np.nan  # make everything nan if the file didn't exist.
                     if ir == 0:
                         band_names = ["red", "green", "blue"]
                     else:
                         band_names = ["nir", "swir1", "swir2"]
                     xr.DataArray(
-                            data=np.expand_dims(np.expand_dims(data, axis=3), axis=4),
-                            dims=["y", "x", "band", "year", "mn"],
-                            coords=dict(
-                                y=xr_da.coords["y"].values,
-                                x=xr_da.coords["x"].values,
-                                band=band_names,
-                                year=[path_da.isel(year=year).coords["year"].values],
-                                mn=[mn_v],
+                        data=np.expand_dims(np.expand_dims(data, axis=3), axis=4),
+                        dims=["y", "x", "band", "year", "mn"],
+                        coords=dict(
+                            y=xr_da.coords["y"].values,
+                            x=xr_da.coords["x"].values,
+                            band=band_names,
+                            year=[path_da.isel(year=year).coords["year"].values],
+                            mn=[mn_v],
+                        ),
+                        attrs=dict(
+                            description=(
+                                "Normalized reflectance at "
+                                + ty_v
+                                + " for "
+                                + mn_v
+                                + ". Bands order "
+                                + str(descriptions)
+                                + "."
                             ),
-                            attrs=dict(
-                                description=("Normalized reflectance at " + ty_v + " for " + mn_v
-                                             + ". Bands order " + str(descriptions) +"."),
-                                bands=descriptions,
-                            ),
-                        ).astype("float32").to_dataset(name="norm_refl").to_netcdf(tmp_name)
+                            bands=descriptions,
+                        ),
+                    ).astype("float32").to_dataset(name="norm_refl").to_netcdf(tmp_name)
                     del data
                     del xr_da
                     path_list.append(tmp_name)
@@ -306,10 +338,10 @@ def create_netcdfs():
                         print(path_list)
                         # return  xr.concat(da_list, "year")
                         return xr.open_mfdataset(
-                                path_list, concat_dim="year", 
-                                chunks={"band": 1,
-                                        "year": 1}, # parallel=True,
-                            )
+                            path_list,
+                            concat_dim="year",
+                            chunks={"band": 1, "year": 1},  # parallel=True,
+                        )
 
                     cat_ds = _cat_ds()
                     directory = os.path.join(SAT_DIR, "nc_" + ty_v)
@@ -318,10 +350,12 @@ def create_netcdfs():
 
                     @timeit
                     def _save_nc(cat_ds):
-                        name = os.path.join(directory, ty_v + "_" + mn_v + ir_name[ir] + ".nc")
+                        name = os.path.join(
+                            directory, ty_v + "_" + mn_v + ir_name[ir] + ".nc"
+                        )
                         print("about to save " + name)
                         cat_ds.load().to_netcdf(name)
-                        print('finished saving')
+                        print("finished saving")
 
                     _save_nc(cat_ds)
 

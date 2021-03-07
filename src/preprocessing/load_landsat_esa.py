@@ -19,14 +19,14 @@ def test_inversibility(x_da, y_da, cfd):
     # run-20210225_161033-yxyit68w/
     x_all, y_all = return_xy_npa(
         x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
-        )  # all data as numpy.
+    )  # all data as numpy.
     x_rp, y_rp = return_xy_npa(
-    x_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
-    y_npa_to_xr(
-                y_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
-            ),
-            year=range(cfd["start_year_i"], cfd["end_year_i"]),
-        )
+        x_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
+        y_npa_to_xr(
+            y_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
+        ),
+        year=range(cfd["start_year_i"], cfd["end_year_i"]),
+    )
     assert np.all(y_all == y_rp)
 
 
@@ -75,7 +75,7 @@ def _return_x_y_da(
     def return_x_name_list(ty_v="chern"):
         directory = os.path.join(SAT_DIR, "nc_" + ty_v)
         return ([os.path.join(directory, ty_v + "_" + mn_v + ".nc") for mn_v in mn_l],)
-    
+
     @timeit
     def clip(da_1, da_2):
         """clip
@@ -84,10 +84,14 @@ def _return_x_y_da(
         print("clipping")
         print(da_1)
         print(da_2)
-        y_lim = [max([da_1.y.min(), da_2.y.min()]).values.tolist(),
-                 min([da_1.y.max(), da_2.y.max()]).values.tolist()]
-        x_lim = [max([da_1.x.min(), da_2.x.min()]).values.tolist(),
-                 min([da_1.x.max(), da_2.x.max()]).values.tolist()]
+        y_lim = [
+            max([da_1.y.min(), da_2.y.min()]).values.tolist(),
+            min([da_1.y.max(), da_2.y.max()]).values.tolist(),
+        ]
+        x_lim = [
+            max([da_1.x.min(), da_2.x.min()]).values.tolist(),
+            min([da_1.x.max(), da_2.x.max()]).values.tolist(),
+        ]
         print("y_lim", y_lim)
         print("x_lim", x_lim)
         # y_lim [50.54583333333017, 52.434722222219214]
@@ -111,7 +115,7 @@ def _return_x_y_da(
         print(da_2)
 
         return da_1, da_2
-    
+
     @timeit
     def reindex_da(mould_da, putty_da):
         """reindex the putty_da to become like the mould_da"""
@@ -120,7 +124,7 @@ def _return_x_y_da(
             y=mould_da.coords["y"].values,
             method="nearest",
         )
-    
+
     @timeit
     def ffil(da, dim="year"):
         return da.ffill(dim)
@@ -129,21 +133,35 @@ def _return_x_y_da(
         y_full_da = return_y_da()
         if use_ir:
             ts = time.perf_counter()
-            x_full_da = xr.concat([
-                xr.concat(
-                    [reindex_da(y_full_da, return_part_x_da(mn_v=mn_v)) for mn_v in mn_l], "mn"
-                ).assign_coords(mn=("mn", mn_l)),
-                xr.concat(
-                    [reindex_da(y_full_da, return_part_x_da(mn_v=mn_v, ir_ap="_IR")) for mn_v in mn_l], "mn"
-                ).assign_coords(mn=("mn", mn_l))
-                ], "band")
+            x_full_da = xr.concat(
+                [
+                    xr.concat(
+                        [
+                            reindex_da(y_full_da, return_part_x_da(mn_v=mn_v))
+                            for mn_v in mn_l
+                        ],
+                        "mn",
+                    ).assign_coords(mn=("mn", mn_l)),
+                    xr.concat(
+                        [
+                            reindex_da(
+                                y_full_da, return_part_x_da(mn_v=mn_v, ir_ap="_IR")
+                            )
+                            for mn_v in mn_l
+                        ],
+                        "mn",
+                    ).assign_coords(mn=("mn", mn_l)),
+                ],
+                "band",
+            )
             te = time.perf_counter()
             print("time for concats %2.5f s\n" % (te - ts))
             x_full_da, y_full_da = clip(x_full_da, y_full_da)
             print("made x da")
         else:
             x_full_da = xr.concat(
-                [reindex_da(y_full_da, return_part_x_da(mn_v=mn_v)) for mn_v in mn_l], "mn"
+                [reindex_da(y_full_da, return_part_x_da(mn_v=mn_v)) for mn_v in mn_l],
+                "mn",
             ).assign_coords(mn=("mn", mn_l))
             x_full_da, y_full_da = clip(x_full_da, y_full_da)
     else:
@@ -158,9 +176,7 @@ def _return_x_y_da(
                     [return_part_x_da(mn_v=mn_v, ir_ap="_IR") for mn_v in mn_l], "mn"
                 ).assign_coords(mn=("mn", mn_l))
                 print("IR bands read")
-                x_full_da = xr.concat(
-                    [x_full_vis, x_full_ir], "band"
-                )
+                x_full_da = xr.concat([x_full_vis, x_full_ir], "band")
                 print("all bands merged")
             else:
                 x_full_da = xr.concat(
@@ -169,8 +185,10 @@ def _return_x_y_da(
         else:
             print(return_x_name_list(ty_v="chern"))
             x_full_da = xr.open_mfdataset(
-                return_x_name_list(ty_v="chern"), concat_dim="mn", chunks={"year": 1},
-                lock=False
+                return_x_name_list(ty_v="chern"),
+                concat_dim="mn",
+                chunks={"year": 1},
+                lock=False,
             ).norm_refl.assign_coords(mn=("mn", mn_l))
         x_full_da, y_full_da = clip(x_full_da, y_full_da)
         y_full_da = reindex_da(x_full_da, y_full_da)
@@ -224,22 +242,27 @@ def return_x_y_da(
     print(full_names)
     if (not os.path.exists(full_names[0])) or (not os.path.exists(full_names[1])):
         print("x/y values not discovered. Remaking them.")
-        x_da, y_da = _return_x_y_da(take_esa_coords=take_esa_coords, use_mfd=use_mfd, use_ffil=use_ffil, use_ir=use_ir)
+        x_da, y_da = _return_x_y_da(
+            take_esa_coords=take_esa_coords,
+            use_mfd=use_mfd,
+            use_ffil=use_ffil,
+            use_ir=use_ir,
+        )
         print(x_da)
         print(y_da)
         x_ds, y_ds = x_da.to_dataset(name="norm_refl"), y_da.to_dataset(name="esa_cci")
         if use_mfd:
-            print('saving x values')
+            print("saving x values")
             xr.save_mfdataset([x_ds], [full_names[0]])
-            print('saving y values')
+            print("saving y values")
             xr.save_mfdataset([y_ds], [full_names[1]])
-            print('saving all values')
+            print("saving all values")
         else:
-            print('saving x values')
+            print("saving x values")
             x_ds.to_netcdf(full_names[0])
-            print('saving y Values')
+            print("saving y Values")
             y_ds.to_netcdf(full_names[1])
-            print('saving all values')
+            print("saving all values")
     else:
         print("x/y values premade. Reusing them.")
         if use_mfd:
@@ -313,7 +336,7 @@ def y_npa_to_xr(npa, da, reshape=True):
         data = npa.reshape(da.values.shape)
     else:
         data = npa
-    
+
     return xr.DataArray(
         data=data,
         dims=da.dims,
@@ -329,8 +352,13 @@ def x_npa_to_xr(npa, da):
     :param da: xarray.dataarray, the mould da for the output.
     :return: xarray.dataarray, containing npa.
     """
-    map_to_feat = np.array([[mn, band] for mn in range(len(x_da.mn.values)) 
-                            for band in range(len(x_da.band.values))])
+    map_to_feat = np.array(
+        [
+            [mn, band]
+            for mn in range(len(x_da.mn.values))
+            for band in range(len(x_da.band.values))
+        ]
+    )
     n_l = []
     for i in range(map_to_feat.shape[0]):
         if len(n_l) <= map_to_feat[i][0]:
@@ -365,15 +393,23 @@ def return_xy_np_grid(x_da, y_da, year=5):
 
     def _return_xy_npa(x_da, y_da, yr=5):
         assert isinstance(yr, int)
-        x_val = np.swapaxes(np.swapaxes(np.asarray(
-            [
-                x_da.isel(year=yr, mn=mn, band=band).values #.ravel()
-                for mn in range(len(x_da.mn.values))
-                for band in range(len(x_da.band.values))
-            ]
-        ), 0, 1), 1, 2)
+        x_val = np.swapaxes(
+            np.swapaxes(
+                np.asarray(
+                    [
+                        x_da.isel(year=yr, mn=mn, band=band).values  # .ravel()
+                        for mn in range(len(x_da.mn.values))
+                        for band in range(len(x_da.band.values))
+                    ]
+                ),
+                0,
+                1,
+            ),
+            1,
+            2,
+        )
         # x, y, z
-        return x_val, y_da.isel(year=yr).values #.ravel()
+        return x_val, y_da.isel(year=yr).values  # .ravel()
 
     if isinstance(year, range) or isinstance(year, list):
         x_val_l, y_val_l = [], []
