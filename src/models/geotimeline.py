@@ -96,7 +96,7 @@ class GeoGraphTimeline:
         self._graphs = graph_dict
         self._sort_by_time()
 
-    def identify(
+    def identify_graphs(
         self, time1: TimeStamp, time2: TimeStamp, use_cached: bool = True
     ) -> NodeMap:
         """
@@ -154,5 +154,11 @@ class GeoGraphTimeline:
     def timestack(self, use_cached: bool = True) -> List[NodeMap]:
         node_maps = []
         for time1, time2 in zip(self.times, self.times[1:]):
-            node_maps.append(self.identify(time1, time2, use_cached))
+            node_maps.append(self.identify_graphs(time1, time2, use_cached))
         return node_maps
+
+    def timediff(self, use_cached: bool = True):
+        raise NotImplementedError
+
+    def node_diff_cache(self, time1: TimeStamp, time2: TimeStamp):
+        raise NotImplementedError
