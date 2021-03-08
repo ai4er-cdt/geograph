@@ -10,46 +10,72 @@ from src.models.geograph import GeoGraph
 TimeStamp = Union[int, datetime.datetime]
 
 
-class NodeMapping:
-    """Class to store node mappings between two graph (the from_graph and to_graph)"""
+class NodeMap:
+    """Class to store node mappings between two graphs (the src_graph and trg_graph)"""
 
     def __init__(
-        self, from_graph: GeoGraph, to_graph: GeoGraph, mapping=Dict[int, List[int]]
+        self, src_graph: GeoGraph, trg_graph: GeoGraph, mapping: Dict[int, List[int]]
     ):
-        self._from_graph = from_graph
-        self._to_graph = to_graph
+        """
+        Class to store node mappings between two graphs (`trg_graph` and `src_graph`)
+
+        This class stores a dictionary of node one-to-many relationships of nodes from
+        `src_graph` to `trg_graph`. It also provides support for convenient methods for
+        inverting the mapping and bundles the mapping information with references to
+        the `src_graph` and `trg_graph`
+
+        Args:
+            src_graph (GeoGraph): Domain of the node map (keys in `mapping` correspond
+                to indices from the `src_graph`).
+            trg_graph (GeoGraph): Image of the node map (values in `mapping` correspond
+                to indices from the `trg_graph`)
+            mapping (Dict[int, List[int]], optional): A lookup table for the map which
+                maps nodes form `src_graph` to `trg_graph`.
+        """
+        self._src_graph = src_graph
+        self._trg_graph = trg_graph
         self._mapping = mapping
 
     @property
-    def from_graph(self):
-        return self._from_graph
+    def src_graph(self) -> GeoGraph:
+        """Keys in the mapping dict correspond to node indices in the `src_graph`"""
+        return self._src_graph
 
     @property
-    def to_graph(self):
-        return self._to_graph
+    def trg_graph(self) -> GeoGraph:
+        """Values in the mapping dict correspond to node indices in the `trg_graph`"""
+        return self._trg_graph
 
     @property
-    def mapping(self):
+    def mapping(self) -> Dict[int, List[int]]:
+        """
+        Look-up table connecting node indices from `src_graph` to those of `trg_graph`.
+        """
         return self._mapping
 
-    def __invert__(self):
+    def __invert__(self) -> NodeMap:
+        """Compute the inverse NodeMap"""
         return self.invert()
 
-    def __eq__(self, other: NodeMapping) -> bool:
+    def __eq__(self, other: NodeMap) -> bool:
+        """Check two NodeMaps for equality"""
         return (
-            self.from_graph == other.from_graph
-            and self.to_graph == other.to_graph
+            self.src_graph == other.src_graph
+            and self.trg_graph == other.trg_graph
             and self.mapping == other.mapping
         )
 
-    def invert(self) -> NodeMapping:
-        inverted_mapping = {index: [] for index in self.to_graph.df.index}
+    def invert(self) -> NodeMap:
+        """Compute the inverse NodeMap from `trg_graph` to `src_graph`"""
+        inverted_mapping = {index: [] for index in self.trg_graph.df.index}
 
-        for from_node in self.from_graph.df.index:
-            for to_node in self.mapping[from_node]:
-                inverted_mapping[to_node].append(from_node)
+        for src_node in self.src_graph.df.index:
+            for trg_node in self.mapping[src_node]:
+                inverted_mapping[trg_node].append(src_node)
 
-        return NodeMapping(self.to_graph, self.from_graph, inverted_mapping)
+        return NodeMap(
+            src_graph=self.trg_graph, trg_graph=self.src_graph, mapping=inverted_mapping
+        )
 
 
 class TimedGeoGraph(GeoGraph):
