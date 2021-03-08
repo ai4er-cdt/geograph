@@ -1,11 +1,14 @@
 """Contains tools for binary operations between GeoGraph objects."""
 from __future__ import annotations
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from numpy import ndarray
+from shapely.geometry.base import BaseGeometry
+from shapely.geometry.polygon import Polygon
 from src.models.polygon_utils import (
     connect_with_interior_bulk,
     connect_with_interior_or_edge_bulk,
     connect_with_interior_or_edge_or_corner_bulk,
+    EMPTY_POLYGON,
 )
 
 # For switching identifiction mode in `identify_node`
@@ -148,6 +151,7 @@ def identify_graphs(graph1: "GeoGraph", graph2: "GeoGraph", mode: str) -> NodeMa
         NodeMap: A NodeMap containing the map from `graph1` to `graph2`.
     """
 
+    assert graph1.crs == graph2.crs, "CRS systems of graphs do not agree."
     mapping = {index1: [] for index1 in graph1.df.index}
 
     for index in graph1.df.index:  # TODO: Speed up & enable trivial parallelisation
@@ -158,3 +162,35 @@ def identify_graphs(graph1: "GeoGraph", graph2: "GeoGraph", mode: str) -> NodeMa
 
 def graph_polygon_diff(node_map: NodeMap):
     raise NotImplementedError
+
+
+def node_polygon_diff(
+    src_node_id: int, node_map: NodeMap
+) -> Tuple[BaseGeometry, BaseGeometry]:
+    """
+    Return the (multi)polygon areas that were added/removed from the given node.
+
+    Args:
+        src_node_id (int): The id of the node in `src_graph` to check.
+        node_map (NodeMap): The node map object between `src_graph` and `trg_graph`
+
+    Returns:
+        Tuple[BaseGeometry, BaseGeometry]: Added part and removed part as shapely
+            BaseGeometry objects.
+    """
+
+    src_polygon: Polygon = node_map.src_graph.df.geometry.loc[src_node_id]
+    trg_node_ids: List[int] = node_map.mapping[src_node_id]
+
+    if len(trg_node_ids) > 0:
+        trg_polygon: Polygon = node_map.trg_graph.df.geometry.loc[
+            trg_node_ids
+        ].unary_union
+        removed_part = src_polygon.difference(trg_polygon)
+        added_part = trg_polygon.difference(src_polygon)
+
+    else:
+        removed_part = src_polygon
+        added_part = EMPTY_POLYGON
+
+    return added_part, removed_part
