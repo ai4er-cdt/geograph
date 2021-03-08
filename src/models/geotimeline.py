@@ -11,6 +11,10 @@ from src.models.binary_graph_operations import identify_graphs, NodeMap
 TimeStamp = Union[int, datetime.datetime]
 
 
+class NotCachedError(Exception):
+    """Basic exception values which were not yet cached."""
+
+
 class TimedGeoGraph(GeoGraph):
     """Wrapper class for GeoGraphs with a time attribute"""
 
@@ -37,6 +41,9 @@ class GeoGraphTimeline:
 
     def __init__(self, data) -> None:
 
+        # Initialize empty graphs dict
+        self._graphs: Dict[TimeStamp, GeoGraph] = dict()
+
         if isinstance(data, list):
             self._load_from_sequence(graph_list=data)
         elif isinstance(data, dict):
@@ -44,7 +51,8 @@ class GeoGraphTimeline:
         else:
             raise NotImplementedError
 
-        self._node_map_cache = dict()
+        # Initialize empty node map cache dictionary
+        self._node_map_cache: Dict[(TimeStamp, TimeStamp), NodeMap] = dict()
 
     @property
     def times(self) -> List[TimeStamp]:
@@ -75,7 +83,27 @@ class GeoGraphTimeline:
         self._graphs = graph_dict
         self._sort_by_time()
 
-    def identify(self, time1: TimeStamp, time2: TimeStamp) -> NodeMap:
+    def identify(
+        self, time1: TimeStamp, time2: TimeStamp, use_cached: bool = True
+    ) -> NodeMap:
+        """
+        Identify the nodes between the graph at time `time1` and `time2` in the timeline
+
+        Args:
+            time1 (TimeStamp): timestamp index of the first graph (will be src_graph)
+            time2 (TimeStamp): timestamp index of the second graph (will be trg_graph)
+            use_cached (bool, optional): Iff True, use cached NodeMaps from previous
+                computations. Defaults to True.
+
+        Returns:
+            NodeMap: The one-to-many node mapping from `self[time1]` to `self[time2]`
+        """
+
+        if use_cached:
+            try:
+                return self.node_map_cache(time1, time2)
+            except NotCachedError:
+                pass
 
         self._node_map_cache[(time1, time2)] = identify_graphs(
             self[time1], self[time2], mode="interior"
@@ -91,13 +119,13 @@ class GeoGraphTimeline:
             self._node_map_cache[(time1, time2)] = map_from_inverse
             return map_from_inverse
         else:
-            return self.identify(time1, time2)
+            raise NotCachedError
 
-    def timestack(self, use_cached: bool = True):
-        node_maps = {}
+    def empty_node_map_cache(self) -> None:
+        self._node_map_cache = dict()
+
+    def timestack(self, use_cached: bool = True) -> List[NodeMap]:
+        node_maps = []
         for time1, time2 in zip(self.times, self.times[1:]):
-            if use_cached:
-                node_maps[(time1, time2)] = self.node_map_cache(time1, time2)
-            else:
-                node_maps[(time1, time2)] = self.identify(time1, time2)
+            node_maps.append(self.identify(time1, time2, use_cached))
         return node_maps
