@@ -5,91 +5,35 @@ from typing import Union, List, Dict
 import datetime
 
 from src.models.geograph import GeoGraph
+from src.models.binary_graph_operations import identify_graphs, NodeMap
 
 # type alias
 TimeStamp = Union[int, datetime.datetime]
 
 
-class NodeMap:
-    """Class to store node mappings between two graphs (the src_graph and trg_graph)"""
+class TimedGeoGraph(GeoGraph):
+    """Wrapper class for GeoGraphs with a time attribute"""
 
-    def __init__(
-        self, src_graph: GeoGraph, trg_graph: GeoGraph, mapping: Dict[int, List[int]]
-    ):
+    def __init__(self, time: TimeStamp, **geographargs) -> None:
         """
-        Class to store node mappings between two graphs (`trg_graph` and `src_graph`)
-
-        This class stores a dictionary of node one-to-many relationships of nodes from
-        `src_graph` to `trg_graph`. It also provides support for convenient methods for
-        inverting the mapping and bundles the mapping information with references to
-        the `src_graph` and `trg_graph`
+        Simple wrapper class for GeoGraphs with a time attribute.
 
         Args:
-            src_graph (GeoGraph): Domain of the node map (keys in `mapping` correspond
-                to indices from the `src_graph`).
-            trg_graph (GeoGraph): Image of the node map (values in `mapping` correspond
-                to indices from the `trg_graph`)
-            mapping (Dict[int, List[int]], optional): A lookup table for the map which
-                maps nodes form `src_graph` to `trg_graph`.
+            time (TimeStamp): The timestamp of a given Geograph. Must be an integer or
+                a python datetime object.
+            **geographargs: Any argument to the GeoGraph class
         """
-        self._src_graph = src_graph
-        self._trg_graph = trg_graph
-        self._mapping = mapping
-
-    @property
-    def src_graph(self) -> GeoGraph:
-        """Keys in the mapping dict correspond to node indices in the `src_graph`"""
-        return self._src_graph
-
-    @property
-    def trg_graph(self) -> GeoGraph:
-        """Values in the mapping dict correspond to node indices in the `trg_graph`"""
-        return self._trg_graph
-
-    @property
-    def mapping(self) -> Dict[int, List[int]]:
-        """
-        Look-up table connecting node indices from `src_graph` to those of `trg_graph`.
-        """
-        return self._mapping
-
-    def __invert__(self) -> NodeMap:
-        """Compute the inverse NodeMap"""
-        return self.invert()
-
-    def __eq__(self, other: NodeMap) -> bool:
-        """Check two NodeMaps for equality"""
-        return (
-            self.src_graph == other.src_graph
-            and self.trg_graph == other.trg_graph
-            and self.mapping == other.mapping
-        )
-
-    def invert(self) -> NodeMap:
-        """Compute the inverse NodeMap from `trg_graph` to `src_graph`"""
-        inverted_mapping = {index: [] for index in self.trg_graph.df.index}
-
-        for src_node in self.src_graph.df.index:
-            for trg_node in self.mapping[src_node]:
-                inverted_mapping[trg_node].append(src_node)
-
-        return NodeMap(
-            src_graph=self.trg_graph, trg_graph=self.src_graph, mapping=inverted_mapping
-        )
-
-
-class TimedGeoGraph(GeoGraph):
-    def __init__(self, time: TimeStamp, **geographargs) -> None:
         super().__init__(**geographargs)
         self._time = time
 
     @property
-    def time(self):
+    def time(self) -> TimeStamp:
+        """Return the time attribute."""
         return self._time
 
 
 class GeoGraphTimeline:
-    """Timelines of multiple GeoGraphs #TODO"""
+    """Timeline of multiple GeoGraphs #TODO"""
 
     def __init__(self, data) -> None:
 
@@ -100,25 +44,27 @@ class GeoGraphTimeline:
         else:
             raise NotImplementedError
 
+        self._node_map_cache = dict()
+
     @property
-    def times(self):
+    def times(self) -> List[TimeStamp]:
         return list(self._graphs.keys())
 
-    def __getitem__(self, time):
+    def __getitem__(self, time: TimeStamp) -> GeoGraph:
         return self._graphs[time]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._graphs)
 
-    def __iter__(self):
+    def __iter__(self) -> GeoGraph:
         return iter(self._graphs.values())
 
-    def _sort_by_time(self, reverse: bool = False):
+    def _sort_by_time(self, reverse: bool = False) -> None:
         self._graphs = {
             time: self._graphs[time] for time in sorted(self._graphs, reverse=reverse)
         }
 
-    def _load_from_sequence(self, graph_list: List[TimedGeoGraph]):
+    def _load_from_sequence(self, graph_list: List[TimedGeoGraph]) -> None:
 
         # Make sure list is sorted in ascending time order (earliest = left)
         by_time = lambda item: item.time
@@ -129,5 +75,29 @@ class GeoGraphTimeline:
         self._graphs = graph_dict
         self._sort_by_time()
 
-    def identify_nodes(self):
-        raise NotImplementedError
+    def identify(self, time1: TimeStamp, time2: TimeStamp) -> NodeMap:
+
+        self._node_map_cache[(time1, time2)] = identify_graphs(
+            self[time1], self[time2], mode="interior"
+        )
+
+        return self._node_map_cache[(time1, time2)]
+
+    def node_map_cache(self, time1: TimeStamp, time2: TimeStamp) -> NodeMap:
+        if (time1, time2) in self._node_map_cache.keys():
+            return self._node_map_cache[(time1, time2)]
+        elif (time2, time1) in self._node_map_cache.keys():
+            map_from_inverse = self._node_map_cache[(time2, time1)].invert()
+            self._node_map_cache[(time1, time2)] = map_from_inverse
+            return map_from_inverse
+        else:
+            return self.identify(time1, time2)
+
+    def timestack(self, use_cached: bool = True):
+        node_maps = {}
+        for time1, time2 in zip(self.times, self.times[1:]):
+            if use_cached:
+                node_maps[(time1, time2)] = self.node_map_cache(time1, time2)
+            else:
+                node_maps[(time1, time2)] = self.identify(time1, time2)
+        return node_maps
