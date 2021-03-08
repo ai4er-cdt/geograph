@@ -14,6 +14,9 @@ EDGE_ONLY_PATTERN = "FF*F1****"
 #  with their interiors
 OVERLAP_PATTERN = "T********"
 
+# Create empty polygon
+EMPTY_POLYGON = Polygon()
+
 
 def de9im_match(pattern: str, target_pattern: str) -> bool:
     """
