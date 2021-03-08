@@ -9,6 +9,7 @@ from src.models.polygon_utils import (
     connect_with_interior_bulk,
     connect_with_interior_or_edge_bulk,
     connect_with_interior_or_edge_or_corner_bulk,
+    collapse_empty_polygon,
     EMPTY_POLYGON,
 )
 
@@ -177,26 +178,26 @@ def graph_polygon_diff(node_map: NodeMap) -> Tuple[gpd.GeoDataFrame, gpd.GeoData
         node_map.src_graph.crs == node_map.trg_graph.crs
     ), "CRS systems of graphs do not agree."
 
-    added_parts = []
-    removed_parts = []
+    trg_minus_src = []
+    src_minus_trg = []
     for index in node_map.src_graph.df.index:
         added_part, removed_part = node_polygon_diff(index, node_map)
-        added_parts.append(added_part)
-        removed_parts.append(removed_part)
+        trg_minus_src.append(added_part)
+        src_minus_trg.append(removed_part)
 
-    added_parts = gpd.GeoDataFrame(
+    trg_minus_src = gpd.GeoDataFrame(
         index=node_map.src_graph.df.index,
-        geometry=added_parts,
+        geometry=trg_minus_src,
         crs=node_map.src_graph.crs,
     )
 
-    removed_parts = gpd.GeoDataFrame(
+    src_minus_trg = gpd.GeoDataFrame(
         index=node_map.src_graph.df.index,
-        geometry=removed_parts,
+        geometry=src_minus_trg,
         crs=node_map.src_graph.crs,
     )
 
-    return added_parts, removed_parts
+    return trg_minus_src, src_minus_trg
 
 
 def node_polygon_diff(
@@ -221,8 +222,8 @@ def node_polygon_diff(
         trg_polygon: Polygon = node_map.trg_graph.df.geometry.loc[
             trg_node_ids
         ].unary_union
-        removed_part = src_polygon.difference(trg_polygon)
-        added_part = trg_polygon.difference(src_polygon)
+        removed_part = collapse_empty_polygon(src_polygon.difference(trg_polygon))
+        added_part = collapse_empty_polygon(trg_polygon.difference(src_polygon))
 
     else:
         removed_part = src_polygon
