@@ -12,7 +12,7 @@ TimeStamp = Union[int, datetime.datetime]
 
 
 class NotCachedError(Exception):
-    """Basic exception values which were not yet cached."""
+    """Basic exception for values which were not yet cached."""
 
 
 class TimedGeoGraph(GeoGraph):
@@ -39,11 +39,13 @@ class TimedGeoGraph(GeoGraph):
 class GeoGraphTimeline:
     """Timeline of multiple GeoGraphs #TODO"""
 
-    def __init__(self, data) -> None:
+    def __init__(
+        self, data: Union[List[TimedGeoGraph], Dict[TimeStamp, GeoGraph]]
+    ) -> None:
 
         # Initialize empty graphs dict
         self._graphs: Dict[TimeStamp, GeoGraph] = dict()
-
+        # Fill the graphs dict with graphs from `data`
         if isinstance(data, list):
             self._load_from_sequence(graph_list=data)
         elif isinstance(data, dict):
@@ -56,18 +58,29 @@ class GeoGraphTimeline:
 
     @property
     def times(self) -> List[TimeStamp]:
+        """Return list of valid time stamps for this GeoGraphTimeline"""
         return list(self._graphs.keys())
 
     def __getitem__(self, time: TimeStamp) -> GeoGraph:
+        """Return the graph at this given time stamp in the GeoGraphTimeline"""
         return self._graphs[time]
 
     def __len__(self) -> int:
+        """Return the number of timestamps in the GeoGraphTimeline"""
         return len(self._graphs)
 
     def __iter__(self) -> GeoGraph:
+        """Iterate over graphs in the GeoGraphTimeline in order (earlier to later)"""
         return iter(self._graphs.values())
 
     def _sort_by_time(self, reverse: bool = False) -> None:
+        """
+        Sort the graphs in GeoGraphTimeline accroding to timestamp from earlier to later
+
+        Args:
+            reverse (bool, optional): If False, start with the earliest date.
+                If True, sort starting with the latest date. Defaults to False.
+        """
         self._graphs = {
             time: self._graphs[time] for time in sorted(self._graphs, reverse=reverse)
         }
@@ -112,6 +125,20 @@ class GeoGraphTimeline:
         return self._node_map_cache[(time1, time2)]
 
     def node_map_cache(self, time1: TimeStamp, time2: TimeStamp) -> NodeMap:
+        """
+        Return cached NodeMap from the graph at `time1` to that at `time2`.
+
+        Args:
+            time1 (TimeStamp): Time stamp of the first graph (src_graph)
+            time2 (TimeStamp): Time stamp of the second graph (trg_graph)
+
+        Raises:
+            NotCachedError: If the combination (time1, time2) or its inverse
+                (time2, time1) have not been cached yet.
+
+        Returns:
+            NodeMap: The NodeMap to identify nodes from `self[time1]` with `self[time2]`
+        """
         if (time1, time2) in self._node_map_cache.keys():
             return self._node_map_cache[(time1, time2)]
         elif (time2, time1) in self._node_map_cache.keys():
