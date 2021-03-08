@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Dict, List, Tuple
 from numpy import ndarray
+import geopandas as gpd
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import Polygon
 from src.models.polygon_utils import (
@@ -160,8 +161,42 @@ def identify_graphs(graph1: "GeoGraph", graph2: "GeoGraph", mode: str) -> NodeMa
     return NodeMap(src_graph=graph1, trg_graph=graph2, mapping=mapping)
 
 
-def graph_polygon_diff(node_map: NodeMap):
-    raise NotImplementedError
+def graph_polygon_diff(node_map: NodeMap) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
+    """
+    Return the (multi)polygon areas that were added/removed when going
+    from `src_graph` to `trg_graph`.
+
+    Args:
+        node_map (NodeMap): The node map from `src_graph` to `trg_graph`
+
+    Returns:
+        Tuple[GeoDataFrame, GeoDataFrame]: Added parts and removed parts as geopandas
+            GeoDataFrame objects with the same index and crs as the src graph.
+    """
+    assert (
+        node_map.src_graph.crs == node_map.trg_graph.crs
+    ), "CRS systems of graphs do not agree."
+
+    added_parts = []
+    removed_parts = []
+    for index in node_map.src_graph.df.index:
+        added_part, removed_part = node_polygon_diff(index, node_map)
+        added_parts.append(added_part)
+        removed_parts.append(removed_part)
+
+    added_parts = gpd.GeoDataFrame(
+        index=node_map.src_graph.df.index,
+        geometry=added_parts,
+        crs=node_map.src_graph.crs,
+    )
+
+    removed_parts = gpd.GeoDataFrame(
+        index=node_map.src_graph.df.index,
+        geometry=removed_parts,
+        crs=node_map.src_graph.crs,
+    )
+
+    return added_parts, removed_parts
 
 
 def node_polygon_diff(
