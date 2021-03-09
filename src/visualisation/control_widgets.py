@@ -388,3 +388,57 @@ class TimelineWidget(widgets.Box):
         )
 
         return timeline_widget
+
+
+class MetricsWidget(widgets.Box):
+    """Widget to show graph metrics in GeoGraphViewer."""
+
+    # TODO: add better logging than class variable for widgets
+    log_out = widgets.Output(layout={"border": "1px solid black"})
+
+    @log_out.capture()
+    def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
+        """Widget to show graph metrics in GeoGraphViewer.
+
+        This widget shows metrics for `viewer.current_graph`.
+
+        Args:
+            viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to show metrics for
+        """
+        self.viewer = viewer
+        widget = self._create_metrics_widget()
+
+        super().__init__([widget])
+
+    @log_out.capture()
+    def _create_metrics_widget(self) -> widgets.VBox:
+        """Create metrics visualisation widget.
+
+        Returns:
+            widgets.VBox: metrics widget
+        """
+
+        metrics_html = widgets.HTML("Select graph")
+
+        @self.log_out.capture()
+        def metrics_callback(change):
+            print(change.name)
+            graph_name = change.new
+            metrics = change.owner.layer_dict["graphs"][graph_name]["metrics"]
+
+            metrics_str = ""
+            if metrics:
+                for metric in metrics:
+                    print(metric)
+                    metrics_str += """
+                    <b>{}:</b> {:.2f}</br>
+                    """.format(
+                        metric.name, metric.value
+                    )
+            else:
+                metrics_str += "No metrics available for current graph."
+            metrics_html.value = metrics_str
+
+        self.viewer.observe(metrics_callback, names=["current_graph"])
+
+        return metrics_html

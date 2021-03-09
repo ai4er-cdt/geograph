@@ -291,49 +291,6 @@ class GeoGraphViewer(ipyleaflet.Map):
         return settings_tab
 
     @log_out.capture()
-    def _create_metrics_widget(self) -> widgets.VBox:
-        """Create metrics visualisation widget.
-
-        Returns:
-            widgets.VBox: metrics widget
-        """
-        available_metrics = [
-            (name, graph["metrics"])
-            for name, graph in self.layer_dict["graphs"].items()
-            if graph["metrics"]
-        ]
-
-        dropdown = widgets.Dropdown(
-            options=[("None selected", "nothing")] + available_metrics,
-            description="Graph:",
-        )
-
-        metrics_html = widgets.HTML("Select graph")
-
-        @self.log_out.capture()
-        def metrics_callback(change):
-            metrics_str = ""
-            if change["name"] == "value":
-                if change["new"] != "nothing":
-                    for metric in change["new"]:
-                        metrics_str += """
-                        <b>{}:</b> {:.2f}</br>
-                        """.format(
-                            metric.name, metric.value
-                        )
-                metrics_html.value = metrics_str
-
-        dropdown.observe(metrics_callback)
-
-        widget = widgets.VBox(
-            [
-                dropdown,
-                metrics_html,
-            ]
-        )
-        return widget
-
-    @log_out.capture()
     def add_settings_widget(self) -> None:
         """Add settings widget to viewer."""
 
