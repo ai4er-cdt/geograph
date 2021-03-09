@@ -12,6 +12,7 @@ from src.visualisation import geoviewer
 class VisibilityWidget(widgets.Box):
     """Widget to control visibility of graphs in GeoGraphViewer."""
 
+    # TODO: add better logging than class variables for widgets
     log_out = widgets.Output(layout={"border": "1px solid black"})
 
     @log_out.capture()
@@ -35,7 +36,7 @@ class VisibilityWidget(widgets.Box):
 
         # If the indices change, the current_map and current_graph
         # change automatically as well.
-        self._observe_index(change=None)
+        self._observe_index(change=None)  # first initialize
         self.observe(self._observe_index, names=["graph_index", "map_index"])
 
         # creating widget
@@ -59,9 +60,8 @@ class VisibilityWidget(widgets.Box):
         return widget
 
     @log_out.capture()
-    def _observe_index(self, change):
+    def _observe_index(self, change):  # pylint: disable=unused-argument
         """Set current graph and map based on indices"""
-        print("Changed index:", change)
         self.current_graph = self.graph_names[self.graph_index]
         self.current_map = self.map_names[self.map_index]
 

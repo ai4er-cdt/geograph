@@ -17,7 +17,8 @@ from src.visualisation import folium_utils, graph_utils
 class GeoGraphViewer(ipyleaflet.Map):
     """Class for interactively viewing a GeoGraph."""
 
-    log = widgets.Output(layout={"border": "1px solid black"})
+    # TODO: add better logging for widgets than this class variable
+    log_out = widgets.Output(layout={"border": "1px solid black"})
 
     def __init__(
         self,
@@ -84,7 +85,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.hover_widget = None
         self._widget_output = {}
 
-    @log.capture()
+    @log_out.capture()
     def set_layer_visibility(
         self, layer_type: str, layer_name: str, layer_subtype: str, active: bool
     ) -> None:
@@ -105,7 +106,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                     )
         self.layer_update()
 
-    @log.capture()
+    @log_out.capture()
     def add_graph(self, graph: geograph.GeoGraph, name: str = "Graph") -> None:
         """Add GeoGraph to viewer.
 
@@ -157,7 +158,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                 hover_html.layout.margin = "10px 10px 10px 10px"
                 hover_html.layout.max_width = "300px"
 
-                @self.log.capture()
+                @self.log_out.capture()
                 def hover_callback(
                     feature, **kwargs
                 ):  # pylint: disable=unused-argument
@@ -192,7 +193,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             )
         self.layer_update()
 
-    @log.capture()
+    @log_out.capture()
     def add_hover_widget(self) -> None:
         """Add hover widget for graph."""
         control = ipyleaflet.WidgetControl(
@@ -200,7 +201,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         )
         self.add_control(control)
 
-    @log.capture()
+    @log_out.capture()
     def layer_update(self) -> None:
         """Update `self.layer` tuple from `self.layer_dict`."""
         layers = [
@@ -216,7 +217,7 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         self.layers = tuple(layers)
 
-    @log.capture()
+    @log_out.capture()
     def set_graph_style(self, radius: float = 10, node_color=None) -> None:
         """Set the style of any graphs added to viewer.
 
@@ -238,7 +239,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             self.layer_dict["graphs"][name]["graph"]["layer"] = layer
         self.layer_update()
 
-    @log.capture()
+    @log_out.capture()
     def remove_graphs(
         self,
         button: widgets.widget_button.Button = None,  # pylint: disable=unused-argument
@@ -253,7 +254,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             if layer.name[0:5] == "Graph":
                 self.remove_layer(layer)
 
-    @log.capture()
+    @log_out.capture()
     def _switch_layer_visibility(self, change: Dict):
         """Switch layer visibility according to change.
 
@@ -270,7 +271,7 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         self.layer_update()
 
-    @log.capture()
+    @log_out.capture()
     def _create_habitat_tab(self) -> widgets.VBox:
         """Create tab widget for habitats.
 
@@ -350,7 +351,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         # Create button to toggle all polygons at once
         hide_pgon_button = widgets.ToggleButton(description="Toggle all polygons")
 
-        @self.log.capture()
+        @self.log_out.capture()
         def hide_all_pgons(change):
             if change["name"] == "value":
                 for box in pgons_checkboxes:
@@ -361,7 +362,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         # Create button to toggle all graphs at once
         hide_graph_button = widgets.ToggleButton(description="Toggle all graphs")
 
-        @self.log.capture()
+        @self.log_out.capture()
         def hide_all_graphs(change):
             if change["name"] == "value":
                 for box in graph_checkboxes:
@@ -377,7 +378,7 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         return habitat_tab
 
-    @log.capture()
+    @log_out.capture()
     def _create_diff_tab(self) -> widgets.VBox:
         """Create tab widget for diff.
 
@@ -420,7 +421,7 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         return diff_tab
 
-    @log.capture()
+    @log_out.capture()
     def _create_settings_tab(self) -> widgets.VBox:
         """Create tab widget for settings.
 
@@ -459,7 +460,7 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         return settings_tab
 
-    @log.capture()
+    @log_out.capture()
     def _create_metrics_widget(self) -> widgets.VBox:
         """Create metrics visualisation widget.
 
@@ -479,7 +480,7 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         metrics_html = widgets.HTML("Select graph")
 
-        @self.log.capture()
+        @self.log_out.capture()
         def metrics_callback(change):
             metrics_str = ""
             if change["name"] == "value":
@@ -502,7 +503,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         )
         return widget
 
-    @log.capture()
+    @log_out.capture()
     def add_settings_widget(self) -> None:
         """Add settings widget to viewer."""
 
@@ -535,7 +536,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             ipyleaflet.WidgetControl(widget=header, position="bottomright")
         )
 
-    @log.capture()
+    @log_out.capture()
     def add_widgets(self) -> None:
         """Add all widgets to viewer"""
         self.add_settings_widget()
