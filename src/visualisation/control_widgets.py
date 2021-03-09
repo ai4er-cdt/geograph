@@ -17,26 +17,30 @@ class VisibilityWidget(widgets.Box):
 
     @log_out.capture()
     def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
+        """Widget to control visibility of graphs in GeoGraphViewer.
+
+        This widget controls the visibility of graph as well as current map layers of
+        GeoGraphViewer. Further it sets the current_graph attribute of GeoGraphViewer
+        used by other widgets.
+
+        Args:
+            viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
+        """
         self.viewer = viewer
         self.viewer.hidde_all_layers()
-
-        # Setting these
         self.graph_names = list(viewer.layer_dict["graphs"].keys())
-        self.map_names = list(viewer.layer_dict["maps"].keys())
 
-        # creating widget
-        widget = self.assemble_widgets()
+        widget = self.assemble_widget()
 
         super().__init__([widget])
 
     @log_out.capture()
-    def assemble_widgets(self) -> widgets.Widget:
+    def assemble_widget(self) -> widgets.Widget:
         """Assemble all sub-widgets making up VisibilityWidget into layout.
 
         Returns:
             widgets.Widget: final widget to be added to GeoGraphViewer
         """
-
         graph_selection = self.create_graph_selection()
         view_buttons = self.create_visibility_buttons()
 
@@ -51,7 +55,6 @@ class VisibilityWidget(widgets.Box):
         Returns:
             widgets.RadioButtons: buttons to select graph
         """
-
         graph_list = []
         for graph_name in self.graph_names:
             graph_str = graph_name
@@ -74,7 +77,6 @@ class VisibilityWidget(widgets.Box):
         Returns:
             widgets.Box: box with button widgets
         """
-
         # Creating view buttons
         btn_layout = widgets.Layout(width="115px")
         view_graph_btn = widgets.ToggleButton(
