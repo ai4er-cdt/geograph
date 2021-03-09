@@ -197,7 +197,6 @@ class CheckboxVisibilityWidget(widgets.Box):
             viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
         """
         self.viewer = viewer
-        self.viewer.hidde_all_layers()
         self.graph_names = list(viewer.layer_dict["graphs"].keys())
 
         widget = self._create_checkboxes()
@@ -224,13 +223,15 @@ class CheckboxVisibilityWidget(widgets.Box):
             (name, "maps", "map", map_layer["map"])
             for name, map_layer in self.viewer.layer_dict["maps"].items()
         ]
+
+        # Add checkboxes for all maps and graphs (including habitats)
         for idx, (layer_name, layer_type, layer_subtype, layer_dict) in enumerate(
             maps + graphs
         ):
 
             layout = widgets.Layout(padding="0px 0px 0px 0px")
 
-            # indenting habitat checkboxes
+            # Indent habitat checkboxes
             if layer_type == "graphs":
                 if layer_dict["is_habitat"]:
                     layout = widgets.Layout(padding="0px 0px 0px 25px")
@@ -307,9 +308,7 @@ class CheckboxVisibilityWidget(widgets.Box):
         buttons = widgets.HBox([hide_pgon_button, hide_graph_button])
         checkboxes.append(buttons)
 
-        habitat_tab = widgets.VBox(checkboxes)
-
-        return habitat_tab
+        return widgets.VBox(checkboxes)
 
     @log_out.capture()
     def _switch_layer_visibility(self, change: Dict):
@@ -384,8 +383,8 @@ class TimelineWidget(widgets.Box):
             icon="",
         )
 
-        diff_tab = widgets.VBox(
+        timeline_widget = widgets.VBox(
             [time_slider1, time_slider2, compute_node_button, compute_pgon_button]
         )
 
-        return diff_tab
+        return timeline_widget
