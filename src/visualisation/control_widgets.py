@@ -442,3 +442,61 @@ class MetricsWidget(widgets.Box):
         self.viewer.observe(metrics_callback, names=["current_graph"])
 
         return metrics_html
+
+
+class SettingsWidget(widgets.Box):
+    """Widget for misc settings in GeoGraphViewer."""
+
+    # TODO: add better logging than class variable for widgets
+    log_out = widgets.Output(layout={"border": "1px solid black"})
+
+    @log_out.capture()
+    def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
+        """Widget for misc settings in GeoGraphViewer.
+
+        Args:
+            viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to show settings for
+        """
+        self.viewer = viewer
+        widget = self._create_settings_widget()
+
+        super().__init__([widget])
+
+    @log_out.capture()
+    def _create_settings_widget(self) -> widgets.VBox:
+        """Create settings widget.
+
+        Returns:
+            widgets.VBox: settings widget
+        """
+
+        radius_slider = widgets.FloatSlider(
+            min=0.01, max=100.0, step=0.005, value=5.0, description="Node radius:"
+        )
+
+        node_color_picker = widgets.ColorPicker(
+            concise=True,
+            description="Node color",
+            value=self.viewer.custom_style["style"]["fillColor"],
+            disabled=False,
+        )
+
+        self._widget_output = widgets.interactive_output(
+            self.viewer.set_graph_style,
+            dict(radius=radius_slider, node_color=node_color_picker),
+        )
+
+        zoom_slider = widgets.FloatSlider(
+            description="Zoom level:", min=0, max=15, value=7
+        )
+        widgets.jslink((zoom_slider, "value"), (self.viewer, "zoom"))
+
+        settings_widget = widgets.VBox(
+            [
+                zoom_slider,
+                node_color_picker,
+                radius_slider,
+            ]
+        )
+
+        return settings_widget

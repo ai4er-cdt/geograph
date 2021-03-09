@@ -252,45 +252,6 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.layer_update()
 
     @log_out.capture()
-    def _create_settings_tab(self) -> widgets.VBox:
-        """Create tab widget for settings.
-
-        Returns:
-            widgets.VBox: tab widget
-        """
-
-        radius_slider = widgets.FloatSlider(
-            min=0.01, max=100.0, step=0.005, value=5.0, description="Node radius:"
-        )
-
-        node_color_picker = widgets.ColorPicker(
-            concise=True,
-            description="Node color",
-            value=self.custom_style["style"]["fillColor"],
-            disabled=False,
-        )
-
-        self._widget_output["settings_tab"] = widgets.interactive_output(
-            self.set_graph_style,
-            dict(radius=radius_slider, node_color=node_color_picker),
-        )
-
-        zoom_slider = widgets.FloatSlider(
-            description="Zoom level:", min=0, max=15, value=7
-        )
-        widgets.jslink((zoom_slider, "value"), (self, "zoom"))
-
-        settings_tab = widgets.VBox(
-            [
-                zoom_slider,
-                node_color_picker,
-                radius_slider,
-            ]
-        )
-
-        return settings_tab
-
-    @log_out.capture()
     def add_settings_widget(self) -> None:
         """Add settings widget to viewer."""
 
