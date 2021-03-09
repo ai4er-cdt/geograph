@@ -325,3 +325,67 @@ class CheckboxVisibilityWidget(widgets.Box):
             )
 
         self.viewer.layer_update()
+
+
+class TimelineWidget(widgets.Box):
+    """Widget to interact with GeoGraphTimeline."""
+
+    # TODO: add better logging than class variable for widgets
+    log_out = widgets.Output(layout={"border": "1px solid black"})
+
+    @log_out.capture()
+    def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
+        """Widget to interact with GeoGraphTimeline.
+
+        Not fully implemented yet, currently just placeholder widget.
+
+        Args:
+            viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
+        """
+        self.viewer = viewer
+        widget = self._create_timeline_controls()
+
+        super().__init__([widget])
+
+    @log_out.capture()
+    def _create_timeline_controls(self) -> widgets.VBox:
+        """Create tab widget for diff.
+
+        Returns:
+            widgets.VBox: widget
+        """
+
+        time_slider1 = widgets.IntSlider(
+            min=1960, max=2021, step=1, value=1990, description="Start time:"
+        )
+        time_slider2 = widgets.IntSlider(
+            min=1960, max=2021, step=1, value=2010, description="End time:"
+        )
+
+        compute_node_button = widgets.Button(
+            description="Compute node diff",
+            disabled=False,
+            button_style="",
+            tooltip=(
+                "This computes the differences between of the nodes in the graph"
+                " at start time and the graph at end time."
+            ),
+            icon="",
+        )
+
+        compute_pgon_button = widgets.Button(
+            description="Compute polygon diff",
+            disabled=False,
+            button_style="",
+            tooltip=(
+                "This computes the differences between of the polygons in the"
+                " graph at start time and the graph at end time."
+            ),
+            icon="",
+        )
+
+        diff_tab = widgets.VBox(
+            [time_slider1, time_slider2, compute_node_button, compute_pgon_button]
+        )
+
+        return diff_tab

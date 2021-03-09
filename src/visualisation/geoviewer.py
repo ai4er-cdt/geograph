@@ -252,49 +252,6 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.layer_update()
 
     @log_out.capture()
-    def _create_diff_tab(self) -> widgets.VBox:
-        """Create tab widget for diff.
-
-        Returns:
-            widgets.VBox: widget
-        """
-
-        time_slider1 = widgets.IntSlider(
-            min=1960, max=2021, step=1, value=1990, description="Start time:"
-        )
-        time_slider2 = widgets.IntSlider(
-            min=1960, max=2021, step=1, value=2010, description="End time:"
-        )
-
-        compute_node_button = widgets.Button(
-            description="Compute node diff",
-            disabled=False,
-            button_style="",  # 'success', 'info', 'warning', 'danger' or ''
-            tooltip=(
-                "This computes the differences between of the nodes in the graph"
-                " at start time and the graph at end time."
-            ),
-            icon="",  # (FontAwesome names without the `fa-` prefix)
-        )
-
-        compute_pgon_button = widgets.Button(
-            description="Compute polygon diff",
-            disabled=False,
-            button_style="",  # 'success', 'info', 'warning', 'danger' or ''
-            tooltip=(
-                "This computes the differences between of the polygons in the"
-                " graph at start time and the graph at end time."
-            ),
-            icon="",  # (FontAwesome names without the `fa-` prefix)
-        )
-
-        diff_tab = widgets.VBox(
-            [time_slider1, time_slider2, compute_node_button, compute_pgon_button]
-        )
-
-        return diff_tab
-
-    @log_out.capture()
     def _create_settings_tab(self) -> widgets.VBox:
         """Create tab widget for settings.
 
