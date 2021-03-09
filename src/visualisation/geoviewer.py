@@ -85,6 +85,15 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.hover_widget = None
         self._widget_output = {}
 
+        # Setting the order and current view of graph and map
+        # with the latter two as traits
+        self.add_traits(
+            current_graph=traitlets.Unicode().tag(sync=True),
+            current_map=traitlets.Unicode().tag(sync=True),
+        )
+        self.current_graph = ""
+        self.current_map = "Map"  # set to the default map added above
+
     @log_out.capture()
     def set_layer_visibility(
         self, layer_type: str, layer_name: str, layer_subtype: str, active: bool
@@ -191,6 +200,8 @@ class GeoGraphViewer(ipyleaflet.Map):
                 components=dict(layer=None, active=False),
                 metrics=graph_metrics,
             )
+
+        self.current_graph = name
         self.layer_update()
 
     @log_out.capture()

@@ -12,7 +12,7 @@ from src.visualisation import geoviewer
 class VisibilityWidget(widgets.Box):
     """Widget to control visibility of graphs in GeoGraphViewer."""
 
-    # TODO: add better logging than class variables for widgets
+    # TODO: add better logging than class variable for widgets
     log_out = widgets.Output(layout={"border": "1px solid black"})
 
     @log_out.capture()
@@ -20,24 +20,9 @@ class VisibilityWidget(widgets.Box):
         self.viewer = viewer
         self.viewer.hidde_all_layers()
 
-        # Setting the order and current view of graph and map
-        # with the latter two as traits
-        self.add_traits(
-            graph_index=traitlets.Int().tag(sync=True),
-            map_index=traitlets.Int().tag(sync=True),
-            current_graph=traitlets.Unicode().tag(sync=True),
-            current_map=traitlets.Unicode().tag(sync=True),
-        )
-
-        self.graph_index = 0
-        self.map_index = 0
+        # Setting these
         self.graph_names = list(viewer.layer_dict["graphs"].keys())
         self.map_names = list(viewer.layer_dict["maps"].keys())
-
-        # If the indices change, the current_map and current_graph
-        # change automatically as well.
-        self._observe_index(change=None)  # first initialize
-        self.observe(self._observe_index, names=["graph_index", "map_index"])
 
         # creating widget
         widget = self.assemble_widgets()
@@ -60,12 +45,6 @@ class VisibilityWidget(widgets.Box):
         return widget
 
     @log_out.capture()
-    def _observe_index(self, change):  # pylint: disable=unused-argument
-        """Set current graph and map based on indices"""
-        self.current_graph = self.graph_names[self.graph_index]
-        self.current_map = self.map_names[self.map_index]
-
-    @log_out.capture()
     def create_graph_selection(self) -> widgets.RadioButtons:
         """Create radio buttons to enable graph selection.
 
@@ -74,12 +53,12 @@ class VisibilityWidget(widgets.Box):
         """
 
         graph_list = []
-        for idx, graph_name in enumerate(self.graph_names):
+        for graph_name in self.graph_names:
             graph_str = graph_name
-            graph_list.append((graph_str, idx))
+            graph_list.append((graph_str, graph_name))
 
         radio_buttons = widgets.RadioButtons(options=graph_list, description="")
-        widgets.link((radio_buttons, "value"), (self, "graph_index"))
+        widgets.link((radio_buttons, "value"), (self.viewer, "current_graph"))
 
         return radio_buttons
 
@@ -134,10 +113,12 @@ class VisibilityWidget(widgets.Box):
             view_map_btn,
         ]
 
-        # Adding additional traits for callback
+        # Setting up callback on click
         for button, layer_subtype in zip(
             button_list, ["graph", "pgons", "components", "map"]
         ):
+            # Adding traits to button so we're able to access this information in
+            # the callback called when clicked
             button.add_traits(
                 layer_type=traitlets.Unicode().tag(sync=True),
                 layer_subtype=traitlets.Unicode().tag(sync=True),
@@ -147,11 +128,11 @@ class VisibilityWidget(widgets.Box):
                 button.layer_type = "maps"
                 button.layer_name = self.current_map
                 # If current map changes the function of this button changes
-                widgets.dlink((self, "current_map"), (button, "layer_name"))
+                widgets.dlink((self.viewer, "current_map"), (button, "layer_name"))
             else:
                 button.layer_type = "graphs"
-                button.layer_name = self.current_graph
-                widgets.dlink((self, "current_graph"), (button, "layer_name"))
+                button.layer_name = self.viewer.current_graph
+                widgets.dlink((self.viewer, "current_graph"), (button, "layer_name"))
 
             button.layer_subtype = layer_subtype
 
@@ -174,7 +155,7 @@ class VisibilityWidget(widgets.Box):
 
         print("Detected button change:", change)
 
-        # Button clicked
+        # Accessed if button is clicked (its value changed)
         if change.name == "value":
             active = change.new
             self.viewer.set_layer_visibility(
@@ -182,16 +163,16 @@ class VisibilityWidget(widgets.Box):
             )
             self.viewer.layer_update()
 
-        # Layer that the button is assigned is changed
+        # Accessed if layer that the button is assigned to was changed
         elif change.name == "layer_name":
             new_layer_name = change.new
             old_layer_name = change.old
 
-            # remove old layer
+            # make old layer invisible
             self.viewer.set_layer_visibility(
                 owner.layer_type, old_layer_name, owner.layer_subtype, False
             )
-            # view new layer
+            # make new layer visible
             self.viewer.set_layer_visibility(
                 owner.layer_type, new_layer_name, owner.layer_subtype, owner.value
             )
