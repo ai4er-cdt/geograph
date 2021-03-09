@@ -251,21 +251,6 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.layer_update()
 
     @log_out.capture()
-    def remove_graphs(
-        self,
-        button: widgets.widget_button.Button = None,  # pylint: disable=unused-argument
-    ) -> None:
-        """Temporarily remove all graphs.
-
-        Args:
-            button (widgets.widget_button.Button): button object that is passed by the
-                observe method of a ipywidgets button. Is ignored. Defaults to None.
-        """
-        for layer in self.layers:
-            if layer.name[0:5] == "Graph":
-                self.remove_layer(layer)
-
-    @log_out.capture()
     def _switch_layer_visibility(self, change: Dict):
         """Switch layer visibility according to change.
 
