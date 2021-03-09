@@ -98,6 +98,7 @@ class GeoGraphViewer(ipyleaflet.Map):
     def set_layer_visibility(
         self, layer_type: str, layer_name: str, layer_subtype: str, active: bool
     ) -> None:
+        """Set visiblity for layer_dict[layer_type][layer_name][layer_subtype]."""
         print(layer_type, layer_name, layer_subtype)
         self.layer_dict[layer_type][layer_name][layer_subtype]["active"] = active
 
@@ -249,130 +250,6 @@ class GeoGraphViewer(ipyleaflet.Map):
             )
             self.layer_dict["graphs"][name]["graph"]["layer"] = layer
         self.layer_update()
-
-    @log_out.capture()
-    def _switch_layer_visibility(self, change: Dict):
-        """Switch layer visibility according to change.
-
-        Args:
-            change (Dict): change dict provided by checkbox widget
-        """
-        if change["name"] == "value":
-            layer_type = change["owner"].layer_type
-            layer_name = change["owner"].layer_name
-            layer_subtype = change["owner"].layer_subtype
-            self.layer_dict[layer_type][layer_name][layer_subtype]["active"] = change[
-                "new"
-            ]
-
-        self.layer_update()
-
-    @log_out.capture()
-    def _create_habitat_tab(self) -> widgets.VBox:
-        """Create tab widget for habitats.
-
-        Returns:
-            widgets.VBox: widget
-        """
-        checkboxes = []
-        pgons_checkboxes = []
-        graph_checkboxes = []
-
-        graphs = [
-            (name, "graphs", layer_subtype, graph)
-            for name, graph in self.layer_dict["graphs"].items()
-            for layer_subtype in ["graph", "pgons"]
-        ]
-        maps = [
-            (name, "maps", "map", map_layer["map"])
-            for name, map_layer in self.layer_dict["maps"].items()
-        ]
-        for idx, (layer_name, layer_type, layer_subtype, layer_dict) in enumerate(
-            maps + graphs
-        ):
-
-            layout = widgets.Layout(padding="0px 0px 0px 0px")
-
-            # indenting habitat checkboxes
-            if layer_type == "graphs":
-                if layer_dict["is_habitat"]:
-                    layout = widgets.Layout(padding="0px 0px 0px 25px")
-
-            checkbox = widgets.Checkbox(
-                value=True,
-                description="{} ({})".format(layer_name, layer_subtype),
-                disabled=False,
-                indent=False,
-                layout=layout,
-            )
-            checkbox.add_traits(
-                layer_type=traitlets.Unicode().tag(sync=True),
-                layer_subtype=traitlets.Unicode().tag(sync=True),
-                layer_name=traitlets.Unicode().tag(sync=True),
-            )
-            checkbox.layer_type = layer_type
-            checkbox.layer_name = layer_name
-            checkbox.layer_subtype = layer_subtype
-
-            checkbox.observe(self._switch_layer_visibility)
-
-            if idx == 0:
-                checkboxes.append(widgets.HTML("<b>Map Data</b>"))
-
-            checkboxes.append(checkbox)
-
-            if layer_subtype == "graph":
-                graph_checkboxes.append(checkbox)
-            elif layer_subtype == "pgons":
-                pgons_checkboxes.append(checkbox)
-
-            # Add habitats header if last part of main graph
-            if (
-                layer_type == "graphs"
-                and layer_subtype == "pgons"
-                and not layer_dict["is_habitat"]
-            ):
-                checkboxes.append(
-                    widgets.HTML(
-                        "<b>Habitats in {}</b>".format(layer_name),
-                        layout=widgets.Layout(padding="0px 0px 0px 25px"),
-                    )
-                )
-
-            # Add horizontal rule if last map to separate from graphs
-            if idx == len(maps) - 1:
-                checkboxes.append(widgets.HTML("<hr/>"))
-                checkboxes.append(widgets.HTML("<b>Graph Data</b>"))
-
-        # Create button to toggle all polygons at once
-        hide_pgon_button = widgets.ToggleButton(description="Toggle all polygons")
-
-        @self.log_out.capture()
-        def hide_all_pgons(change):
-            if change["name"] == "value":
-                for box in pgons_checkboxes:
-                    box.value = change["new"]
-
-        hide_pgon_button.observe(hide_all_pgons)
-
-        # Create button to toggle all graphs at once
-        hide_graph_button = widgets.ToggleButton(description="Toggle all graphs")
-
-        @self.log_out.capture()
-        def hide_all_graphs(change):
-            if change["name"] == "value":
-                for box in graph_checkboxes:
-                    box.value = change["new"]
-
-        hide_graph_button.observe(hide_all_graphs)
-
-        checkboxes.append(widgets.HTML("<hr/>"))
-        buttons = widgets.HBox([hide_pgon_button, hide_graph_button])
-        checkboxes.append(buttons)
-
-        habitat_tab = widgets.VBox(checkboxes)
-
-        return habitat_tab
 
     @log_out.capture()
     def _create_diff_tab(self) -> widgets.VBox:

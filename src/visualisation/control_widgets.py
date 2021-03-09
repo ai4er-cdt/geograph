@@ -9,15 +9,15 @@ import traitlets
 from src.visualisation import geoviewer
 
 
-class VisibilityWidget(widgets.Box):
-    """Widget to control visibility of graphs in GeoGraphViewer."""
+class RadioVisibilityWidget(widgets.Box):
+    """Widget to control visibility of graphs in GeoGraphViewer with radio buttons."""
 
     # TODO: add better logging than class variable for widgets
     log_out = widgets.Output(layout={"border": "1px solid black"})
 
     @log_out.capture()
     def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
-        """Widget to control visibility of graphs in GeoGraphViewer.
+        """Widget to control visibility of graphs in GeoGraphViewer with radio buttons.
 
         This widget controls the visibility of graph as well as current map layers of
         GeoGraphViewer. Further it sets the current_graph attribute of GeoGraphViewer
@@ -128,7 +128,7 @@ class VisibilityWidget(widgets.Box):
             )
             if layer_subtype == "map":
                 button.layer_type = "maps"
-                button.layer_name = self.current_map
+                button.layer_name = self.viewer.current_map
                 # If current map changes the function of this button changes
                 widgets.dlink((self.viewer, "current_map"), (button, "layer_name"))
             else:
@@ -181,3 +181,147 @@ class VisibilityWidget(widgets.Box):
             # Note: there is a potential for speed improvement by not updating map
             # layers for each button separately, as is done here.
             self.viewer.layer_update()
+
+
+class CheckboxVisibilityWidget(widgets.Box):
+    """Widget to control visibility of graphs in GeoGraphViewer with checkboxes."""
+
+    # TODO: add better logging than class variable for widgets
+    log_out = widgets.Output(layout={"border": "1px solid black"})
+
+    @log_out.capture()
+    def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
+        """Widget to control visibility of graphs in GeoGraphViewer with checkboxes.
+
+        Args:
+            viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
+        """
+        self.viewer = viewer
+        self.viewer.hidde_all_layers()
+        self.graph_names = list(viewer.layer_dict["graphs"].keys())
+
+        widget = self._create_checkboxes()
+
+        super().__init__([widget])
+
+    @log_out.capture()
+    def _create_checkboxes(self) -> widgets.VBox:
+        """Create widget with checkbox for each layer.
+
+        Returns:
+            widgets.VBox: widget
+        """
+        checkboxes = []
+        pgons_checkboxes = []
+        graph_checkboxes = []
+
+        graphs = [
+            (name, "graphs", layer_subtype, graph)
+            for name, graph in self.viewer.layer_dict["graphs"].items()
+            for layer_subtype in ["graph", "pgons"]
+        ]
+        maps = [
+            (name, "maps", "map", map_layer["map"])
+            for name, map_layer in self.viewer.layer_dict["maps"].items()
+        ]
+        for idx, (layer_name, layer_type, layer_subtype, layer_dict) in enumerate(
+            maps + graphs
+        ):
+
+            layout = widgets.Layout(padding="0px 0px 0px 0px")
+
+            # indenting habitat checkboxes
+            if layer_type == "graphs":
+                if layer_dict["is_habitat"]:
+                    layout = widgets.Layout(padding="0px 0px 0px 25px")
+
+            checkbox = widgets.Checkbox(
+                value=True,
+                description="{} ({})".format(layer_name, layer_subtype),
+                disabled=False,
+                indent=False,
+                layout=layout,
+            )
+            checkbox.add_traits(
+                layer_type=traitlets.Unicode().tag(sync=True),
+                layer_subtype=traitlets.Unicode().tag(sync=True),
+                layer_name=traitlets.Unicode().tag(sync=True),
+            )
+            checkbox.layer_type = layer_type
+            checkbox.layer_name = layer_name
+            checkbox.layer_subtype = layer_subtype
+
+            checkbox.observe(self._switch_layer_visibility)
+
+            if idx == 0:
+                checkboxes.append(widgets.HTML("<b>Map Data</b>"))
+
+            checkboxes.append(checkbox)
+
+            if layer_subtype == "graph":
+                graph_checkboxes.append(checkbox)
+            elif layer_subtype == "pgons":
+                pgons_checkboxes.append(checkbox)
+
+            # Add habitats header if last part of main graph
+            if (
+                layer_type == "graphs"
+                and layer_subtype == "pgons"
+                and not layer_dict["is_habitat"]
+            ):
+                checkboxes.append(
+                    widgets.HTML(
+                        "<b>Habitats in {}</b>".format(layer_name),
+                        layout=widgets.Layout(padding="0px 0px 0px 25px"),
+                    )
+                )
+
+            # Add horizontal rule if last map to separate from graphs
+            if idx == len(maps) - 1:
+                checkboxes.append(widgets.HTML("<hr/>"))
+                checkboxes.append(widgets.HTML("<b>Graph Data</b>"))
+
+        # Create button to toggle all polygons at once
+        hide_pgon_button = widgets.ToggleButton(description="Toggle all polygons")
+
+        @self.log_out.capture()
+        def toggle_all_pgons(change):
+            if change["name"] == "value":
+                for box in pgons_checkboxes:
+                    box.value = change["new"]
+
+        hide_pgon_button.observe(toggle_all_pgons)
+
+        # Create button to toggle all graphs at once
+        hide_graph_button = widgets.ToggleButton(description="Toggle all graphs")
+
+        @self.log_out.capture()
+        def toggle_all_graphs(change):
+            if change["name"] == "value":
+                for box in graph_checkboxes:
+                    box.value = change["new"]
+
+        hide_graph_button.observe(toggle_all_graphs)
+
+        checkboxes.append(widgets.HTML("<hr/>"))
+        buttons = widgets.HBox([hide_pgon_button, hide_graph_button])
+        checkboxes.append(buttons)
+
+        habitat_tab = widgets.VBox(checkboxes)
+
+        return habitat_tab
+
+    @log_out.capture()
+    def _switch_layer_visibility(self, change: Dict):
+        """Switch layer visibility according to change.
+
+        Args:
+            change (Dict): change dict provided by checkbox widget
+        """
+        if change["name"] == "value":
+            owner = change["owner"]
+            self.viewer.set_layer_visibility(
+                owner.layer_type, owner.layer_name, owner.layer_subtype, change.new
+            )
+
+        self.viewer.layer_update()
