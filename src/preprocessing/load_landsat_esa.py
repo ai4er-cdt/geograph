@@ -79,11 +79,13 @@ def _return_x_y_da(
     @timeit
     def clip(da_1, da_2):
         """clip
+        Mutually clips the dataarrays so that they end up within the same window.
         rm /gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data/inputs/take_esa_coords_True_use_mfd_False_use_ffil_True_use_ir_True_x.nc
         """
         print("clipping")
-        print(da_1)
-        print(da_2)
+        print("before clipping, da_1", da_1)
+        print("after clipping, da_2", da_2)
+
         y_lim = [
             max([da_1.y.min(), da_2.y.min()]).values.tolist(),
             min([da_1.y.max(), da_2.y.max()]).values.tolist(),
@@ -94,25 +96,57 @@ def _return_x_y_da(
         ]
         print("y_lim", y_lim)
         print("x_lim", x_lim)
+
         # y_lim [50.54583333333017, 52.434722222219214]
         # x_lim [28.40694444446111, 31.420833333350238]
         # 'clip'  0.09438 s
-
-        print(slice(x_lim[0], x_lim[1]))
-        print(slice(y_lim[0], y_lim[1]))
-
         # now changed to the opposite direction
 
-        da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
-        da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
+        #da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
+        # da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
 
-        # TODO: Adapt so it will work which ever way round the coordinates are.
+        def isAscending(xs):
+            for n in range(len(xs) - 1):
+                if xs[n] > xs[n+1]:
+                    return False
+            return True
 
-        da_1 = da_1.sel(y=slice(y_lim[1], y_lim[0]))
-        da_2 = da_2.sel(y=slice(y_lim[1], y_lim[0]))
+        def isDescending(xs):
+            for n in range(len(xs) - 1):
+                if xs[n] < xs[n+1]:
+                    return False
+            return True
 
-        print(da_1)
-        print(da_2)
+        if isDescending(da_1.x.values.tolist()):
+            da_1 = da_1.sel(x=slice(x_lim[1], x_lim[0]))
+        elif isAscending(da_1.x.values.tolist()):
+            da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
+        else:
+            assert(False)
+
+        if isDescending(da_2.x.values.tolist()):
+            da_2 = da_2.sel(x=slice(x_lim[1], x_lim[0]))
+        elif isAscending(da_2.x.values.tolist()):
+            da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
+        else:
+            assert(False)
+
+        if isDescending(da_1.y.values.tolist()):
+            da_1 = da_1.sel(y=slice(y_lim[1], y_lim[0]))
+        elif isAscending(da_1.y.values.tolist()):
+            da_1 = da_1.sel(y=slice(y_lim[0], y_lim[1]))
+        else:
+            assert(False)
+
+        if isDescending(da_2.y.values.tolist()):
+            da_2 = da_2.sel(y=slice(y_lim[1], y_lim[0]))
+        elif isAscending(da_2.y.values.tolist()):
+            da_2 = da_2.sel(y=slice(y_lim[0], y_lim[1]))
+        else:
+            assert(False)
+
+        print("after clipping, da_1", da_1)
+        print("after clipping, da_2", da_2)
 
         return da_1, da_2
 
@@ -129,8 +163,8 @@ def _return_x_y_da(
     def ffil(da, dim="year"):
         return da.ffill(dim)
 
+    y_full_da = return_y_da()
     if take_esa_coords:
-        y_full_da = return_y_da()
         if use_ir:
             ts = time.perf_counter()
             x_full_da = xr.concat(
@@ -166,7 +200,6 @@ def _return_x_y_da(
             x_full_da, y_full_da = clip(x_full_da, y_full_da)
     else:
         if not use_mfd:
-            y_full_da = return_y_da()
             if use_ir:
                 x_full_vis = xr.concat(
                     [return_part_x_da(mn_v=mn_v, ir_ap="") for mn_v in mn_l], "mn"
@@ -214,6 +247,7 @@ def return_x_y_da(
     use_mfd=True,
     use_ffil=False,
     use_ir=False,
+    prefer_remake=True,
 ):
     """
     Uses _return_x_y_da() only if the netcdf has not already been made.
@@ -240,7 +274,7 @@ def return_x_y_da(
         os.mkdir(direc)
     full_names = [os.path.join(direc, name) for name in names]
     print(full_names)
-    if (not os.path.exists(full_names[0])) or (not os.path.exists(full_names[1])):
+    if (not os.path.exists(full_names[0])) or (not os.path.exists(full_names[1])) or prefer_remake:
         print("x/y values not discovered. Remaking them.")
         x_da, y_da = _return_x_y_da(
             take_esa_coords=take_esa_coords,
@@ -251,7 +285,7 @@ def return_x_y_da(
         print(x_da)
         print(y_da)
         x_ds, y_ds = x_da.to_dataset(name="norm_refl"), y_da.to_dataset(name="esa_cci")
-        if use_mfd:
+        if False:
             print("saving x values")
             xr.save_mfdataset([x_ds], [full_names[0]])
             print("saving y values")
@@ -355,8 +389,8 @@ def x_npa_to_xr(npa, da):
     map_to_feat = np.array(
         [
             [mn, band]
-            for mn in range(len(x_da.mn.values))
-            for band in range(len(x_da.band.values))
+            for mn in range(len(da.mn.values))
+            for band in range(len(da.band.values))
         ]
     )
     n_l = []

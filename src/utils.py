@@ -36,6 +36,7 @@ def timeit(method):
 
     return timed
 
+
 def human_readable_size(num: int, suffix: str = "B") -> str:
     """
     Convert a number of bytes into human readable format.
