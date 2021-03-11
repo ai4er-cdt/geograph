@@ -64,4 +64,5 @@ torch==1.8
 torchvision
 wandb
 pytorch-lightning
-segmentation-models-pytorch
+git+https://github.com/qubvel/segmentation_models.pytorch
+hydra-core
