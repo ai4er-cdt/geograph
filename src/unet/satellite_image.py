@@ -86,11 +86,14 @@ class SatelliteImage:
     @staticmethod
     def _get_shard_offset_from_path(shard_path: os.PathLike) -> Tuple[int, int]:
         x, y = shard_path.stem.split("-")[1:]
+        x = "".join(char for char in x if char.isdigit())
+        y = "".join(char for char in x if char.isdigit())
         return int(x), int(y)
 
     @staticmethod
     @numba.jit
-    def is_sorted(arr, reverse=False):
+    def is_sorted(arr: np.array, reverse: bool = False) -> bool:
+        """Return true iff array is sorted ascending (reverse: descending)"""
         sign = -1 if reverse else 1
         for i in range(arr.size - 1):
             if sign * arr[i + 1] < sign * arr[i]:
