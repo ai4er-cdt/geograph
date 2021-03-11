@@ -177,7 +177,7 @@ class GeoGraph:
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, GeoGraph):
             return False
-        return nx.is_isomorphic(self.graph, o.graph)
+        return nx.fast_could_be_isomorphic(self.graph, o.graph)
 
     @property
     def rtree(self):
