@@ -3,6 +3,8 @@ that are stored in multiple shards on disk"""
 from typing import Tuple, List
 import os
 import pathlib
+import numba
+import numpy as np
 import dask.array as da
 import xarray as xr
 
@@ -22,7 +24,7 @@ class SatelliteImage:
         """
         Class to combine a satellite image stored in several shards on disk.
 
-        `SatelliteImage` loads handlers to the individual shards of a satellite
+        `SatelliteImage` loads handles to the individual shards of a satellite
         image at the specified `shard_paths` and combines them into a Dask Array that
         can be lazily queried and loaded.
 
@@ -40,6 +42,31 @@ class SatelliteImage:
             chunks (dict, optional): Chard specification to load for dask and xarray.
                 Defaults to {"band": 1, "x": 256, "y": 256}.
         """
+
+        if isinstance(shard_paths, os.PathLike):
+            self._load_single_shard(shard_paths, chunks)
+        else:
+            self._load_multiple_shards(shard_paths, chunks)
+
+    def _load_single_shard(self, path: os.PathLike, chunks: dict) -> None:
+        """Load single shard"""
+        self.shard_paths: List[os.PathLike] = [pathlib.Path(path)]
+        self.shard_offsets: List[Tuple[float]] = [(0, 0)]
+        self.shard_handles: List[XarrayDataArray] = [
+            xr.open_rasterio(path, chunks=chunks)
+        ]
+        self.crs: str = self.shard_handles[0].crs
+        self.transform: Tuple[float] = self.shard_handles[0].transform
+
+        # Combine shards for one composite image
+        self._combined_image = self.shard_handles[0]
+        self._combined_x = self.combined_image.x
+        self._combined_y = self.combined_image.y
+
+    def _load_multiple_shards(
+        self, shard_paths: List[os.PathLike], chunks: dict
+    ) -> None:
+        """Load multiple shards"""
         self.shard_paths: List[os.PathLike] = [
             pathlib.Path(path) for path in sorted(shard_paths)
         ]
@@ -52,7 +79,6 @@ class SatelliteImage:
         ]
         self.crs: str = self.shard_handles[0].crs
         self.transform: Tuple[float] = self.shard_handles[0].transform
-        self.band_names: Tuple[str] = self.shard_handles[0].descriptions
 
         # Combine shards for one composite image
         self._combine_shards()
@@ -61,6 +87,15 @@ class SatelliteImage:
     def _get_shard_offset_from_path(shard_path: os.PathLike) -> Tuple[int, int]:
         x, y = shard_path.stem.split("-")[1:]
         return int(x), int(y)
+
+    @staticmethod
+    @numba.jit
+    def is_sorted(arr, reverse=False):
+        sign = -1 if reverse else 1
+        for i in range(arr.size - 1):
+            if sign * arr[i + 1] < sign * arr[i]:
+                return False
+        return True
 
     def _combine_shards(self) -> None:
         """
@@ -75,7 +110,7 @@ class SatelliteImage:
         # Note: This is a slightly awkward creation of the block matrix like e.g.
         #   [[handle[0], handle[1], handle[2] ],
         #    [handle[3], handle[4], handle[5] ]]
-        # because numpy reshaping of `shard_handlers` list caused problems with dask
+        # because numpy reshaping of `shard_handles` list caused problems with dask
         block_arrangement = [
             [self.shard_handles[row * block_width + col] for col in range(block_width)]
             for row in range(block_height)
@@ -85,7 +120,13 @@ class SatelliteImage:
         first_col = [row[0] for row in block_arrangement]
 
         self._combined_x = xr.concat([handle.x for handle in first_row], "x")
+        assert SatelliteImage.is_sorted(self._combined_x.data)  # sanity check
+
         self._combined_y = xr.concat([handle.y for handle in first_col], "y")
+        assert SatelliteImage.is_sorted(
+            self._combined_y.data, reverse=True
+        )  # sanity check
+
         self._combined_image: DaskArray = da.block(block_arrangement)
 
     @property
@@ -112,9 +153,14 @@ class SatelliteImage:
         ymax = self.y.data.max()
         return xmin, ymin, xmax, ymax
 
-    @property
     def xy_to_index(self):
         raise NotImplementedError
+
+    def x_to_col(self, x_val: float, side="left") -> int:
+        return np.searchsorted(self.x, x_val, side=side)
+
+    def y_to_row(self, y_val: float, side="left") -> int:
+        return np.searchsorted(-self.y, -y_val, side=side)
 
     def __getitem__(self, multi_index) -> DaskArray:
         return self.combined_image[multi_index]
