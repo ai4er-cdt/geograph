@@ -105,6 +105,14 @@ class SatelliteImage:
         return self.combined_image.shape
 
     @property
+    def bounds(self) -> Tuple[float, float, float, float]:
+        xmin = self.x.data.min()
+        ymin = self.y.data.min()
+        xmax = self.x.data.max()
+        ymax = self.y.data.max()
+        return xmin, ymin, xmax, ymax
+
+    @property
     def xy_to_index(self):
         raise NotImplementedError
 
