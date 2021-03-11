@@ -1,11 +1,12 @@
 """This module provides a SatelliteImage class for interfacing with satellite images
 that are stored in multiple shards on disk"""
-from typing import Tuple, List
 import os
 import pathlib
+from typing import List, Tuple
+
+import dask.array as da
 import numba
 import numpy as np
-import dask.array as da
 import xarray as xr
 
 # Type alias
@@ -91,7 +92,7 @@ class SatelliteImage:
         return int(x), int(y)
 
     @staticmethod
-    @numba.jit
+    @numba.njit
     def is_sorted(arr: np.array, reverse: bool = False) -> bool:
         """Return true iff array is sorted ascending (reverse: descending)"""
         sign = -1 if reverse else 1

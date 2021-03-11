@@ -1,10 +1,11 @@
 """Functions to prepare the labels from landcover vector data for training with the
 UNet model"""
 import os
+
 import numpy as np
 import rasterio
-from rasterio import features
 from geopandas import GeoDataFrame
+from rasterio import features
 
 
 def write_image(arr: np.array, save_path: os.PathLike, **raster_meta) -> None:
