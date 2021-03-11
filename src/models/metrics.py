@@ -101,20 +101,24 @@ def _avg_component_isolation(geo_graph: geograph.GeoGraph) -> Metric:
         raise ValueError(
             "This metric is not valid for ComponentGeoGraphs without distance edges."
         )
-
-    dist_set = set()
-    for comp in comp_geograph.graph.nodes:
-        for nbr in comp_geograph.graph.adj[comp]:
-            dist_set.update(
-                [
-                    dist
-                    for u, v, dist in comp_geograph.graph.edges(nbr, data="distance")
-                    if v != comp
-                ]
-            )
-    mean_patch_isolation = np.mean(np.fromiter(dist_set, np.float32, len(dist_set)))
+    if len(comp_geograph.components_list) == 1:
+        val: Any = 0
+    else:
+        dist_set = set()
+        for comp in comp_geograph.graph.nodes:
+            for nbr in comp_geograph.graph.adj[comp]:
+                dist_set.update(
+                    [
+                        dist
+                        for u, v, dist in comp_geograph.graph.edges(
+                            nbr, data="distance"
+                        )
+                        if v != comp
+                    ]
+                )
+        val = np.mean(np.fromiter(dist_set, np.float32, len(dist_set)))
     return Metric(
-        value=mean_patch_isolation,
+        value=val,
         name="avg_component_isolation",
         description="The average distance to the next-nearest component",
         variant="component",
