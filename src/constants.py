@@ -25,6 +25,10 @@ SAT_DIR = (
     "/gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data"
 )
 
+SENTINEL_DIR = GWS_DATA_DIR / "sentinel2_data"
+SENTINEL_POLESIA_DIR = SENTINEL_DIR / "Polesia_10m"
+SENTINEL_CHERNOBYL_DIR = SENTINEL_DIR / "Chernobyl_10m"
+
 # Coordinate reference systems (crs)
 WGS84 = "EPSG:4326"  # WGS84 standard crs (latitude, longitude)
 UTM35N = "EPSG:32635"  # https://epsg.io/32635 - preferred crs for chernobyl region
