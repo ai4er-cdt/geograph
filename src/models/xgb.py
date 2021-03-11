@@ -53,7 +53,7 @@ def train_xgb(
     max_depth=12,
     nthread=16,
     num_round=20,
-    use_dask=True
+    use_dask=False
 ):
     """
     Train an xgboost model using numpy inputs.
@@ -81,6 +81,8 @@ def train_xgb(
     wandb.config.update(param)
 
     if use_dask:
+        # https://docs.dask.org/en/latest/array-api.html#dask.array.from_npy_stack
+
         cluster = dask.distributed.LocalCluster(n_workers=4, threads_per_worker=1)
 
         client = dask.distributed.Client(cluster)
@@ -99,6 +101,7 @@ def train_xgb(
                                 dtrain,
                                 num_boost_round=num_round, 
                                 evals=[(dtrain, "train"), (dtrain, "test")])
+        
         x_all, y_all = return_xy_npa(
             x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
         )  # all data as numpy.
@@ -164,18 +167,18 @@ def train_xgb(
         video_path=os.path.join(wandb.run.dir, wandb.run.name + "_joint_val.mp4"),
     )  # animate prediction vs inputs.
     print("Classification accuracy: {}".format(metrics.accuracy_score(y_all, y_pr_all)))
-    
-    return bst
+    # return bst
 
 
 if __name__ == "__main__":
     # usage:  python3 src/models/xgb.py > log.txt
     # create_netcdfs() # uncomment to preprocess data.
+
     cfd = {
-        "start_year_i": 8,
-        "mid_year_i": 19,
-        "end_year_i": 24,
-        "take_esa_coords": True,  # False,
+        "start_year_i": 15, # 8,
+        "mid_year_i": 17, # 19,
+        "end_year_i": 19, # 24,
+        "take_esa_coords": False, # True,  # False,
         "use_ffil": True,
         "use_mfd": False,
         "use_ir": False,
@@ -187,6 +190,7 @@ if __name__ == "__main__":
         "use_dask": False,
     }
     print("cfd:\n", cfd)
+
     wandb.init(project="xgbc-esa-cci", entity="sdat2")  # my id for wandb
     wandb.config.update(cfd)
 
@@ -196,6 +200,7 @@ if __name__ == "__main__":
         use_mfd=cfd["use_mfd"],
         use_ir=cfd["use_ir"],
     )  # load preprocessed data from netcdfs
+
     # there are now 24 years to choose from.
     # train set goes from 0 to 1. # print(x_da.year.values)
     # test_inversibility()

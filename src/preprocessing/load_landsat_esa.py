@@ -31,6 +31,81 @@ def test_inversibility(x_da, y_da, cfd):
 
 
 @timeit
+def clip(da_1, da_2):
+    """clip
+    Mutually clips the dataarrays so that they end up within the same window.
+    rm /gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data/inputs/take_esa_coords_True_use_mfd_False_use_ffil_True_use_ir_True_x.nc
+    """
+    print("clipping")
+    print("before clipping, da_1", da_1)
+    print("after clipping, da_2", da_2)
+
+    y_lim = [
+        max([da_1.y.min(), da_2.y.min()]).values.tolist(),
+        min([da_1.y.max(), da_2.y.max()]).values.tolist(),
+        ]
+    x_lim = [
+        max([da_1.x.min(), da_2.x.min()]).values.tolist(),
+        min([da_1.x.max(), da_2.x.max()]).values.tolist(),
+        ]
+    # print("y_lim", y_lim)
+    # print("x_lim", x_lim)
+
+    # y_lim [50.54583333333017, 52.434722222219214]
+    # x_lim [28.40694444446111, 31.420833333350238]
+    # 'clip'  0.09438 s
+    # now changed to the opposite direction
+
+    #da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
+    # da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
+
+    def isAscending(xs):
+        for n in range(len(xs) - 1):
+            if xs[n] > xs[n+1]:
+                return False
+        return True
+
+    def isDescending(xs):
+        for n in range(len(xs) - 1):
+            if xs[n] < xs[n+1]:
+                return False
+        return True
+
+    if isDescending(da_1.x.values.tolist()):
+        da_1 = da_1.sel(x=slice(x_lim[1], x_lim[0]))
+    elif isAscending(da_1.x.values.tolist()):
+        da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
+    else:
+        assert(False)
+
+    if isDescending(da_2.x.values.tolist()):
+        da_2 = da_2.sel(x=slice(x_lim[1], x_lim[0]))
+    elif isAscending(da_2.x.values.tolist()):
+        da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
+    else:
+        assert(False)
+
+    if isDescending(da_1.y.values.tolist()):
+        da_1 = da_1.sel(y=slice(y_lim[1], y_lim[0]))
+    elif isAscending(da_1.y.values.tolist()):
+        da_1 = da_1.sel(y=slice(y_lim[0], y_lim[1]))
+    else:
+        assert(False)
+
+    if isDescending(da_2.y.values.tolist()):
+        da_2 = da_2.sel(y=slice(y_lim[1], y_lim[0]))
+    elif isAscending(da_2.y.values.tolist()):
+        da_2 = da_2.sel(y=slice(y_lim[0], y_lim[1]))
+    else:
+        assert(False)
+
+    # print("after clipping, da_1", da_1)
+    # print("after clipping, da_2", da_2)
+
+    return da_1, da_2
+
+
+@timeit
 def _return_x_y_da(
     take_esa_coords=False,
     use_mfd=True,
@@ -45,8 +120,6 @@ def _return_x_y_da(
     :param use_mfd: use mfd to load datasets so that lazy loading / computation is achieved.
     :param use_ffil: forward fill nan values along dim year.
     current time taken to run: '_return_x_y_da'  431.59196 s
-    TODO: Use minimal limits
-    TODO: Use IR bands
     """
     mn_l = ["JFM", "AMJ", "JAS", "OND"]
 
@@ -77,80 +150,6 @@ def _return_x_y_da(
         return ([os.path.join(directory, ty_v + "_" + mn_v + ".nc") for mn_v in mn_l],)
 
     @timeit
-    def clip(da_1, da_2):
-        """clip
-        Mutually clips the dataarrays so that they end up within the same window.
-        rm /gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data/inputs/take_esa_coords_True_use_mfd_False_use_ffil_True_use_ir_True_x.nc
-        """
-        print("clipping")
-        print("before clipping, da_1", da_1)
-        print("after clipping, da_2", da_2)
-
-        y_lim = [
-            max([da_1.y.min(), da_2.y.min()]).values.tolist(),
-            min([da_1.y.max(), da_2.y.max()]).values.tolist(),
-        ]
-        x_lim = [
-            max([da_1.x.min(), da_2.x.min()]).values.tolist(),
-            min([da_1.x.max(), da_2.x.max()]).values.tolist(),
-        ]
-        print("y_lim", y_lim)
-        print("x_lim", x_lim)
-
-        # y_lim [50.54583333333017, 52.434722222219214]
-        # x_lim [28.40694444446111, 31.420833333350238]
-        # 'clip'  0.09438 s
-        # now changed to the opposite direction
-
-        #da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
-        # da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
-
-        def isAscending(xs):
-            for n in range(len(xs) - 1):
-                if xs[n] > xs[n+1]:
-                    return False
-            return True
-
-        def isDescending(xs):
-            for n in range(len(xs) - 1):
-                if xs[n] < xs[n+1]:
-                    return False
-            return True
-
-        if isDescending(da_1.x.values.tolist()):
-            da_1 = da_1.sel(x=slice(x_lim[1], x_lim[0]))
-        elif isAscending(da_1.x.values.tolist()):
-            da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
-        else:
-            assert(False)
-
-        if isDescending(da_2.x.values.tolist()):
-            da_2 = da_2.sel(x=slice(x_lim[1], x_lim[0]))
-        elif isAscending(da_2.x.values.tolist()):
-            da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
-        else:
-            assert(False)
-
-        if isDescending(da_1.y.values.tolist()):
-            da_1 = da_1.sel(y=slice(y_lim[1], y_lim[0]))
-        elif isAscending(da_1.y.values.tolist()):
-            da_1 = da_1.sel(y=slice(y_lim[0], y_lim[1]))
-        else:
-            assert(False)
-
-        if isDescending(da_2.y.values.tolist()):
-            da_2 = da_2.sel(y=slice(y_lim[1], y_lim[0]))
-        elif isAscending(da_2.y.values.tolist()):
-            da_2 = da_2.sel(y=slice(y_lim[0], y_lim[1]))
-        else:
-            assert(False)
-
-        print("after clipping, da_1", da_1)
-        print("after clipping, da_2", da_2)
-
-        return da_1, da_2
-
-    @timeit
     def reindex_da(mould_da, putty_da):
         """reindex the putty_da to become like the mould_da"""
         return putty_da.reindex(
@@ -158,10 +157,6 @@ def _return_x_y_da(
             y=mould_da.coords["y"].values,
             method="nearest",
         )
-
-    @timeit
-    def ffil(da, dim="year"):
-        return da.ffill(dim)
 
     y_full_da = return_y_da()
     if take_esa_coords:
@@ -235,6 +230,10 @@ def _return_x_y_da(
     x_year_i = [x_years.index(x) for x in int_years]
     y_year_i = [y_years.index(x) for x in int_years]
 
+    @timeit
+    def ffil(da, dim="year"):
+        return da.ffill(dim)
+
     if use_ffil:
         return ffil(x_full_da).isel(year=x_year_i), y_full_da.isel(year=y_year_i)
     else:
@@ -247,7 +246,7 @@ def return_x_y_da(
     use_mfd=True,
     use_ffil=False,
     use_ir=False,
-    prefer_remake=True,
+    prefer_remake=False,
 ):
     """
     Uses _return_x_y_da() only if the netcdf has not already been made.
@@ -285,7 +284,8 @@ def return_x_y_da(
         print(x_da)
         print(y_da)
         x_ds, y_ds = x_da.to_dataset(name="norm_refl"), y_da.to_dataset(name="esa_cci")
-        if False:
+
+        if use_mfd:
             print("saving x values")
             xr.save_mfdataset([x_ds], [full_names[0]])
             print("saving y values")
@@ -293,7 +293,7 @@ def return_x_y_da(
             print("saving all values")
         else:
             print("saving x values")
-            x_ds.to_netcdf(full_names[0])
+            # x_ds.to_netcdf(full_names[0])
             print("saving y Values")
             y_ds.to_netcdf(full_names[1])
             print("saving all values")
@@ -302,9 +302,11 @@ def return_x_y_da(
         if use_mfd:
             x_ds = xr.open_mfdataset([full_names[0]], chunks={"year": 1}, lock=False)
             y_ds = xr.open_mfdataset([full_names[1]], chunks={"year": 1}, lock=False)
+            x_ds, y_ds = clip(x_ds, y_ds)
         else:
             x_ds = xr.open_dataset(full_names[0])
             y_ds = xr.open_dataset(full_names[1])
+            x_ds, y_ds = clip(x_ds, y_ds)
     return x_ds.norm_refl, y_ds.esa_cci
 
 
