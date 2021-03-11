@@ -923,7 +923,7 @@ class ComponentGeoGraph(GeoGraph):
         self.components_list: List[set] = components_list
         if df is not None:
             self.has_distance_edges: bool = add_distance_edges
-            self.df = self._load_from_dataframe(df, add_distance_edges)
+            self.df = self._load_from_dataframe(df)
         else:
             self.has_df = False
             self.has_distance_edges = False
