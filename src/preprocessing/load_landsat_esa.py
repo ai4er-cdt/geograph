@@ -19,15 +19,90 @@ def test_inversibility(x_da, y_da, cfd):
     # run-20210225_161033-yxyit68w/
     x_all, y_all = return_xy_npa(
         x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
-        )  # all data as numpy.
+    )  # all data as numpy.
     x_rp, y_rp = return_xy_npa(
-    x_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
-    y_npa_to_xr(
-                y_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
-            ),
-            year=range(cfd["start_year_i"], cfd["end_year_i"]),
-        )
+        x_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
+        y_npa_to_xr(
+            y_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
+        ),
+        year=range(cfd["start_year_i"], cfd["end_year_i"]),
+    )
     assert np.all(y_all == y_rp)
+
+
+@timeit
+def clip(da_1, da_2):
+    """clip
+    Mutually clips the dataarrays so that they end up within the same window.
+    rm /gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data/inputs/take_esa_coords_True_use_mfd_False_use_ffil_True_use_ir_True_x.nc
+    """
+    print("clipping")
+    print("before clipping, da_1", da_1)
+    print("after clipping, da_2", da_2)
+
+    y_lim = [
+        max([da_1.y.min(), da_2.y.min()]).values.tolist(),
+        min([da_1.y.max(), da_2.y.max()]).values.tolist(),
+        ]
+    x_lim = [
+        max([da_1.x.min(), da_2.x.min()]).values.tolist(),
+        min([da_1.x.max(), da_2.x.max()]).values.tolist(),
+        ]
+    # print("y_lim", y_lim)
+    # print("x_lim", x_lim)
+
+    # y_lim [50.54583333333017, 52.434722222219214]
+    # x_lim [28.40694444446111, 31.420833333350238]
+    # 'clip'  0.09438 s
+    # now changed to the opposite direction
+
+    #da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
+    # da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
+
+    def isAscending(xs):
+        for n in range(len(xs) - 1):
+            if xs[n] > xs[n+1]:
+                return False
+        return True
+
+    def isDescending(xs):
+        for n in range(len(xs) - 1):
+            if xs[n] < xs[n+1]:
+                return False
+        return True
+
+    if isDescending(da_1.x.values.tolist()):
+        da_1 = da_1.sel(x=slice(x_lim[1], x_lim[0]))
+    elif isAscending(da_1.x.values.tolist()):
+        da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
+    else:
+        assert(False)
+
+    if isDescending(da_2.x.values.tolist()):
+        da_2 = da_2.sel(x=slice(x_lim[1], x_lim[0]))
+    elif isAscending(da_2.x.values.tolist()):
+        da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
+    else:
+        assert(False)
+
+    if isDescending(da_1.y.values.tolist()):
+        da_1 = da_1.sel(y=slice(y_lim[1], y_lim[0]))
+    elif isAscending(da_1.y.values.tolist()):
+        da_1 = da_1.sel(y=slice(y_lim[0], y_lim[1]))
+    else:
+        assert(False)
+
+    if isDescending(da_2.y.values.tolist()):
+        da_2 = da_2.sel(y=slice(y_lim[1], y_lim[0]))
+    elif isAscending(da_2.y.values.tolist()):
+        da_2 = da_2.sel(y=slice(y_lim[0], y_lim[1]))
+    else:
+        assert(False)
+
+    # print("after clipping, da_1", da_1)
+    # print("after clipping, da_2", da_2)
+
+    return da_1, da_2
 
 
 @timeit
@@ -45,8 +120,6 @@ def _return_x_y_da(
     :param use_mfd: use mfd to load datasets so that lazy loading / computation is achieved.
     :param use_ffil: forward fill nan values along dim year.
     current time taken to run: '_return_x_y_da'  431.59196 s
-    TODO: Use minimal limits
-    TODO: Use IR bands
     """
     mn_l = ["JFM", "AMJ", "JAS", "OND"]
 
@@ -75,43 +148,7 @@ def _return_x_y_da(
     def return_x_name_list(ty_v="chern"):
         directory = os.path.join(SAT_DIR, "nc_" + ty_v)
         return ([os.path.join(directory, ty_v + "_" + mn_v + ".nc") for mn_v in mn_l],)
-    
-    @timeit
-    def clip(da_1, da_2):
-        """clip
-        rm /gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data/inputs/take_esa_coords_True_use_mfd_False_use_ffil_True_use_ir_True_x.nc
-        """
-        print("clipping")
-        print(da_1)
-        print(da_2)
-        y_lim = [max([da_1.y.min(), da_2.y.min()]).values.tolist(),
-                 min([da_1.y.max(), da_2.y.max()]).values.tolist()]
-        x_lim = [max([da_1.x.min(), da_2.x.min()]).values.tolist(),
-                 min([da_1.x.max(), da_2.x.max()]).values.tolist()]
-        print("y_lim", y_lim)
-        print("x_lim", x_lim)
-        # y_lim [50.54583333333017, 52.434722222219214]
-        # x_lim [28.40694444446111, 31.420833333350238]
-        # 'clip'  0.09438 s
 
-        print(slice(x_lim[0], x_lim[1]))
-        print(slice(y_lim[0], y_lim[1]))
-
-        # now changed to the opposite direction
-
-        da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
-        da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
-
-        # TODO: Adapt so it will work which ever way round the coordinates are.
-
-        da_1 = da_1.sel(y=slice(y_lim[1], y_lim[0]))
-        da_2 = da_2.sel(y=slice(y_lim[1], y_lim[0]))
-
-        print(da_1)
-        print(da_2)
-
-        return da_1, da_2
-    
     @timeit
     def reindex_da(mould_da, putty_da):
         """reindex the putty_da to become like the mould_da"""
@@ -120,35 +157,44 @@ def _return_x_y_da(
             y=mould_da.coords["y"].values,
             method="nearest",
         )
-    
-    @timeit
-    def ffil(da, dim="year"):
-        return da.ffill(dim)
 
+    y_full_da = return_y_da()
     if take_esa_coords:
-        y_full_da = return_y_da()
         if use_ir:
             ts = time.perf_counter()
-            x_full_da = xr.concat([
-                xr.concat(
-                    [reindex_da(y_full_da, return_part_x_da(mn_v=mn_v)) for mn_v in mn_l], "mn"
-                ).assign_coords(mn=("mn", mn_l)),
-                xr.concat(
-                    [reindex_da(y_full_da, return_part_x_da(mn_v=mn_v, ir_ap="_IR")) for mn_v in mn_l], "mn"
-                ).assign_coords(mn=("mn", mn_l))
-                ], "band")
+            x_full_da = xr.concat(
+                [
+                    xr.concat(
+                        [
+                            reindex_da(y_full_da, return_part_x_da(mn_v=mn_v))
+                            for mn_v in mn_l
+                        ],
+                        "mn",
+                    ).assign_coords(mn=("mn", mn_l)),
+                    xr.concat(
+                        [
+                            reindex_da(
+                                y_full_da, return_part_x_da(mn_v=mn_v, ir_ap="_IR")
+                            )
+                            for mn_v in mn_l
+                        ],
+                        "mn",
+                    ).assign_coords(mn=("mn", mn_l)),
+                ],
+                "band",
+            )
             te = time.perf_counter()
             print("time for concats %2.5f s\n" % (te - ts))
             x_full_da, y_full_da = clip(x_full_da, y_full_da)
             print("made x da")
         else:
             x_full_da = xr.concat(
-                [reindex_da(y_full_da, return_part_x_da(mn_v=mn_v)) for mn_v in mn_l], "mn"
+                [reindex_da(y_full_da, return_part_x_da(mn_v=mn_v)) for mn_v in mn_l],
+                "mn",
             ).assign_coords(mn=("mn", mn_l))
             x_full_da, y_full_da = clip(x_full_da, y_full_da)
     else:
         if not use_mfd:
-            y_full_da = return_y_da()
             if use_ir:
                 x_full_vis = xr.concat(
                     [return_part_x_da(mn_v=mn_v, ir_ap="") for mn_v in mn_l], "mn"
@@ -158,9 +204,7 @@ def _return_x_y_da(
                     [return_part_x_da(mn_v=mn_v, ir_ap="_IR") for mn_v in mn_l], "mn"
                 ).assign_coords(mn=("mn", mn_l))
                 print("IR bands read")
-                x_full_da = xr.concat(
-                    [x_full_vis, x_full_ir], "band"
-                )
+                x_full_da = xr.concat([x_full_vis, x_full_ir], "band")
                 print("all bands merged")
             else:
                 x_full_da = xr.concat(
@@ -169,8 +213,10 @@ def _return_x_y_da(
         else:
             print(return_x_name_list(ty_v="chern"))
             x_full_da = xr.open_mfdataset(
-                return_x_name_list(ty_v="chern"), concat_dim="mn", chunks={"year": 1},
-                lock=False
+                return_x_name_list(ty_v="chern"),
+                concat_dim="mn",
+                chunks={"year": 1},
+                lock=False,
             ).norm_refl.assign_coords(mn=("mn", mn_l))
         x_full_da, y_full_da = clip(x_full_da, y_full_da)
         y_full_da = reindex_da(x_full_da, y_full_da)
@@ -184,6 +230,10 @@ def _return_x_y_da(
     x_year_i = [x_years.index(x) for x in int_years]
     y_year_i = [y_years.index(x) for x in int_years]
 
+    @timeit
+    def ffil(da, dim="year"):
+        return da.ffill(dim)
+
     if use_ffil:
         return ffil(x_full_da).isel(year=x_year_i), y_full_da.isel(year=y_year_i)
     else:
@@ -196,6 +246,7 @@ def return_x_y_da(
     use_mfd=True,
     use_ffil=False,
     use_ir=False,
+    prefer_remake=False,
 ):
     """
     Uses _return_x_y_da() only if the netcdf has not already been made.
@@ -222,32 +273,40 @@ def return_x_y_da(
         os.mkdir(direc)
     full_names = [os.path.join(direc, name) for name in names]
     print(full_names)
-    if (not os.path.exists(full_names[0])) or (not os.path.exists(full_names[1])):
+    if (not os.path.exists(full_names[0])) or (not os.path.exists(full_names[1])) or prefer_remake:
         print("x/y values not discovered. Remaking them.")
-        x_da, y_da = _return_x_y_da(take_esa_coords=take_esa_coords, use_mfd=use_mfd, use_ffil=use_ffil, use_ir=use_ir)
+        x_da, y_da = _return_x_y_da(
+            take_esa_coords=take_esa_coords,
+            use_mfd=use_mfd,
+            use_ffil=use_ffil,
+            use_ir=use_ir,
+        )
         print(x_da)
         print(y_da)
         x_ds, y_ds = x_da.to_dataset(name="norm_refl"), y_da.to_dataset(name="esa_cci")
+
         if use_mfd:
-            print('saving x values')
+            print("saving x values")
             xr.save_mfdataset([x_ds], [full_names[0]])
-            print('saving y values')
+            print("saving y values")
             xr.save_mfdataset([y_ds], [full_names[1]])
-            print('saving all values')
+            print("saving all values")
         else:
-            print('saving x values')
-            x_ds.to_netcdf(full_names[0])
-            print('saving y Values')
+            print("saving x values")
+            # x_ds.to_netcdf(full_names[0])
+            print("saving y Values")
             y_ds.to_netcdf(full_names[1])
-            print('saving all values')
+            print("saving all values")
     else:
         print("x/y values premade. Reusing them.")
         if use_mfd:
             x_ds = xr.open_mfdataset([full_names[0]], chunks={"year": 1}, lock=False)
             y_ds = xr.open_mfdataset([full_names[1]], chunks={"year": 1}, lock=False)
+            x_ds, y_ds = clip(x_ds, y_ds)
         else:
             x_ds = xr.open_dataset(full_names[0])
             y_ds = xr.open_dataset(full_names[1])
+            x_ds, y_ds = clip(x_ds, y_ds)
     return x_ds.norm_refl, y_ds.esa_cci
 
 
@@ -313,7 +372,7 @@ def y_npa_to_xr(npa, da, reshape=True):
         data = npa.reshape(da.values.shape)
     else:
         data = npa
-    
+
     return xr.DataArray(
         data=data,
         dims=da.dims,
@@ -329,8 +388,13 @@ def x_npa_to_xr(npa, da):
     :param da: xarray.dataarray, the mould da for the output.
     :return: xarray.dataarray, containing npa.
     """
-    map_to_feat = np.array([[mn, band] for mn in range(len(x_da.mn.values)) 
-                            for band in range(len(x_da.band.values))])
+    map_to_feat = np.array(
+        [
+            [mn, band]
+            for mn in range(len(da.mn.values))
+            for band in range(len(da.band.values))
+        ]
+    )
     n_l = []
     for i in range(map_to_feat.shape[0]):
         if len(n_l) <= map_to_feat[i][0]:
@@ -365,15 +429,23 @@ def return_xy_np_grid(x_da, y_da, year=5):
 
     def _return_xy_npa(x_da, y_da, yr=5):
         assert isinstance(yr, int)
-        x_val = np.swapaxes(np.swapaxes(np.asarray(
-            [
-                x_da.isel(year=yr, mn=mn, band=band).values #.ravel()
-                for mn in range(len(x_da.mn.values))
-                for band in range(len(x_da.band.values))
-            ]
-        ), 0, 1), 1, 2)
+        x_val = np.swapaxes(
+            np.swapaxes(
+                np.asarray(
+                    [
+                        x_da.isel(year=yr, mn=mn, band=band).values  # .ravel()
+                        for mn in range(len(x_da.mn.values))
+                        for band in range(len(x_da.band.values))
+                    ]
+                ),
+                0,
+                1,
+            ),
+            1,
+            2,
+        )
         # x, y, z
-        return x_val, y_da.isel(year=yr).values #.ravel()
+        return x_val, y_da.isel(year=yr).values  # .ravel()
 
     if isinstance(year, range) or isinstance(year, list):
         x_val_l, y_val_l = [], []

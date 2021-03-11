@@ -8,6 +8,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+dask-worker-space/
+runs/
 build/
 develop-eggs/
 dist/

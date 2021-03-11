@@ -1,4 +1,3 @@
-
 """
 ani.py
 ============
@@ -50,11 +49,15 @@ def animate_prediction(x_da, y_da, pred_da, video_path="joint_val.mp4"):
                     3, 2, figsize=(10, 10)
                 )
             elif len(x_da.band.values) == 6:
-                fig, ((ax1, ax2), (ax1b, ax2b), (ax3, ax4), (ax3b, ax4b), (ax5, ax6)) = plt.subplots(
-                    5, 2, figsize=(10, 17)
-                )
+                fig, (
+                    (ax1, ax2),
+                    (ax1b, ax2b),
+                    (ax3, ax4),
+                    (ax3b, ax4b),
+                    (ax5, ax6),
+                ) = plt.subplots(5, 2, figsize=(10, 17))
             else:
-                assert(False)
+                assert False
             # da.sel(year=year).plot(cmap=cmap, clim=(min, max))
 
             x_da.isel(year=year, mn=0, band=slice(0, 3)).plot.imshow(ax=ax1)
@@ -72,7 +75,6 @@ def animate_prediction(x_da, y_da, pred_da, video_path="joint_val.mp4"):
                 x_da.isel(year=year, mn=3, band=slice(3, 6)).plot.imshow(ax=ax4b)
                 for ax in [ax1b, ax2b, ax3b, ax4b]:
                     ax.set_xlabel("")
-
 
             da = xr.DataArray(
                 data=classes_to_rgb(y_da.isel(year=year).values),
