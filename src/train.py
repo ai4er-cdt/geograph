@@ -10,7 +10,7 @@ from pytorch_lightning.loggers import WandbLogger
 
 from src import constants
 from src.configs import config
-from src.models import unet
+from src.unet import model
 
 
 def train_model(cfg):
@@ -18,7 +18,7 @@ def train_model(cfg):
     # Set random seeds.
     seed_everything(cfg.seed)
 
-    model = unet.UNetModel(cfg)
+    unet = model.UNetModel(cfg)
 
     # Setup logging and checkpointing.
     run_dir = pathlib.Path(constants.PROJECT_PATH / "logs" / cfg.run_name)
@@ -60,15 +60,15 @@ def train_model(cfg):
     )
 
     # Train model
-    trainer.fit(model)
+    trainer.fit(unet)
 
     # Load best checkpoint
-    model = unet.UNetModel.load_from_checkpoint(ckpt.best_model_path)
+    unet = model.UNetModel.load_from_checkpoint(ckpt.best_model_path)
 
     # Save weights from checkpoint
     statedict_path: pathlib.Path = run_dir / "saved_models" / "unet.pt"
     os.makedirs(os.path.dirname(statedict_path), exist_ok=True)
-    torch.save(model.model.state_dict(), statedict_path)
+    torch.save(unet.model.state_dict(), statedict_path)
 
 
 # Load hydra config from yaml files and command line arguments.
