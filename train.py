@@ -64,6 +64,7 @@ def train_net(net,
         net.train()
         #Based on batch_size for training
         for image, label in train_loader:
+            
             optimizer.zero_grad()
             image = image.to(device=device, dtype=torch.float32)
             label = label.to(device =device, dtype=torch.float32)
@@ -84,14 +85,14 @@ The current problems for implementing UNet are:
 1. When do BasicDataset function(in src.unet_.dataset.py), image shpae become 5 dimension (2, 19, 681, 1086, 12) (batch size, yr, y, x, band).
 But the dimension in the model is 4 dimension (64, 3, 3, 3);
 
-2. The input size in UNet model should be (N, Cin, H, W): N is N is a batch size, CC denotes a number of channels, 
+2. The input size in UNet model should be (N, Cin, H, W): N is a batch size, Cin denotes a number of channels, 
 H is a height of input planes in pixels, and W is width in pixels (https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html#torch.nn.Conv2d). 
 But input x and y are (yr, y, x, band), and the order should be changed. 
 Maybe permute function in torch.Tensor can help (https://pytorch.org/docs/stable/tensors.html#torch.Tensor.permute), but not sure how to use it;
 
-3. Plan to use 3 channels in UNet model, represented RGB images. But the x_tr seems to have 12 bands and be reduced to 3 RGB bands.
+3. Plan to use 3 channels in UNet model, represented RGB images. But the x_tr seems to have 12 bands (3 RGB bands * 4 seasons) and be reduced to 3 RGB bands;
 
-4. Still working on clarify whether n_classes requal to the number of classified land cover classes that we want
+4. Still working on clarify whether n_classes requal to the number of classified land cover classes that we want.
 '''
 
 if __name__ == '__main__':
@@ -99,12 +100,13 @@ if __name__ == '__main__':
 
     # Change here to adapt to your data
     # n_channels=3 for RGB images
+    #The data have 12 channels (3 RGB bands * 4 seasons)
     # n_classes is the number of probabilities you want to get per pixel
     #   - For 1 class and background, use n_classes=1
     #   - For 2 classes, use n_classes=1
     #   - For N > 2 classes, use n_classes=N
-    net = UNet(n_channels=3, n_classes=20, bilinear=True)
-    net.to(device=device)
+    net = UNet(n_channels=12, n_classes=37, bilinear=True)
+    net.to(device=device)   
     
     data_path = [
             GWS_DATA_DIR / "esa_cci_rois" / f"esa_cci_{year}_chernobyl.geojson"

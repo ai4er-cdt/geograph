@@ -24,7 +24,7 @@ class DoubleConv(nn.Module):
             nn.ReLU(inplace=True)
         )
 
-    def forward(self, x): #x is input
+    def forward(self, x): 
         return self.double_conv(x)
 
 
@@ -58,6 +58,9 @@ class Up(nn.Module):
 
 
     def forward(self, x1, x2):
+        ''' 
+        conv output shape = (input_shape - Filter_shape + 2 * padding)/stride + 1
+        '''
         x1 = self.up(x1)
         # input is CHW
         diffY = x2.size()[2] - x1.size()[2]
@@ -113,5 +116,5 @@ class UNet(nn.Module):
         return logits
 
 if __name__ == '__main__':
-    net = UNet(n_channels=3, n_classes=1)
+    net = UNet(n_channels=12, n_classes=38)
     print(net)
