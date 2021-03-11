@@ -57,6 +57,10 @@ xgboost
 sklearn
 graphviz        # can plot the decission tree
 
-# 
+#
 pillow
+torch==1.8
+torchvision
+wandb
 pytorch-lightning
+segmentation-models-pytorch
