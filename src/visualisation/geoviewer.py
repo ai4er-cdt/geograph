@@ -255,52 +255,14 @@ class GeoGraphViewer(ipyleaflet.Map):
             self.layer_dict["graphs"][name]["graph"]["layer"] = layer
         self.layer_update()
 
-    def add_settings_widget(self) -> None:
-        """Add settings widget to viewer."""
-
-        habitats_tab = self._create_habitat_tab()
-        diff_tab = self._create_diff_tab()
-        settings_tab = self._create_settings_tab()
-        metrics_widget = self._create_metrics_widget()
-
-        tab_nest_dict = dict(
-            Layers=habitats_tab,
-            Metrics=metrics_widget,
-            Diff=diff_tab,
-            Settings=settings_tab,
-            Log=self.logger,
-        )
-
-        tab_nest = widgets.Tab()
-        tab_nest.children = list(tab_nest_dict.values())
-        for i, title in enumerate(tab_nest_dict):
-            tab_nest.set_title(i, title)
-
-        self.add_control(ipyleaflet.WidgetControl(widget=tab_nest, position="topright"))
-
-        # self.add_control(ipyleaflet.LayersControl(position="topleft"))
-
-        header = widgets.HTML(
-            """<b>GeoGraph</b>""", layout=widgets.Layout(padding="3px 10px 3px 10px")
-        )
-        self.add_control(
-            ipyleaflet.WidgetControl(widget=header, position="bottomright")
-        )
-
-    def add_widgets(self) -> None:
-        """Add all widgets to viewer"""
-        self.add_settings_widget()
-        self.add_control(ipyleaflet.FullScreenControl())
-        self.add_control(ipyleaflet.ScaleControl(position="bottomleft"))
-
-    def add_graph_controls(self) -> None:
-        """Add controls to GeoGraphViewer."""
+    def show_graph_controls(self) -> None:
+        """Add controls for graphs to GeoGraphViewer."""
 
         if not self.layer_dict["graphs"]:
             raise AttributeError(
                 (
                     "GeoGraphViewer has no graph. Add graph using viewer.add_graph() "
-                    "method before adding controls."
+                    "method before adding and showing controls."
                 )
             )
 
@@ -312,16 +274,27 @@ class GeoGraphViewer(ipyleaflet.Map):
             Settings=control_widgets.SettingsWidget(viewer=self),
             Log=self.log_handler.out,
         )
-
         tab_nest = widgets.Tab()
         tab_nest.children = list(tab_nest_dict.values())
         for i, title in enumerate(tab_nest_dict):
             tab_nest.set_title(i, title)
 
+        # Add combined control widgets to viewer
         combined_widget = tab_nest
         control = ipyleaflet.WidgetControl(widget=combined_widget, position="topright")
         self.add_control(control)
+
+        # Add GeoGraph branding
+        header = widgets.HTML(
+            """<b>GeoGraph</b>""", layout=widgets.Layout(padding="3px 10px 3px 10px")
+        )
+        self.add_control(
+            ipyleaflet.WidgetControl(widget=header, position="bottomright")
+        )
+
+        # Add default ipyleaflet controls: fullscreen and scale
         self.add_control(ipyleaflet.FullScreenControl())
+        self.add_control(ipyleaflet.ScaleControl(position="bottomleft"))
 
 
 class FoliumGeoGraphViewer:
