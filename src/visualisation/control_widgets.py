@@ -513,3 +513,49 @@ class SettingsWidget(BaseControlWidget):
             self.logger.debug("Graph style changed.")
         except:  # pylint: disable=bare-except
             self.logger.exception("Exception in when setting graph style.")
+
+
+class HoverWidget(BaseControlWidget):
+    """Widget for misc settings in GeoGraphViewer."""
+
+    def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
+        """Widget for misc settings in GeoGraphViewer.
+
+        Args:
+            viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to show settings for
+        """
+        super().__init__(viewer=viewer)
+
+        widget = self._create_hover_widget()
+        self.children = [widget]
+
+    def _create_hover_widget(self) -> widgets.VBox:
+        """Create settings widget.
+
+        Returns:
+            widgets.VBox: settings widget
+        """
+        self.hover_html = widgets.HTML("""Hover over patches""")
+        self.hover_html.layout.margin = "10px 10px 10px 10px"
+        self.hover_html.layout.max_width = "300px"
+
+        for graph_dict in self.viewer.layer_dict["graphs"].values():
+            pgon_choropleth = graph_dict["pgons"]["layer"]
+            pgon_choropleth.on_hover(self._hover_callback)
+
+        return widgets.VBox([self.hover_html])
+
+    def _hover_callback(self, feature, **kwargs):  # pylint: disable=unused-argument
+        """Callback function on hover on graph polygon patch"""
+        try:
+            new_value = """<b>Current Patch</b></br>
+                <b>Class label:</b> {}</br>
+
+                <b>Area:</b> {:.2f} m^2
+            """.format(
+                feature["properties"]["class_label"],
+                feature["properties"]["area_in_m2"],
+            )
+            self.hover_html.value = new_value
+        except:  # pylint: disable=bare-except
+            self.logger.exception("Exception in hover callback.")

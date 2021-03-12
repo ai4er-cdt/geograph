@@ -124,7 +124,6 @@ class GeoGraphViewer(ipyleaflet.Map):
                     )
         self.layer_update()
 
-    # @log_out.capture()
     def add_graph(self, graph: geograph.GeoGraph, name: str = "Graph") -> None:
         """Add GeoGraph to viewer.
 
@@ -153,7 +152,8 @@ class GeoGraphViewer(ipyleaflet.Map):
             pgon_df = pgon_df.to_crs(WGS84)
             pgon_geo_data = pgon_df.__geo_interface__
 
-            # ipyleaflet.choropleth can't reach individual properties for key
+            # Fix here because ipyleaflet.choropleth can't reach individual
+            # properties for key
             for feature in pgon_geo_data["features"]:
                 feature["class_label"] = feature["properties"]["class_label"]
 
@@ -169,34 +169,8 @@ class GeoGraphViewer(ipyleaflet.Map):
                 style={"fillOpacity": 0.5},
             )
 
-            if self.hover_widget is None:
-                # TODO: refactor this into separate methods that are called in init.
-
-                hover_html = widgets.HTML("""Hover over patches""")
-                hover_html.layout.margin = "10px 10px 10px 10px"
-                hover_html.layout.max_width = "300px"
-
-                def hover_callback(
-                    feature, **kwargs
-                ):  # pylint: disable=unused-argument
-                    """Adapt text of `hover_html` widget to patch"""
-                    new_value = """<b>Current Patch</b></br>
-                        <b>Class label:</b> {}</br>
-
-                        <b>Area:</b> {:.2f} m^2
-                    """.format(
-                        feature["properties"]["class_label"],
-                        feature["properties"]["area_in_m2"],
-                    )
-                    hover_html.value = new_value  # pylint: disable=cell-var-from-loop
-
-                self.hover_callback = hover_callback
-                self.hover_widget = hover_html
-
-            pgon_choropleth.on_hover(self.hover_callback)
-
+            # Computing metrics
             graph_metrics = []
-
             if not is_habitat:
                 for metric in self.metrics:
                     graph_metrics.append(metrics.get_metric(metric, graph))
@@ -212,13 +186,6 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.current_graph = name
         self.layer_update()
         self.logger.info("Added graph.")
-
-    def add_hover_widget(self) -> None:
-        """Add hover widget for graph."""
-        control = ipyleaflet.WidgetControl(
-            widget=self.hover_widget, position="topright"
-        )
-        self.add_control(control)
 
     def layer_update(self) -> None:
         """Update `self.layer` tuple from `self.layer_dict`."""
@@ -283,6 +250,13 @@ class GeoGraphViewer(ipyleaflet.Map):
         combined_widget = tab_nest
         control = ipyleaflet.WidgetControl(widget=combined_widget, position="topright")
         self.add_control(control)
+
+        # Add hover widget to viewer
+        hover_widget = control_widgets.HoverWidget(viewer=self)
+        hover_control = ipyleaflet.WidgetControl(
+            widget=hover_widget, position="topright"
+        )
+        self.add_control(hover_control)
 
         # Add GeoGraph branding
         header = widgets.HTML(
