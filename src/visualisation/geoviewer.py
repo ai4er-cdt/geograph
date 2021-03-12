@@ -129,9 +129,6 @@ class GeoGraphViewer(ipyleaflet.Map):
             graph (geograph.GeoGraph): graph to be added
             name (str, optional): name shown in control panel. Defaults to "Graph".
         """
-        nx_graphs = {name: graph.graph}
-        for habitat_name, habitat in graph.habitats.items():
-            nx_graphs[habitat_name] = habitat.graph
         if name in graph.habitats.keys():
             raise ValueError(
                 "Name given cannot be same as habitat name in given GeoGraph."
