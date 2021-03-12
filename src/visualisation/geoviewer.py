@@ -1,7 +1,7 @@
 """This module contains the GeoGraphViewer to visualise GeoGraphs"""
 
 from __future__ import annotations
-from typing import List, Dict, Union
+from typing import TYPE_CHECKING, List, Dict, Union
 
 import folium
 import pandas as pd
@@ -11,8 +11,11 @@ import traitlets
 import logging
 
 from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
-from src.models import geograph, metrics
+from src.models import metrics, geograph
 from src.visualisation import folium_utils, graph_utils, widget_utils, control_widgets
+
+if TYPE_CHECKING:
+    import geopandas as gpd
 
 
 class GeoGraphViewer(ipyleaflet.Map):
@@ -129,59 +132,89 @@ class GeoGraphViewer(ipyleaflet.Map):
         nx_graphs = {name: graph.graph}
         for habitat_name, habitat in graph.habitats.items():
             nx_graphs[habitat_name] = habitat.graph
+        if name in graph.habitats.keys():
+            raise ValueError(
+                "Name given cannot be same as habitat name in given GeoGraph."
+            )
+        graphs = {name: graph, **graph.habitats}
 
-        for idx, (graph_name, nx_graph) in enumerate(nx_graphs.items()):
+        for current_name, current_graph in graphs.items():
 
-            is_habitat = idx > 0
+            nx_graph = current_graph.graph
+            is_habitat = not current_name == name
 
             nodes, edges = graph_utils.create_node_edge_geometries(nx_graph)
             graph_geometries = pd.concat([edges, nodes]).reset_index()
             graph_geo_data = ipyleaflet.GeoData(
                 geo_dataframe=graph_geometries.to_crs(WGS84),
-                name=graph_name + "_graph",
+                name=current_name + "_graph",
                 **self.custom_style
             )
 
-            pgon_df = graph.df.loc[list(nx_graph)]
-            pgon_df["area_in_m2"] = pgon_df.area
-            pgon_df = pgon_df.to_crs(WGS84)
-            pgon_geo_data = pgon_df.__geo_interface__
+            pgon_df = current_graph.df.loc[list(nx_graph)]
+            pgon_choropleth = self._get_choropleth_from_df(pgon_df)
 
-            # Fix here because ipyleaflet.choropleth can't reach individual
-            # properties for key
-            for feature in pgon_geo_data["features"]:
-                feature["class_label"] = feature["properties"]["class_label"]
-
-            unique_classes = list(graph.df.class_label.unique())
-            choro_data = dict(zip(unique_classes, range(len(unique_classes))))
-
-            pgon_choropleth = ipyleaflet.Choropleth(
-                geo_data=pgon_geo_data,
-                choro_data=choro_data,
-                key_on="class_label",
-                border_color="black",
-                hover_style={"fillOpacity": 1},
-                style={"fillOpacity": 0.5},
-            )
+            component_df = current_graph.get_graph_components(
+                calc_polygons=True
+            ).df.copy()
+            if is_habitat:
+                self.logger.debug("Graph: %s", graph)
+                component_df.geometry = component_df.geometry.buffer(
+                    current_graph.max_travel_distance
+                )
+            component_choropleth = self._get_choropleth_from_df(component_df)
 
             # Getting metrics
             graph_metrics = []
             for metric in self.metrics:
                 graph_metrics.append(
-                    graph.get_metric(metric)
+                    current_graph.get_metric(metric)
                 )  # pylint: disable=protected-access
 
-            self.layer_dict["graphs"][graph_name] = dict(
+            self.layer_dict["graphs"][current_name] = dict(
                 is_habitat=is_habitat,
                 graph=dict(layer=graph_geo_data, active=True),
                 pgons=dict(layer=pgon_choropleth, active=True),
-                components=dict(layer=None, active=False),
+                components=dict(layer=component_choropleth, active=False),
                 metrics=graph_metrics,
             )
 
         self.current_graph = name
         self.layer_update()
         self.logger.info("Added graph.")
+
+    def _get_choropleth_from_df(self, df: gpd.GeoDataFrame) -> ipyleaflet.Choropleth:
+        """Create ipyleaflet.Choropleth from GeoDataFrame of polygons.
+
+        Args:
+            df (gpd.GeoDataFrame): dataframe to visualise
+
+        Returns:
+            ipyleaflet.Choropleth: choropleth layer
+        """
+        self.logger.debug("df: %s", df)
+        df["area_in_m2"] = df.area
+        df = df.to_crs(WGS84)
+        geo_data = df.__geo_interface__
+
+        # Fix here because ipyleaflet.choropleth can't reach individual
+        # properties for key
+        for feature in geo_data["features"]:
+            feature["class_label"] = feature["properties"]["class_label"]
+
+        unique_classes = list(df.class_label.unique())
+        choro_data = dict(zip(unique_classes, range(len(unique_classes))))
+
+        choropleth = ipyleaflet.Choropleth(
+            geo_data=geo_data,
+            choro_data=choro_data,
+            key_on="class_label",
+            border_color="black",
+            hover_style={"fillOpacity": 1},
+            style={"fillOpacity": 0.5},
+        )
+
+        return choropleth
 
     def layer_update(self) -> None:
         """Update `self.layer` tuple from `self.layer_dict`."""
@@ -195,6 +228,8 @@ class GeoGraphViewer(ipyleaflet.Map):
                 layers.append(graph["pgons"]["layer"])
             if graph["graph"]["active"]:
                 layers.append(graph["graph"]["layer"])
+            if graph["components"]["active"]:
+                layers.append(graph["components"]["layer"])
 
         self.layers = tuple(layers)
 
