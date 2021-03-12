@@ -1,10 +1,17 @@
 """Contains tools for binary operations between GeoGraph objects."""
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from numpy import ndarray
 from src.models.polygon_utils import (
     connect_with_interior_bulk,
     connect_with_interior_or_edge_bulk,
     connect_with_interior_or_edge_or_corner_bulk,
 )
+
+if TYPE_CHECKING:
+    from src.models import geograph
 
 # For switching identifiction mode in `identify_node`
 _BULK_SPATIAL_IDENTIFICATION_FUNCTION = {
@@ -14,7 +21,9 @@ _BULK_SPATIAL_IDENTIFICATION_FUNCTION = {
 }
 
 
-def identify_node(node: dict, other_graph: "GeoGraph", mode: str = "corner") -> ndarray:
+def identify_node(
+    node: dict, other_graph: geograph.GeoGraph, mode: str = "corner"
+) -> ndarray:
     """
     Return list of all node ids in `other_graph` which identify with the given `node`.
 
