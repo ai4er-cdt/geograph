@@ -11,6 +11,9 @@ out_channels: 19
 # Activation on the last layer of the model, can be "sigmoid", "softmax", etc
 activation: null
 
+# Dataset hyperparams
+
+
 # Training hyperparams
 epochs: 10
 batch_size: 2
