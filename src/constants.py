@@ -12,7 +12,7 @@ constants_path = pathlib.Path(os.path.realpath(__file__))
 SRC_PATH = pathlib.Path(os.path.dirname(constants_path))
 PROJECT_PATH = pathlib.Path(os.path.dirname(SRC_PATH))
 REPORT_PATH = pathlib.Path(os.path.join(PROJECT_PATH, "report"))
-FIGURE_PATH = pathlib.Path(os.path.join(REPORT_PATH , "figures"))
+FIGURE_PATH = pathlib.Path(os.path.join(REPORT_PATH, "figures"))
 
 # Data directory on GWS
 GWS_DATA_DIR = pathlib.Path(
@@ -23,9 +23,7 @@ CEDA_DIR = pathlib.Path("/neodc")
 # ESA Landcover directory in CEDA
 ESA_LANDCOVER_DIR = CEDA_DIR / "esacci/land_cover/data/land_cover_maps/v2.0.7"
 
-SAT_DIR = (
-    "/gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data"
-)
+SAT_DIR = os.path.join(GWS_DATA_DIR, "gee_satellite_data")
 
 # Coordinate reference systems (crs)
 WGS84 = "EPSG:4326"  # WGS84 standard crs (latitude, longitude)

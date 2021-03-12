@@ -43,11 +43,11 @@ def clip(da_1, da_2):
     y_lim = [
         max([da_1.y.min(), da_2.y.min()]).values.tolist(),
         min([da_1.y.max(), da_2.y.max()]).values.tolist(),
-        ]
+    ]
     x_lim = [
         max([da_1.x.min(), da_2.x.min()]).values.tolist(),
         min([da_1.x.max(), da_2.x.max()]).values.tolist(),
-        ]
+    ]
     # print("y_lim", y_lim)
     # print("x_lim", x_lim)
 
@@ -56,18 +56,18 @@ def clip(da_1, da_2):
     # 'clip'  0.09438 s
     # now changed to the opposite direction
 
-    #da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
+    # da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
     # da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
 
     def isAscending(xs):
         for n in range(len(xs) - 1):
-            if xs[n] > xs[n+1]:
+            if xs[n] > xs[n + 1]:
                 return False
         return True
 
     def isDescending(xs):
         for n in range(len(xs) - 1):
-            if xs[n] < xs[n+1]:
+            if xs[n] < xs[n + 1]:
                 return False
         return True
 
@@ -76,28 +76,28 @@ def clip(da_1, da_2):
     elif isAscending(da_1.x.values.tolist()):
         da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
     else:
-        assert(False)
+        assert False
 
     if isDescending(da_2.x.values.tolist()):
         da_2 = da_2.sel(x=slice(x_lim[1], x_lim[0]))
     elif isAscending(da_2.x.values.tolist()):
         da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
     else:
-        assert(False)
+        assert False
 
     if isDescending(da_1.y.values.tolist()):
         da_1 = da_1.sel(y=slice(y_lim[1], y_lim[0]))
     elif isAscending(da_1.y.values.tolist()):
         da_1 = da_1.sel(y=slice(y_lim[0], y_lim[1]))
     else:
-        assert(False)
+        assert False
 
     if isDescending(da_2.y.values.tolist()):
         da_2 = da_2.sel(y=slice(y_lim[1], y_lim[0]))
     elif isAscending(da_2.y.values.tolist()):
         da_2 = da_2.sel(y=slice(y_lim[0], y_lim[1]))
     else:
-        assert(False)
+        assert False
 
     # print("after clipping, da_1", da_1)
     # print("after clipping, da_2", da_2)
@@ -273,7 +273,11 @@ def return_x_y_da(
         os.mkdir(direc)
     full_names = [os.path.join(direc, name) for name in names]
     print(full_names)
-    if (not os.path.exists(full_names[0])) or (not os.path.exists(full_names[1])) or prefer_remake:
+    if (
+        (not os.path.exists(full_names[0]))
+        or (not os.path.exists(full_names[1]))
+        or prefer_remake
+    ):
         print("x/y values not discovered. Remaking them.")
         x_da, y_da = _return_x_y_da(
             take_esa_coords=take_esa_coords,

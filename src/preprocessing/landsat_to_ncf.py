@@ -138,7 +138,7 @@ def return_normalized_array(
     :param common_norm: Bool, whether to norm between the upper and lower limit.
     :return: numpy float array
     """
-    print('high_limit \t', high_limit)
+    print("high_limit \t", high_limit)
 
     # Normalize bands into 0.0 - 1.0 scale
     def norm(array):
@@ -204,7 +204,8 @@ def return_normalized_array(
 
 
 def load_rgb_data(
-    file_name=os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"), high_limit=1500,
+    file_name=os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"),
+    high_limit=1500,
 ):
     """
     :param file_name: full path to .tif image.
@@ -253,16 +254,16 @@ def create_netcdfs():
     for ty, ty_v in [
         (1, "chern")
     ]:  # enumerate(path_da.coords["ty"].values.tolist()):  # [(1, "chern")]:
-        for mn, mn_v in enumerate(path_da.coords["mn"].values.tolist()): 
+        for mn, mn_v in enumerate(path_da.coords["mn"].values.tolist()):
             """
-                         #[(0, "JFM"),
-                         #(1, "AMJ")
-                         #(2, "JAS"),
-                         #(3, "OND")
-                         #]:
+            #[(0, "JFM"),
+            #(1, "AMJ")
+            #(2, "JAS"),
+            #(3, "OND")
+            #]:
             """
             #  [(1, "AMJ"), (2, "JAS"), (3, "OND")]:  # enumerate(path_da.coords["mn"].values.tolist()):
-            for ir in [0]: #[1]:  #[0, 1]
+            for ir in [0]:  # [1]:  #[0, 1]
                 path_list = []
                 for year in tqdm(
                     range(len(path_da.coords["year"].values)),
@@ -285,7 +286,9 @@ def create_netcdfs():
                     )
                     if file_name != None and os.path.exists(file_name):
                         xr_da = xr.open_rasterio(file_name)
-                        data, descriptions = load_rgb_data(file_name, high_limit=high_limits[ir])
+                        data, descriptions = load_rgb_data(
+                            file_name, high_limit=high_limits[ir]
+                        )
                     else:
                         if ty_v == "chern" and ir == 0:
                             file_name = os.path.join(
@@ -304,7 +307,9 @@ def create_netcdfs():
                                 SAT_DIR, "2012/L7_hab_2012_AMJ_IR.tif"
                             )
                         xr_da = xr.open_rasterio(file_name)
-                        data, descriptions = load_rgb_data(file_name, high_limit=high_limits[ir])
+                        data, descriptions = load_rgb_data(
+                            file_name, high_limit=high_limits[ir]
+                        )
                         data[
                             :
                         ] = np.nan  # make everything nan if the file didn't exist.
@@ -349,7 +354,9 @@ def create_netcdfs():
                         return xr.open_mfdataset(
                             path_list,
                             concat_dim="year",
-                            chunks={"year": 1}, # {"band": 1, "year": 1},  # parallel=True,
+                            chunks={
+                                "year": 1
+                            },  # {"band": 1, "year": 1},  # parallel=True,
                         )
 
                     cat_ds = _cat_ds()

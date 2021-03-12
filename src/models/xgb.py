@@ -47,14 +47,15 @@ def train_xgb(
     train_Y,
     test_X,
     test_Y,
-    x_da, y_da,
+    x_da,
+    y_da,
     cfd,
     objective="multi:softmax",
     eta=0.3,
     max_depth=12,
     nthread=16,
     num_round=20,
-    use_dask=False
+    use_dask=False,
 ):
     """
     Train an xgboost model using numpy inputs.
@@ -87,12 +88,12 @@ def train_xgb(
         dask_direc = os.path.join(SAT_DIR, "dask_temp")
 
         if not os.path.exists(dask_direc):
-            print('making ', dask_direc)
+            print("making ", dask_direc)
             os.mkdir(dask_direc)
 
         cluster = dask.distributed.LocalCluster(n_workers=4, threads_per_worker=10)
         client = dask.distributed.Client(cluster)
-        
+
         def daskify(x):
             future = client.scatter(x)
             x = da.from_delayed(future, shape=x.shape, dtype=x.dtype)
@@ -112,12 +113,14 @@ def train_xgb(
         del test_X
         del test_Y
 
-        output = xgb.dask.train(client,
-                                param,
-                                dtrain,
-                                num_boost_round=num_round, 
-                                evals=[(dtrain, "train"), (dtrain, "test")])
-        
+        output = xgb.dask.train(
+            client,
+            param,
+            dtrain,
+            num_boost_round=num_round,
+            evals=[(dtrain, "train"), (dtrain, "test")],
+        )
+
         # x_all, y_all = return_xy_npa(
         #     x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
         # )  # all data as numpy.
@@ -181,7 +184,11 @@ def train_xgb(
             y_pr_da,
             video_path=os.path.join(wandb.run.dir, wandb.run.name + "_joint_val.mp4"),
         )  # animate prediction vs inputs.
-        print("Classification accuracy: {}".format(metrics.accuracy_score(y_all, y_pr_all)))
+        print(
+            "Classification accuracy: {}".format(
+                metrics.accuracy_score(y_all, y_pr_all)
+            )
+        )
         # return bst
 
 
@@ -190,10 +197,10 @@ if __name__ == "__main__":
     # create_netcdfs() # uncomment to preprocess data.
 
     cfd = {
-        "start_year_i": 8, # python3 src/models/xgb.py
+        "start_year_i": 8,  # python3 src/models/xgb.py
         "mid_year_i": 19,
         "end_year_i": 24,
-        "take_esa_coords": True, # True,  # False,
+        "take_esa_coords": True,  # True,  # False,
         "use_ffil": False,
         "use_mfd": False,
         "use_ir": False,
@@ -215,7 +222,7 @@ if __name__ == "__main__":
         use_ffil=cfd["use_ffil"],
         use_mfd=cfd["use_mfd"],
         use_ir=cfd["use_ir"],
-        prefer_remake=cfd["prefer_remake"]
+        prefer_remake=cfd["prefer_remake"],
     )  # load preprocessed data from netcdfs
 
     # there are now 24 years to choose from.
@@ -235,7 +242,8 @@ if __name__ == "__main__":
         compress_esa(y_tr),
         x_te,
         compress_esa(y_te),
-        x_da, y_da,
+        x_da,
+        y_da,
         cfd,
         num_round=cfd["num_round"],
         objective=cfd["objective"],
