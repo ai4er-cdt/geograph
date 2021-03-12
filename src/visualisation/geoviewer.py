@@ -24,6 +24,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         zoom: int = 7,
         crs: Dict = ipyleaflet.projections.EPSG3857,
         layout: Union[widgets.Layout, None] = None,
+        metric_list: List[str] = metrics.STANDARD_METRICS,
         logging_level=logging.DEBUG,
         **kwargs
     ) -> None:
@@ -82,13 +83,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             },
         )
 
-        self.metrics = [
-            "num_components",
-            "avg_patch_area",
-            "total_area",
-            "avg_component_area",
-            "avg_component_isolation",
-        ]
+        self.metrics = metric_list
 
         self.hover_widget = None
         self._widget_output = {}
@@ -169,11 +164,12 @@ class GeoGraphViewer(ipyleaflet.Map):
                 style={"fillOpacity": 0.5},
             )
 
-            # Computing metrics
+            # Getting metrics
             graph_metrics = []
-            if not is_habitat:
-                for metric in self.metrics:
-                    graph_metrics.append(metrics.get_metric(metric, graph))
+            for metric in self.metrics:
+                graph_metrics.append(
+                    graph.get_metric(metric)
+                )  # pylint: disable=protected-access
 
             self.layer_dict["graphs"][graph_name] = dict(
                 is_habitat=is_habitat,
@@ -235,8 +231,12 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         # Create widgets for each tab
         tab_nest_dict = dict(
-            View=control_widgets.RadioVisibilityWidget(viewer=self),
-            Metrics=control_widgets.MetricsWidget(viewer=self),
+            View=widgets.VBox(
+                [
+                    control_widgets.RadioVisibilityWidget(viewer=self),
+                    control_widgets.MetricsWidget(viewer=self),
+                ]
+            ),
             Timeline=control_widgets.TimelineWidget(viewer=self),
             Settings=control_widgets.SettingsWidget(viewer=self),
             Log=self.log_handler.out,
