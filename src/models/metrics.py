@@ -77,11 +77,10 @@ def _total_area(geo_graph: geograph.GeoGraph) -> Metric:
 
 
 def _avg_component_area(geo_graph: geograph.GeoGraph) -> Metric:
+    if not geo_graph.components.has_df:
+        print("Calculating component polygons...")
+        geo_graph.components = geo_graph.get_graph_components(calc_polygons=True)
     comp_geograph = geo_graph.components
-    if not comp_geograph.has_df:
-        raise ValueError(
-            "This metric is not valid for ComponentGeoGraphs without a dataframe."
-        )
     return Metric(
         value=np.mean(comp_geograph.df.area.values),
         name="avg_component_area",
@@ -91,16 +90,21 @@ def _avg_component_area(geo_graph: geograph.GeoGraph) -> Metric:
 
 
 def _avg_component_isolation(geo_graph: geograph.GeoGraph) -> Metric:
-    """Calculate the average distance to the next-nearest component."""
+    """
+    Calculate the average distance to the next-nearest component.
+
+    Warning: very computationally expensive for graphs with more than ~100
+    components.
+    """
+    if not geo_graph.components.has_df or not geo_graph.components.has_distance_edges:
+        print(
+            """Warning: very computationally expensive for graphs with more
+              than ~100 components."""
+        )
+        geo_graph.components = geo_graph.get_graph_components(
+            calc_polygons=True, add_distance_edges=True
+        )
     comp_geograph = geo_graph.components
-    if not comp_geograph.has_df:
-        raise ValueError(
-            "This metric is not valid for ComponentGeoGraphs without a dataframe."
-        )
-    elif not comp_geograph.has_distance_edges:
-        raise ValueError(
-            "This metric is not valid for ComponentGeoGraphs without distance edges."
-        )
     if len(comp_geograph.components_list) == 1:
         val: Any = 0
     else:
@@ -132,6 +136,16 @@ METRICS_DICT = {
     "avg_component_area": _avg_component_area,
     "avg_component_isolation": _avg_component_isolation,
 }
+
+ALL_METRICS = [
+    "num_components",
+    "avg_patch_area",
+    "total_area",
+    "avg_component_area",
+    "avg_component_isolation",
+]
+
+STANDARD_METRICS = ["num_components", "avg_patch_area", "total_area"]
 
 
 def _get_metric(name: str, geo_graph: geograph.GeoGraph) -> Metric:
