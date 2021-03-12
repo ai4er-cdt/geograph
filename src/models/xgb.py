@@ -48,6 +48,7 @@ def train_xgb(
     test_X,
     test_Y,
     x_da, y_da,
+    cfd,
     objective="multi:softmax",
     eta=0.3,
     max_depth=12,
@@ -82,19 +83,34 @@ def train_xgb(
 
     if use_dask:
         # https://docs.dask.org/en/latest/array-api.html#dask.array.from_npy_stack
+        # https://xgboost.readthedocs.io/en/latest/tutorials/dask.html
+        dask_direc = os.path.join(SAT_DIR, "dask_temp")
 
-        cluster = dask.distributed.LocalCluster(n_workers=4, threads_per_worker=1)
+        if not os.path.exists(dask_direc):
+            print('making ', dask_direc)
+            os.mkdir(dask_direc)
 
+        cluster = dask.distributed.LocalCluster(n_workers=4, threads_per_worker=10)
         client = dask.distributed.Client(cluster)
         
         def daskify(x):
             future = client.scatter(x)
             x = da.from_delayed(future, shape=x.shape, dtype=x.dtype)
-            x = x.rechunk((10000, 24))
+            x = x.rechunk()
             return x.persist()
-        
+
+        # train_X,
+        # train_Y,
+        # test_X,
+        # test_Y,
+
         dtrain = xgb.dask.DaskDMatrix(client, daskify(train_X), daskify(train_Y))
         dtest = xgb.dask.DaskDMatrix(client, daskify(test_X), daskify(test_Y))
+
+        del train_X
+        del train_Y
+        del test_X
+        del test_Y
 
         output = xgb.dask.train(client,
                                 param,
@@ -102,9 +118,9 @@ def train_xgb(
                                 num_boost_round=num_round, 
                                 evals=[(dtrain, "train"), (dtrain, "test")])
         
-        x_all, y_all = return_xy_npa(
-            x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
-        )  # all data as numpy.
+        # x_all, y_all = return_xy_npa(
+        #     x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
+        # )  # all data as numpy.
 
         """
         xg_all = xgb.DMatrix(
@@ -153,21 +169,20 @@ def train_xgb(
         y_pr_all = decompress_esa(
             bst.predict(xg_all)
         )  # predict whole time period using model
-    
-    y_pr_da = y_npa_to_xr(
-        y_pr_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
-    )  # transform full prediction to dataarray.
-    y_pr_da.to_netcdf(
-        os.path.join(wandb.run.dir, wandb.run.name + "_y.nc")
-    )  # save to netcdf
-    animate_prediction(
-        x_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
-        y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
-        y_pr_da,
-        video_path=os.path.join(wandb.run.dir, wandb.run.name + "_joint_val.mp4"),
-    )  # animate prediction vs inputs.
-    print("Classification accuracy: {}".format(metrics.accuracy_score(y_all, y_pr_all)))
-    # return bst
+        y_pr_da = y_npa_to_xr(
+            y_pr_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
+        )  # transform full prediction to dataarray.
+        y_pr_da.to_netcdf(
+            os.path.join(wandb.run.dir, wandb.run.name + "_y.nc")
+        )  # save to netcdf
+        animate_prediction(
+            x_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
+            y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
+            y_pr_da,
+            video_path=os.path.join(wandb.run.dir, wandb.run.name + "_joint_val.mp4"),
+        )  # animate prediction vs inputs.
+        print("Classification accuracy: {}".format(metrics.accuracy_score(y_all, y_pr_all)))
+        # return bst
 
 
 if __name__ == "__main__":
@@ -175,19 +190,20 @@ if __name__ == "__main__":
     # create_netcdfs() # uncomment to preprocess data.
 
     cfd = {
-        "start_year_i": 15, # 8,
-        "mid_year_i": 17, # 19,
-        "end_year_i": 19, # 24,
-        "take_esa_coords": False, # True,  # False,
-        "use_ffil": True,
+        "start_year_i": 8, # python3 src/models/xgb.py
+        "mid_year_i": 19,
+        "end_year_i": 24,
+        "take_esa_coords": True, # True,  # False,
+        "use_ffil": False,
         "use_mfd": False,
         "use_ir": False,
         "objective": "multi:softmax",
         "eta": 0.3,
         "max_depth": 12,
         "nthread": 16,
-        "num_round": 25,
+        "num_round": 20,
         "use_dask": False,
+        "prefer_remake": True,
     }
     print("cfd:\n", cfd)
 
@@ -199,6 +215,7 @@ if __name__ == "__main__":
         use_ffil=cfd["use_ffil"],
         use_mfd=cfd["use_mfd"],
         use_ir=cfd["use_ir"],
+        prefer_remake=cfd["prefer_remake"]
     )  # load preprocessed data from netcdfs
 
     # there are now 24 years to choose from.
@@ -219,6 +236,7 @@ if __name__ == "__main__":
         x_te,
         compress_esa(y_te),
         x_da, y_da,
+        cfd,
         num_round=cfd["num_round"],
         objective=cfd["objective"],
         eta=cfd["eta"],

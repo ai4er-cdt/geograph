@@ -11,6 +11,8 @@ import pathlib
 constants_path = pathlib.Path(os.path.realpath(__file__))
 SRC_PATH = pathlib.Path(os.path.dirname(constants_path))
 PROJECT_PATH = pathlib.Path(os.path.dirname(SRC_PATH))
+REPORT_PATH = pathlib.Path(os.path.join(PROJECT_PATH, "report"))
+FIGURE_PATH = pathlib.Path(os.path.join(REPORT_PATH , "figures"))
 
 # Data directory on GWS
 GWS_DATA_DIR = pathlib.Path(
