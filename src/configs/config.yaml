@@ -7,7 +7,7 @@ encoder_weights: "imagenet" # put null for random init
 decoder_channels: [256, 128, 64, 32, 16]
 decoder_attention_type: null # Can be null or "scse"
 in_channels: 3
-out_channels: 19
+out_channels: 20
 # Activation on the last layer of the model, can be "sigmoid", "softmax", etc
 activation: null
 

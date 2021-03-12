@@ -1,4 +1,7 @@
 """Module for the Pytorch Lightning Unet model."""
+# import multiprocessing as mp
+
+# import dask
 import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 import segmentation_models_pytorch.losses as losses
@@ -10,6 +13,8 @@ from torch.utils.data import DataLoader
 SENTINEL_DIR = GWS_DATA_DIR / "sentinel2_data"
 SENTINEL_POLESIA_DIR = SENTINEL_DIR / "Polesia_10m"
 SENTINEL_CHERNOBYL_DIR = SENTINEL_DIR / "Chernobyl_10m"
+
+# dask.config.set(scheduler='single-threaded')
 
 
 def get_unet_model(config):
@@ -56,15 +61,17 @@ class UNetModel(pl.LightningModule):
 
     def training_step(self, batch, _):
         x, y = batch
-        y_hat = self(x)  # Calls self.forward(x)
-        # only support single loss at the moment
+        # .float() necessary to avoid type error with Double
+        y_hat = self(x.float())  # Calls self.forward(x)
+        y = y.permute(0, 3, 1, 2).contiguous()
         loss = self.loss(y_hat, y)
-        self.log("Loss", loss)
+        self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, _):
         x, y = batch
-        y_hat = self(x)
+        y_hat = self(x.float())
+        y = y.permute(0, 3, 1, 2).contiguous()
         return y, y_hat
 
     def test_step(self, batch, batch_idx):
@@ -85,6 +92,7 @@ class UNetModel(pl.LightningModule):
             batch_size=self.config.batch_size,
             num_workers=self.config.num_workers,
             pin_memory=True,
+            # multiprocessing_context=mp.get_context("fork")
         )
         return dataloader
 
@@ -103,6 +111,7 @@ class UNetModel(pl.LightningModule):
             shuffle=False,
             num_workers=self.config.num_workers,
             pin_memory=True,
+            # multiprocessing_context=mp.get_context("fork")
         )
         return dataloader
 
