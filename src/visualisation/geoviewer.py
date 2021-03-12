@@ -8,17 +8,15 @@ import pandas as pd
 import ipywidgets as widgets
 import ipyleaflet
 import traitlets
+import logging
 
 from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
 from src.models import geograph, metrics
-from src.visualisation import folium_utils, graph_utils
+from src.visualisation import folium_utils, graph_utils, widget_utils
 
 
 class GeoGraphViewer(ipyleaflet.Map):
     """Class for interactively viewing a GeoGraph."""
-
-    # TODO: add better logging for widgets than this class variable
-    log_out = widgets.Output(layout={"border": "1px solid black"})
 
     def __init__(
         self,
@@ -26,6 +24,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         zoom: int = 7,
         crs: Dict = ipyleaflet.projections.EPSG3857,
         layout: Union[widgets.Layout, None] = None,
+        logging_level=logging.DEBUG,
         **kwargs
     ) -> None:
         """Class for interactively viewing a GeoGraph.
@@ -37,6 +36,8 @@ class GeoGraphViewer(ipyleaflet.Map):
             crs ([type], optional): [description]. Defaults to
                 ipyleaflet.projections.EPSG3857.
             layout (widgets.Layout, optional): layout passed to ipyleaflet.Map
+            logging_level: level of logs to be collected by self.logger. Defaults to
+                logging.DEBUG.
         """
         super().__init__(
             center=center,
@@ -46,8 +47,16 @@ class GeoGraphViewer(ipyleaflet.Map):
             zoom_snap=0.1,
             **kwargs
         )
+
+        # Setting log with handler, that allows access to log via handler.show_logs()
+        self.logger = logging.getLogger(type(self).__name__)
+        self.logger.setLevel(logging_level)
+        self.log_handler = widget_utils.OutputWidgetHandler()
+        self.logger.addHandler(self.log_handler)
+
         if layout is None:
             self.layout = widgets.Layout(height="700px")
+
         # Note: entries in layer dict follow the convention:
         # ipywidgets_layer = layer_dict[type][name][subtype]["layer"]
         # Layers of type "maps" only have subtype "map".
@@ -94,7 +103,8 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.current_graph = ""
         self.current_map = "Map"  # set to the default map added above
 
-    @log_out.capture()
+        self.logger.info("Viewer successfully setup.")
+
     def set_layer_visibility(
         self, layer_type: str, layer_name: str, layer_subtype: str, active: bool
     ) -> None:
@@ -116,7 +126,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                     )
         self.layer_update()
 
-    @log_out.capture()
+    # @log_out.capture()
     def add_graph(self, graph: geograph.GeoGraph, name: str = "Graph") -> None:
         """Add GeoGraph to viewer.
 
@@ -168,7 +178,6 @@ class GeoGraphViewer(ipyleaflet.Map):
                 hover_html.layout.margin = "10px 10px 10px 10px"
                 hover_html.layout.max_width = "300px"
 
-                @self.log_out.capture()
                 def hover_callback(
                     feature, **kwargs
                 ):  # pylint: disable=unused-argument
@@ -204,8 +213,8 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         self.current_graph = name
         self.layer_update()
+        self.logger.info("Added graph.")
 
-    @log_out.capture()
     def add_hover_widget(self) -> None:
         """Add hover widget for graph."""
         control = ipyleaflet.WidgetControl(
@@ -213,7 +222,6 @@ class GeoGraphViewer(ipyleaflet.Map):
         )
         self.add_control(control)
 
-    @log_out.capture()
     def layer_update(self) -> None:
         """Update `self.layer` tuple from `self.layer_dict`."""
         layers = [
@@ -229,7 +237,6 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         self.layers = tuple(layers)
 
-    @log_out.capture()
     def set_graph_style(self, radius: float = 10, node_color=None) -> None:
         """Set the style of any graphs added to viewer.
 
@@ -251,7 +258,6 @@ class GeoGraphViewer(ipyleaflet.Map):
             self.layer_dict["graphs"][name]["graph"]["layer"] = layer
         self.layer_update()
 
-    @log_out.capture()
     def add_settings_widget(self) -> None:
         """Add settings widget to viewer."""
 
@@ -265,7 +271,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             Metrics=metrics_widget,
             Diff=diff_tab,
             Settings=settings_tab,
-            Log=self.log,
+            Log=self.logger,
         )
 
         tab_nest = widgets.Tab()
@@ -284,7 +290,6 @@ class GeoGraphViewer(ipyleaflet.Map):
             ipyleaflet.WidgetControl(widget=header, position="bottomright")
         )
 
-    @log_out.capture()
     def add_widgets(self) -> None:
         """Add all widgets to viewer"""
         self.add_settings_widget()
