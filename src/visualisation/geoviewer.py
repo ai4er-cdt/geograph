@@ -189,7 +189,6 @@ class GeoGraphViewer(ipyleaflet.Map):
         Returns:
             ipyleaflet.Choropleth: choropleth layer
         """
-        self.logger.debug("df: %s", df)
         df["area_in_m2"] = df.area
         df = df.to_crs(WGS84)
         geo_data = df.__geo_interface__
@@ -250,7 +249,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             self.layer_dict["graphs"][name]["graph"]["layer"] = layer
         self.layer_update()
 
-    def show_graph_controls(self) -> None:
+    def enable_graph_controls(self) -> None:
         """Add controls for graphs to GeoGraphViewer."""
 
         if not self.layer_dict["graphs"]:
