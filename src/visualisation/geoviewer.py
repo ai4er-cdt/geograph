@@ -12,7 +12,7 @@ import logging
 
 from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
 from src.models import geograph, metrics
-from src.visualisation import folium_utils, graph_utils, widget_utils
+from src.visualisation import folium_utils, graph_utils, widget_utils, control_widgets
 
 
 class GeoGraphViewer(ipyleaflet.Map):
@@ -71,7 +71,6 @@ class GeoGraphViewer(ipyleaflet.Map):
             ),
             graphs=dict(),
         )
-        self.graph_dict = dict()
         self.custom_style = dict(
             style={"color": "black", "fillColor": "orange"},
             hover_style={"fillColor": "red", "fillOpacity": 0.2},
@@ -103,13 +102,12 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.current_graph = ""
         self.current_map = "Map"  # set to the default map added above
 
-        self.logger.info("Viewer successfully setup.")
+        self.logger.info("Viewer successfully initialised.")
 
     def set_layer_visibility(
         self, layer_type: str, layer_name: str, layer_subtype: str, active: bool
     ) -> None:
         """Set visiblity for layer_dict[layer_type][layer_name][layer_subtype]."""
-        print(layer_type, layer_name, layer_subtype)
         self.layer_dict[layer_type][layer_name][layer_subtype]["active"] = active
 
     def hidde_all_layers(self) -> None:
@@ -243,7 +241,6 @@ class GeoGraphViewer(ipyleaflet.Map):
         Args:
             radius (float): radius of nodes in graph. Defaults to 10.
         """
-
         for name, graph in self.layer_dict["graphs"].items():
             layer = graph["graph"]["layer"]
 
@@ -295,6 +292,36 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.add_settings_widget()
         self.add_control(ipyleaflet.FullScreenControl())
         self.add_control(ipyleaflet.ScaleControl(position="bottomleft"))
+
+    def add_graph_controls(self) -> None:
+        """Add controls to GeoGraphViewer."""
+
+        if not self.layer_dict["graphs"]:
+            raise AttributeError(
+                (
+                    "GeoGraphViewer has no graph. Add graph using viewer.add_graph() "
+                    "method before adding controls."
+                )
+            )
+
+        # Create widgets for each tab
+        tab_nest_dict = dict(
+            View=control_widgets.RadioVisibilityWidget(viewer=self),
+            Metrics=control_widgets.MetricsWidget(viewer=self),
+            Timeline=control_widgets.TimelineWidget(viewer=self),
+            Settings=control_widgets.SettingsWidget(viewer=self),
+            Log=self.log_handler.out,
+        )
+
+        tab_nest = widgets.Tab()
+        tab_nest.children = list(tab_nest_dict.values())
+        for i, title in enumerate(tab_nest_dict):
+            tab_nest.set_title(i, title)
+
+        combined_widget = tab_nest
+        control = ipyleaflet.WidgetControl(widget=combined_widget, position="topright")
+        self.add_control(control)
+        self.add_control(ipyleaflet.FullScreenControl())
 
 
 class FoliumGeoGraphViewer:

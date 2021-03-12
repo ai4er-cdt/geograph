@@ -5,17 +5,36 @@ from typing import Dict
 
 import ipywidgets as widgets
 import traitlets
+import logging
 
 from src.visualisation import geoviewer
 
 
-class RadioVisibilityWidget(widgets.Box):
+class BaseControlWidget(widgets.Box):
+    """Base class for control widgets."""
+
+    def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
+        """Base class for control widgets.
+
+        Args:
+            viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
+        """
+        super().__init__()
+        self.viewer = viewer
+
+        # Setting log with handler, that allows access to log
+        # via self.log_handler.show_logs()
+        self.logger = logging.getLogger(type(self).__name__)
+        self.logger.setLevel(self.viewer.logger.level)
+        self.log_handler = self.viewer.log_handler
+        self.logger.addHandler(self.log_handler)
+
+        self.logger.info("BaseControlWidget initialised.")
+
+
+class RadioVisibilityWidget(BaseControlWidget):
     """Widget to control visibility of graphs in GeoGraphViewer with radio buttons."""
 
-    # TODO: add better logging than class variable for widgets
-    log_out = widgets.Output(layout={"border": "1px solid black"})
-
-    @log_out.capture()
     def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
         """Widget to control visibility of graphs in GeoGraphViewer with radio buttons.
 
@@ -26,15 +45,14 @@ class RadioVisibilityWidget(widgets.Box):
         Args:
             viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
         """
-        self.viewer = viewer
+        super().__init__(viewer=viewer)
+
+        # Resetting all prior visibility control
         self.viewer.hidde_all_layers()
-        self.graph_names = list(viewer.layer_dict["graphs"].keys())
 
         widget = self.assemble_widget()
+        self.children = [widget]
 
-        super().__init__([widget])
-
-    @log_out.capture()
     def assemble_widget(self) -> widgets.Widget:
         """Assemble all sub-widgets making up VisibilityWidget into layout.
 
@@ -48,7 +66,6 @@ class RadioVisibilityWidget(widgets.Box):
 
         return widget
 
-    @log_out.capture()
     def create_graph_selection(self) -> widgets.RadioButtons:
         """Create radio buttons to enable graph selection.
 
@@ -56,7 +73,8 @@ class RadioVisibilityWidget(widgets.Box):
             widgets.RadioButtons: buttons to select graph
         """
         graph_list = []
-        for graph_name in self.graph_names:
+        graph_names = list(self.viewer.layer_dict["graphs"].keys())
+        for graph_name in graph_names:
             graph_str = graph_name
             graph_list.append((graph_str, graph_name))
 
@@ -65,7 +83,6 @@ class RadioVisibilityWidget(widgets.Box):
 
         return radio_buttons
 
-    @log_out.capture()
     def create_visibility_buttons(self) -> widgets.Box:
         """Create buttons that toggle the visibility of current graph and map.
 
@@ -88,21 +105,21 @@ class RadioVisibilityWidget(widgets.Box):
         view_pgon_btn = widgets.ToggleButton(
             description="Polygons",
             disabled=False,
-            button_style="",  # 'success', 'info', 'warning', 'danger' or ''
+            button_style="",
             tooltip="View graph",
             icon="shapes",
             layout=btn_layout,
         )
         view_components_btn = widgets.ToggleButton(
             description="Components",
-            button_style="",  # 'success', 'info', 'warning', 'danger' or ''
+            button_style="",
             tooltip="View graph",
             icon="circle",
             layout=btn_layout,
         )
         view_map_btn = widgets.ToggleButton(
             description="Map",
-            button_style="",  # 'success', 'info', 'warning', 'danger' or ''
+            button_style="",
             tooltip="View graph",
             icon="globe-africa",
             layout=btn_layout,
@@ -150,60 +167,55 @@ class RadioVisibilityWidget(widgets.Box):
 
         return buttons
 
-    @log_out.capture()
     def _handle_view(self, change: Dict) -> None:
         """Callback function for trait events in view buttons"""
-        owner = change.owner  # Button that is clicked or changed
+        try:
+            owner = change.owner  # Button that is clicked or changed
 
-        print("Detected button change:", change)
+            # Accessed if button is clicked (its value changed)
+            if change.name == "value":
+                active = change.new
+                self.viewer.set_layer_visibility(
+                    owner.layer_type, owner.layer_name, owner.layer_subtype, active
+                )
+                self.viewer.layer_update()
 
-        # Accessed if button is clicked (its value changed)
-        if change.name == "value":
-            active = change.new
-            self.viewer.set_layer_visibility(
-                owner.layer_type, owner.layer_name, owner.layer_subtype, active
+            # Accessed if layer that the button is assigned to was changed
+            elif change.name == "layer_name":
+                new_layer_name = change.new
+                old_layer_name = change.old
+
+                # make old layer invisible
+                self.viewer.set_layer_visibility(
+                    owner.layer_type, old_layer_name, owner.layer_subtype, False
+                )
+                # make new layer visible
+                self.viewer.set_layer_visibility(
+                    owner.layer_type, new_layer_name, owner.layer_subtype, owner.value
+                )
+                # Note: there is a potential for speed improvement by not updating map
+                # layers for each button separately, as is done here.
+                self.viewer.layer_update()
+        except:  # pylint: disable=bare-except
+            self.logger.exception(
+                "Exception in view button callback on button click or change."
             )
-            self.viewer.layer_update()
-
-        # Accessed if layer that the button is assigned to was changed
-        elif change.name == "layer_name":
-            new_layer_name = change.new
-            old_layer_name = change.old
-
-            # make old layer invisible
-            self.viewer.set_layer_visibility(
-                owner.layer_type, old_layer_name, owner.layer_subtype, False
-            )
-            # make new layer visible
-            self.viewer.set_layer_visibility(
-                owner.layer_type, new_layer_name, owner.layer_subtype, owner.value
-            )
-            # Note: there is a potential for speed improvement by not updating map
-            # layers for each button separately, as is done here.
-            self.viewer.layer_update()
 
 
-class CheckboxVisibilityWidget(widgets.Box):
+class CheckboxVisibilityWidget(BaseControlWidget):
     """Widget to control visibility of graphs in GeoGraphViewer with checkboxes."""
 
-    # TODO: add better logging than class variable for widgets
-    log_out = widgets.Output(layout={"border": "1px solid black"})
-
-    @log_out.capture()
     def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
         """Widget to control visibility of graphs in GeoGraphViewer with checkboxes.
 
         Args:
             viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
         """
-        self.viewer = viewer
-        self.graph_names = list(viewer.layer_dict["graphs"].keys())
+        super().__init__(viewer=viewer)
 
         widget = self._create_checkboxes()
+        self.children = [widget]
 
-        super().__init__([widget])
-
-    @log_out.capture()
     def _create_checkboxes(self) -> widgets.VBox:
         """Create widget with checkbox for each layer.
 
@@ -285,22 +297,26 @@ class CheckboxVisibilityWidget(widgets.Box):
         # Create button to toggle all polygons at once
         hide_pgon_button = widgets.ToggleButton(description="Toggle all polygons")
 
-        @self.log_out.capture()
         def toggle_all_pgons(change):
-            if change["name"] == "value":
-                for box in pgons_checkboxes:
-                    box.value = change["new"]
+            try:
+                if change["name"] == "value":
+                    for box in pgons_checkboxes:
+                        box.value = change["new"]
+            except:  # pylint: disable=bare-except
+                self.logger.exception("Exception in view button callback on click.")
 
         hide_pgon_button.observe(toggle_all_pgons)
 
         # Create button to toggle all graphs at once
         hide_graph_button = widgets.ToggleButton(description="Toggle all graphs")
 
-        @self.log_out.capture()
         def toggle_all_graphs(change):
-            if change["name"] == "value":
-                for box in graph_checkboxes:
-                    box.value = change["new"]
+            try:
+                if change["name"] == "value":
+                    for box in graph_checkboxes:
+                        box.value = change["new"]
+            except:  # pylint: disable=bare-except
+                self.logger.exception("Exception in view button callback on click.")
 
         hide_graph_button.observe(toggle_all_graphs)
 
@@ -310,29 +326,27 @@ class CheckboxVisibilityWidget(widgets.Box):
 
         return widgets.VBox(checkboxes)
 
-    @log_out.capture()
     def _switch_layer_visibility(self, change: Dict):
         """Switch layer visibility according to change.
 
         Args:
             change (Dict): change dict provided by checkbox widget
         """
-        if change["name"] == "value":
-            owner = change["owner"]
-            self.viewer.set_layer_visibility(
-                owner.layer_type, owner.layer_name, owner.layer_subtype, change.new
-            )
+        try:
+            if change["name"] == "value":
+                owner = change["owner"]
+                self.viewer.set_layer_visibility(
+                    owner.layer_type, owner.layer_name, owner.layer_subtype, change.new
+                )
 
-        self.viewer.layer_update()
+            self.viewer.layer_update()
+        except:  # pylint: disable=bare-except
+            self.logger.exception("Exception in view checkbox callback on click.")
 
 
-class TimelineWidget(widgets.Box):
+class TimelineWidget(BaseControlWidget):
     """Widget to interact with GeoGraphTimeline."""
 
-    # TODO: add better logging than class variable for widgets
-    log_out = widgets.Output(layout={"border": "1px solid black"})
-
-    @log_out.capture()
     def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
         """Widget to interact with GeoGraphTimeline.
 
@@ -341,12 +355,11 @@ class TimelineWidget(widgets.Box):
         Args:
             viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
         """
-        self.viewer = viewer
+        super().__init__(viewer=viewer)
+
         widget = self._create_timeline_controls()
+        self.children = [widget]
 
-        super().__init__([widget])
-
-    @log_out.capture()
     def _create_timeline_controls(self) -> widgets.VBox:
         """Create tab widget for diff.
 
@@ -390,13 +403,9 @@ class TimelineWidget(widgets.Box):
         return timeline_widget
 
 
-class MetricsWidget(widgets.Box):
+class MetricsWidget(BaseControlWidget):
     """Widget to show graph metrics in GeoGraphViewer."""
 
-    # TODO: add better logging than class variable for widgets
-    log_out = widgets.Output(layout={"border": "1px solid black"})
-
-    @log_out.capture()
     def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
         """Widget to show graph metrics in GeoGraphViewer.
 
@@ -405,12 +414,11 @@ class MetricsWidget(widgets.Box):
         Args:
             viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to show metrics for
         """
-        self.viewer = viewer
+        super().__init__(viewer=viewer)
+
         widget = self._create_metrics_widget()
+        self.children = [widget]
 
-        super().__init__([widget])
-
-    @log_out.capture()
     def _create_metrics_widget(self) -> widgets.VBox:
         """Create metrics visualisation widget.
 
@@ -420,49 +428,46 @@ class MetricsWidget(widgets.Box):
 
         metrics_html = widgets.HTML("Select graph")
 
-        @self.log_out.capture()
         def metrics_callback(change):
-            print(change.name)
-            graph_name = change.new
-            metrics = change.owner.layer_dict["graphs"][graph_name]["metrics"]
+            try:
+                graph_name = change.new
+                metrics = change.owner.layer_dict["graphs"][graph_name]["metrics"]
 
-            metrics_str = ""
-            if metrics:
-                for metric in metrics:
-                    print(metric)
-                    metrics_str += """
-                    <b>{}:</b> {:.2f}</br>
-                    """.format(
-                        metric.name, metric.value
-                    )
-            else:
-                metrics_str += "No metrics available for current graph."
-            metrics_html.value = metrics_str
+                metrics_str = ""
+                if metrics:
+                    for metric in metrics:
+                        metrics_str += """
+                        <b>{}:</b> {:.2f}</br>
+                        """.format(
+                            metric.name, metric.value
+                        )
+                else:
+                    metrics_str += "No metrics available for current graph."
+                metrics_html.value = metrics_str
+            except:  # pylint: disable=bare-except
+                self.logger.exception(
+                    "Exception in metrics callback after current_graph change."
+                )
 
         self.viewer.observe(metrics_callback, names=["current_graph"])
 
         return metrics_html
 
 
-class SettingsWidget(widgets.Box):
+class SettingsWidget(BaseControlWidget):
     """Widget for misc settings in GeoGraphViewer."""
 
-    # TODO: add better logging than class variable for widgets
-    log_out = widgets.Output(layout={"border": "1px solid black"})
-
-    @log_out.capture()
     def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
         """Widget for misc settings in GeoGraphViewer.
 
         Args:
             viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to show settings for
         """
-        self.viewer = viewer
+        super().__init__(viewer=viewer)
+
         widget = self._create_settings_widget()
+        self.children = [widget]
 
-        super().__init__([widget])
-
-    @log_out.capture()
     def _create_settings_widget(self) -> widgets.VBox:
         """Create settings widget.
 
@@ -482,7 +487,7 @@ class SettingsWidget(widgets.Box):
         )
 
         self._widget_output = widgets.interactive_output(
-            self.viewer.set_graph_style,
+            self.set_graph_style_callback,
             dict(radius=radius_slider, node_color=node_color_picker),
         )
 
@@ -500,3 +505,11 @@ class SettingsWidget(widgets.Box):
         )
 
         return settings_widget
+
+    def set_graph_style_callback(self, *args, **kwargs):
+        """Callback function to set graph style in geoviewer"""
+        try:
+            self.viewer.set_graph_style(*args, **kwargs)
+            self.logger.debug("Graph style changed.")
+        except:  # pylint: disable=bare-except
+            self.logger.exception("Exception in when setting graph style.")
