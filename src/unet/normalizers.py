@@ -1,5 +1,6 @@
 """This module defines normalizers for Satellite image data for UNet training"""
 from abc import ABC, abstractmethod
+
 import numpy as np
 import torchvision.transforms as transforms
 from torch import Tensor
@@ -15,7 +16,7 @@ class NormalizerABC(ABC):
         pass
 
     @abstractmethod
-    def normalize(self, image: np.ndarray, **kwargs) -> Tensor:
+    def normalize(self, tensor: Tensor, **kwargs) -> Tensor:
         pass
 
 
@@ -38,6 +39,16 @@ class ImagenetNormalizer:
         self.transform = std_normalize
 
     # pylint: disable=unused-argument
-    def normalize(self, image: np.ndarray, **kwargs) -> Tensor:
-        normalized_image = self.transform(image)
-        return normalized_image
+    def normalize(self, tensor: Tensor, **kwargs) -> Tensor:
+        normalized_tensor = self.transform(tensor)
+        return normalized_tensor
+
+
+class IdentityNormalizer(NormalizerABC):
+    """Identity normalizer that simply passes a tensor through without changing it"""
+
+    def __init__(self):  # pylint: disable=super-init-not-called
+        pass
+
+    def normalize(self, tensor: Tensor, **kwargs) -> Tensor:
+        return tensor
