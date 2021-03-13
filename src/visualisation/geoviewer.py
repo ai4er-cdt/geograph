@@ -61,20 +61,23 @@ class GeoGraphViewer(ipyleaflet.Map):
         if layout is None:
             self.layout = widgets.Layout(height="700px")
 
+        default_map_layer = ipyleaflet.TileLayer(
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            base=True,
+            max_zoom=19,
+            min_zoom=4,
+        )
+
         # Note: entries in layer dict follow the convention:
         # ipywidgets_layer = layer_dict[type][name][subtype]["layer"]
         # Layers of type "maps" only have subtype "map".
         self.layer_dict = dict(
             maps=dict(
-                Map=dict(
-                    map=dict(
-                        layer=ipyleaflet.TileLayer(base=True, max_zoom=19, min_zoom=4),
-                        active=True,
-                    )
-                )
+                OpenStreetMap=dict(map=dict(layer=default_map_layer, active=True))
             ),
             graphs=dict(),
         )
+
         self.custom_style = dict(
             style={"color": "black", "fillColor": "orange"},
             hover_style={"fillColor": "red", "fillOpacity": 0.2},
@@ -122,6 +125,28 @@ class GeoGraphViewer(ipyleaflet.Map):
                     )
         self.layer_update()
 
+    def add_layer(self, layer: Union[dict, ipyleaflet.Layer], name=None) -> None:
+        """Add a layer on the map.
+        Parameters
+        ----------
+        layer: Layer instance
+            The new layer to add.
+        """
+        if isinstance(layer, dict):
+            if name is None:
+                name = layer["name"]
+            layer = ipyleaflet.basemap_to_tiles(layer)
+        else:
+            if name is None:
+                name = layer.name
+        if layer.model_id in self._layer_ids or name in self.layer_dict["maps"].keys():
+            raise ipyleaflet.LayerException(
+                "layer with same name already on map, change name argument: %r" % layer
+            )
+
+        self.layer_dict["maps"][name] = dict(map=dict(layer=layer, active=True))
+        self.layer_update()
+
     def add_graph(self, graph: geograph.GeoGraph, name: str = "Graph") -> None:
         """Add GeoGraph to viewer.
 
@@ -133,6 +158,11 @@ class GeoGraphViewer(ipyleaflet.Map):
             raise ValueError(
                 "Name given cannot be same as habitat name in given GeoGraph."
             )
+        if name in self.layer_dict["graphs"]:
+            raise ValueError(
+                "Graph with the same name already added to GeoGraphViewer."
+            )
+
         graphs = {name: graph, **graph.habitats}
 
         for current_name, current_graph in graphs.items():
