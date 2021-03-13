@@ -2,7 +2,7 @@
 import logging
 import os
 import random
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -45,8 +45,7 @@ class SatelliteDataset(torch.utils.data.Dataset):
         augmentations: Dict[str, bool] = {"rotation": False, "flip": False},
         chunks: dict = {"band": 10, "x": 256, "y": 256},
         logger: logging.Logger = logging.getLogger(),
-        cache: Optional[bool] = None,
-        lock: Optional[bool] = None,
+        **kwargs,
     ):
 
         self.logger = logger
@@ -56,17 +55,14 @@ class SatelliteDataset(torch.utils.data.Dataset):
         self._tile_label_overlaps = None
         self.normalizer = normalizer
         self.augmentations = augmentations
-        self._load_satellite_images(images_path, chunks, cache, lock)
+        self._load_satellite_images(images_path, chunks, **kwargs)
         self._construct_augmentor()
         self.is_preloaded = False
 
     def _load_satellite_images(
-        self,
-        images_path: os.PathLike,
-        chunks: dict,
-        cache: Optional[bool] = None,
-        lock: Optional[bool] = None,
+        self, images_path: os.PathLike, chunks: dict, **kwargs
     ) -> None:
+        """Load the images at `image_path` into the dataset (lazily)"""
 
         # Scan all available shards
         self.logger.info("Sat-loading: Loading Satellite images")
@@ -83,32 +79,44 @@ class SatelliteDataset(torch.utils.data.Dataset):
             images_path.glob(name + SatelliteDataset.IMAGE_PATTERN)
         )
         self._images = [
-            SatelliteImage(gather_shards(name), chunks=chunks, cache=cache, lock=lock)
+            SatelliteImage(gather_shards(name), chunks=chunks, **kwargs)
             for name in self.names
         ]
 
     @property
     def names(self) -> List[str]:
+        """Return the list of image names in the dataset"""
         return self._names
 
     @property
     def images(self) -> List[SatelliteImage]:
+        """Return the list of image handles"""
         return self._images
 
     @property
     def tile_center_coords(self) -> np.ndarray:
+        """Return center row-col coordinates of all tiles in the dataset"""
         if self._tile_center_coords is None:
             self._calculate_center_tile_coords()
         return self._tile_center_coords
 
     @property
     def ntiles(self) -> int:
+        """Return number of tiles in the dataset"""
         return len(self.tile_center_coords) * len(self.images)
 
     def __len__(self) -> int:
+        """Return number of tiles in the dataset"""
         return self.ntiles
 
     def _preload_chunk_handles(self) -> None:
+        """
+        Load a pixel of each chunck in the dataset to force Dask to load file handles.
+
+        This method is needed when passing the dataset to the pytorch DataLoader to
+        if using the multiprocessing context `fork`. Not preloading the chunk handles
+        causes a RasterIO error as child processes.
+        """
         if self.is_preloaded:
             return
         else:
@@ -128,6 +136,7 @@ class SatelliteDataset(torch.utils.data.Dataset):
             self.logger.info("File handles preloaded.")
 
     def _calculate_center_tile_coords(self) -> None:
+        """Calculate the centers coordinates of all tiles."""
         _, nrows, ncols = self.images[0].shape  # discarded value is nbands
         row_center_coords = np.arange(self.tile_size // 2, nrows, self.tile_size)
         col_center_coords = np.arange(self.tile_size // 2, ncols, self.tile_size)
@@ -142,6 +151,7 @@ class SatelliteDataset(torch.utils.data.Dataset):
         ).T.reshape(-1, 2)
 
     def _get_tile_bounds(self, index: int) -> Tuple[int, int, int, int]:
+        """Return bounds of the tile at index as row_min, col_min, row_max, col_max"""
 
         tile_index = index % len(self.tile_center_coords)
 
@@ -151,6 +161,7 @@ class SatelliteDataset(torch.utils.data.Dataset):
         return row_min, col_min, row_max, col_max
 
     def _get_image_index(self, tile_index: int) -> int:
+        """Return the index of the image in `self.images` that contains the tile."""
         return int(tile_index / len(self.tile_center_coords))
 
     def _get_tile_from_bounds(
