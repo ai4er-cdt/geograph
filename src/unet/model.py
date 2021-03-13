@@ -7,10 +7,9 @@ import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 import segmentation_models_pytorch.losses as losses
 import torch
-import tqdm
 from src.constants import GWS_DATA_DIR
 from src.unet.dataloader import LabelledSatelliteDataset
-from torch.nn.modules.loss import BCEWithLogitsLoss
+from torch.nn.modules.loss import BCELoss, BCEWithLogitsLoss
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
 SENTINEL_DIR = GWS_DATA_DIR / "sentinel2_data"
@@ -52,18 +51,20 @@ class UNetModel(pl.LightningModule):
         return self.model(x)
 
     def training_step(self, batch, _):
-        x, y = batch[0].float(), batch[1].float()
         # .float() necessary to avoid type error with Double
+        x, y = batch[0].float(), batch[1].float()
         y_hat = self(x)  # Calls self.forward(x)
-        y = y.permute(0, 3, 1, 2).contiguous()
         loss = self.loss(y_hat, y)
+        if torch.any(torch.isinf(y_hat)):
+            return torch.ones_like(loss, requires_grad=True)
         self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, _):
         x, y = batch[0].float(), batch[1].float()
         y_hat = self(x)
-        y = y.permute(0, 3, 1, 2).contiguous()
+        if torch.any(torch.isinf(y_hat)):
+            return y, torch.ones_like(y_hat, requires_grad=True)
         return y, y_hat
 
     def validation_epoch_end(self, outputs: List) -> None:
@@ -82,14 +83,16 @@ class UNetModel(pl.LightningModule):
         images_path = SENTINEL_POLESIA_DIR / "train"
         labels_path = GWS_DATA_DIR / "polesia_burned_superclasses_all_touched_10m.tif"
         rgb_bands = [2, 1, 0]
-        train_set = LabelledSatelliteDataset(
-            images_path=images_path, labels_path=labels_path, use_bands=rgb_bands
-        )
         if self.config.num_workers > 0:
             dask.config.set(scheduler="threads")
-            for i in tqdm.tqdm(range(len(train_set))):
-                _ = train_set[i]
-            dask.config.set(scheduler="single-threaded")
+            train_set = LabelledSatelliteDataset(
+                images_path=images_path,
+                labels_path=labels_path,
+                use_bands=rgb_bands,
+                overlap_threshold=0.7,
+            )
+            # pylint: disable=protected-access
+            train_set._preload_chunk_handles()
             dataloader = DataLoader(
                 dataset=train_set,
                 batch_size=self.config.batch_size,
@@ -97,7 +100,14 @@ class UNetModel(pl.LightningModule):
                 pin_memory=True,  # asynchronous data transfer to the GPU
                 multiprocessing_context=mp.get_context("fork"),
             )
+            dask.config.set(scheduler="single-threaded")
         else:
+            train_set = LabelledSatelliteDataset(
+                images_path=images_path,
+                labels_path=labels_path,
+                use_bands=rgb_bands,
+                overlap_threshold=0.7,
+            )
             dataloader = DataLoader(
                 dataset=train_set,
                 batch_size=self.config.batch_size,
@@ -112,14 +122,16 @@ class UNetModel(pl.LightningModule):
         images_path = SENTINEL_POLESIA_DIR / "train"
         labels_path = GWS_DATA_DIR / "polesia_burned_superclasses_all_touched_10m.tif"
         rgb_bands = [2, 1, 0]
-        val_set = LabelledSatelliteDataset(
-            images_path=images_path, labels_path=labels_path, use_bands=rgb_bands
-        )
         if self.config.num_workers > 0:
             dask.config.set(scheduler="threads")
-            for i in tqdm.tqdm(range(len(val_set))):
-                _ = val_set[i]
-            dask.config.set(scheduler="single-threaded")
+            val_set = LabelledSatelliteDataset(
+                images_path=images_path,
+                labels_path=labels_path,
+                use_bands=rgb_bands,
+                overlap_threshold=0.7,
+            )
+            # pylint: disable=protected-access
+            val_set._preload_chunk_handles()
             # Best practice to use shuffle=False for validation and testing.
             dataloader = DataLoader(
                 dataset=val_set,
@@ -130,7 +142,14 @@ class UNetModel(pl.LightningModule):
                 pin_memory=True,
                 multiprocessing_context=mp.get_context("fork"),
             )
+            dask.config.set(scheduler="single-threaded")
         else:
+            val_set = LabelledSatelliteDataset(
+                images_path=images_path,
+                labels_path=labels_path,
+                use_bands=rgb_bands,
+                overlap_threshold=0.7,
+            )
             dataloader = DataLoader(
                 dataset=val_set,
                 batch_size=2,
@@ -165,4 +184,7 @@ class UNetModel(pl.LightningModule):
             elif name == "Focal":
                 return losses.FocalLoss(mode="multilabel")
             elif name == "BCE":
-                return BCEWithLogitsLoss()
+                if self.config.activation is None:
+                    return BCEWithLogitsLoss()
+                else:
+                    return BCELoss()
