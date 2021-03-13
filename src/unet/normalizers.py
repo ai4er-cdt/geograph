@@ -30,25 +30,27 @@ class ImagenetNormalizer:
     """
 
     def __init__(self):
-        self.dataset_mean = np.array([0.485, 0.456, 0.406])
-        self.dataset_std = np.array([0.229, 0.224, 0.225])
+        self.imagenet_mean = np.array([0.485, 0.456, 0.406])
+        self.imagenet_std = np.array([0.229, 0.224, 0.225])
 
         std_normalize = transforms.Normalize(
-            mean=self.dataset_mean, std=self.dataset_std
+            mean=self.imagenet_mean, std=self.imagenet_std
         )
         self.transform = std_normalize
 
     # pylint: disable=unused-argument
     def normalize(self, tensor: Tensor, **kwargs) -> Tensor:
+        """Return (tensor - imagenet_mean) / imagenet_std"""
         normalized_tensor = self.transform(tensor)
         return normalized_tensor
 
 
 class IdentityNormalizer(NormalizerABC):
-    """Identity normalizer that simply passes a tensor through without changing it"""
+    """Identity normalizer that simply passes a tensor through without changing it."""
 
     def __init__(self):  # pylint: disable=super-init-not-called
         pass
 
     def normalize(self, tensor: Tensor, **kwargs) -> Tensor:
+        """Return tensor unchanged."""
         return tensor
