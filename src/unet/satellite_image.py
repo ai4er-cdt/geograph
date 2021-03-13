@@ -2,7 +2,7 @@
 that are stored in multiple shards on disk"""
 import os
 import pathlib
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import dask.array as da
 import numba

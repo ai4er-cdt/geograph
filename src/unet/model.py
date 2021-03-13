@@ -7,10 +7,11 @@ import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 import segmentation_models_pytorch.losses as losses
 import torch
-from src.constants import GWS_DATA_DIR
-from src.unet.dataloader import LabelledSatelliteDataset
 from torch.nn.modules.loss import BCELoss, BCEWithLogitsLoss
 from torch.utils.data import DataLoader, SubsetRandomSampler
+
+from src.constants import GWS_DATA_DIR
+from src.unet.dataloader import LabelledSatelliteDataset
 
 SENTINEL_DIR = GWS_DATA_DIR / "sentinel2_data"
 SENTINEL_POLESIA_DIR = SENTINEL_DIR / "Polesia_10m"

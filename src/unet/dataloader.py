@@ -1,8 +1,8 @@
 """Data loader for general multispectral satellite imagery for our UNet model"""
 import logging
 import os
-from typing import List, Dict, Tuple, Union, Optional
 import random
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -12,8 +12,8 @@ import torchvision.transforms.functional as TF
 import tqdm
 from rasterio.plot import reshape_as_image
 
+from src.unet.normalizers import ImagenetNormalizer, NormalizerABC
 from src.unet.satellite_image import SatelliteImage
-from src.unet.normalizers import NormalizerABC, ImagenetNormalizer
 
 # pylint: disable=missing-function-docstring  #TODO: Docstring
 
@@ -189,8 +189,7 @@ class SatelliteDataset(torch.utils.data.Dataset):
             )
 
     def _construct_augmentor(self) -> None:
-        # FIXME: Current augmentor only works with PIL images. Need to implement to
-        # numpy arrays / torch to use
+        """Initialise augmentor for tiles (must be given as torch.Tensor)"""
 
         augmentor_pipeline = []
         if self.augmentations["rotation"]:
@@ -203,15 +202,15 @@ class SatelliteDataset(torch.utils.data.Dataset):
 
         self.augmentor = transforms.Compose(augmentor_pipeline)
 
-    def _augment(self, arr: np.ndarray, seed: int) -> np.ndarray:
-        # FIXME: Current augmentor only works with PIL images. Need to implement to
-        # numpy arrays / torch to use
+    def _augment(self, tensor: torch.Tensor, seed: int) -> torch.Tensor:
+
+        assert isinstance(tensor, torch.Tensor), "Augmentation requires torch.Tensor."
 
         # Seed fixing such that image and label will match:
         # # c.f. https://github.com/pytorch/pytorch/issues/42331#issuecomment-667434293
         random.seed(seed)
         torch.manual_seed(seed)
-        return self.augmentor(arr)
+        return self.augmentor(tensor)
 
     def __getitem__(self, index: int) -> torch.Tensor:
 
@@ -318,11 +317,27 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
         # Permute axes to have C x H x W ordering
         self._labels_one_hot = labels_one_hot.transpose(0, 2).transpose(1, 2)
 
-    def _get_tile_label(self, row_min: int, col_min: int, row_max: int, col_max: int):
-        if self.use_one_hot:
+    def _get_tile_label(
+        self,
+        row_min: int,
+        col_min: int,
+        row_max: int,
+        col_max: int,
+        mode: str = "one-hot",
+    ):
+        if mode == "one-hot":
+            # C x H x W format
             return self.labels_one_hot[:, row_min:row_max, col_min:col_max]
-        else:
+        elif mode == "image":
+            # H x W format
             return self.label_array[row_min:row_max, col_min:col_max]
+        elif mode == "raster":
+            # C x H x W format
+            return self.label_array[row_min:row_max, col_min:col_max][np.newaxis, ...]
+        else:
+            raise ValueError(
+                f"Invalid mode {mode}. Must be one of `one-hot`, `image`, `raster`"
+            )
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
 
