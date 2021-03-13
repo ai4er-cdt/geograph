@@ -1,10 +1,20 @@
-"""Module with utils for logging and debugging ipywidgets."""
+"""Module with utils for logging, debugging and styling ipywidgets."""
 
 import logging
 import ipywidgets as widgets
 import IPython.display
 
+# Styling widgets
+HRULE = widgets.HTML('<hr style="opacity: 0.5"/>')
 
+
+def create_html_header(text: str) -> widgets.HTML:
+    """Create html header widget from text."""
+    html_template = '<b style="opacity: 0.68">{}</b>'
+    return widgets.HTML(html_template.format(text))  # "<b>{}</b>".format(text))
+
+
+# Logging widgets
 class OutputWidgetHandler(logging.Handler):
     """Custom logging handler sending logs to an output widget.
 
@@ -16,7 +26,6 @@ class OutputWidgetHandler(logging.Handler):
         super().__init__(*args, **kwargs)
         layout = {
             "width": "100%",
-            #'height': '160px',
             "border": "1px solid black",
         }
         self.out = widgets.Output(layout=layout)
