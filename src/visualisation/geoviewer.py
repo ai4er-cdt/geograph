@@ -260,26 +260,9 @@ class GeoGraphViewer(ipyleaflet.Map):
                 )
             )
 
-        # Create widgets for each tab
-        tab_nest_dict = dict(
-            View=widgets.VBox(
-                [
-                    control_widgets.RadioVisibilityWidget(viewer=self),
-                    control_widgets.MetricsWidget(viewer=self),
-                ]
-            ),
-            Timeline=control_widgets.TimelineWidget(viewer=self),
-            Settings=control_widgets.SettingsWidget(viewer=self),
-            Log=self.log_handler.out,
-        )
-        tab_nest = widgets.Tab()
-        tab_nest.children = list(tab_nest_dict.values())
-        for i, title in enumerate(tab_nest_dict):
-            tab_nest.set_title(i, title)
-
         # Add combined control widgets to viewer
-        combined_widget = tab_nest
-        control = ipyleaflet.WidgetControl(widget=combined_widget, position="topright")
+        control_widget = control_widgets.GraphControlWidget(viewer=self)
+        control = ipyleaflet.WidgetControl(widget=control_widget, position="topright")
         self.add_control(control)
 
         # Add hover widget to viewer
