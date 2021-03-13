@@ -56,7 +56,7 @@ def train_model(cfg):
         max_epochs=cfg.epochs,
         logger=wandb_logger,
         log_every_n_steps=cfg.log_steps,
-        limit_val_batches=0.0,
+        # limit_val_batches=0.0,
         val_check_interval=cfg.val_interval,
     )
 
