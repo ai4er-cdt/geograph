@@ -252,10 +252,10 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
 
         self.logger.info("Label-loading: Loading landcover labels")
         self.labels = SatelliteImage(labels_path)
-        self.label_array = self.labels.combined_image.data.compute()
+        self.label_array = self.labels.combined_image.data.compute().squeeze()
 
         self.logger.info("Label-loading: Generating label mask")
-        self.label_mask = self.label_array.squeeze() > 0
+        self.label_mask = self.label_array > 0
 
         self.logger.info("Label-loading: Generating one-hot encoding")
         self._encode_labels_as_one_hot()
@@ -305,19 +305,24 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
 
     def _encode_labels_as_one_hot(self) -> None:
 
+        # Find number of unique labels for one hot enconding
         unique_labels = np.unique(self.label_array)
         self.logger.info("Label-encoding: Found %s unique labels", len(unique_labels))
-        label_tensor = torch.from_numpy(self.label_array).squeeze()
+        label_tensor = torch.from_numpy(self.label_array)
 
-        self._labels_one_hot = torch.nn.functional.one_hot(
+        # One hot encode axes: will be in H x W x C ordering
+        labels_one_hot = torch.nn.functional.one_hot(
             label_tensor.long(), num_classes=len(unique_labels)
         )
 
+        # Permute axes to have C x H x W ordering
+        self._labels_one_hot = labels_one_hot.transpose(0, 2).transpose(1, 2)
+
     def _get_tile_label(self, row_min: int, col_min: int, row_max: int, col_max: int):
         if self.use_one_hot:
-            return self.labels_one_hot[row_min:row_max, col_min:col_max]
+            return self.labels_one_hot[:, row_min:row_max, col_min:col_max]
         else:
-            return self.label_array.squeeze()[row_min:row_max, col_min:col_max]
+            return self.label_array[row_min:row_max, col_min:col_max]
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
 
