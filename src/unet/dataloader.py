@@ -1,7 +1,7 @@
 """Data loader for general multispectral satellite imagery for our UNet model"""
 import logging
 import os
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple, Union, Optional
 import random
 
 import numpy as np
@@ -9,6 +9,7 @@ import torch
 import torch.nn.functional
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
+import tqdm
 from rasterio.plot import reshape_as_image
 
 from src.unet.satellite_image import SatelliteImage
@@ -42,7 +43,10 @@ class SatelliteDataset(torch.utils.data.Dataset):
         tile_size: int = 256,
         normalizer: NormalizerABC = ImagenetNormalizer(),
         augmentations: Dict[str, bool] = {"rotation": False, "flip": False},
+        chunks: dict = {"band": 10, "x": 256, "y": 256},
         logger: logging.Logger = logging.getLogger(),
+        cache: Optional[bool] = None,
+        lock: Optional[bool] = None,
     ):
 
         self.logger = logger
@@ -52,10 +56,17 @@ class SatelliteDataset(torch.utils.data.Dataset):
         self._tile_label_overlaps = None
         self.normalizer = normalizer
         self.augmentations = augmentations
-        self._load_satellite_images(images_path)
+        self._load_satellite_images(images_path, chunks, cache, lock)
         self._construct_augmentor()
+        self.is_preloaded = False
 
-    def _load_satellite_images(self, images_path: os.PathLike) -> None:
+    def _load_satellite_images(
+        self,
+        images_path: os.PathLike,
+        chunks: dict,
+        cache: Optional[bool] = None,
+        lock: Optional[bool] = None,
+    ) -> None:
 
         # Scan all available shards
         self.logger.info("Sat-loading: Loading Satellite images")
@@ -71,7 +82,10 @@ class SatelliteDataset(torch.utils.data.Dataset):
         gather_shards = lambda name: list(
             images_path.glob(name + SatelliteDataset.IMAGE_PATTERN)
         )
-        self._images = [SatelliteImage(gather_shards(name)) for name in self.names]
+        self._images = [
+            SatelliteImage(gather_shards(name), chunks=chunks, cache=cache, lock=lock)
+            for name in self.names
+        ]
 
     @property
     def names(self) -> List[str]:
@@ -93,6 +107,25 @@ class SatelliteDataset(torch.utils.data.Dataset):
 
     def __len__(self) -> int:
         return self.ntiles
+
+    def _preload_chunk_handles(self) -> None:
+        if self.is_preloaded:
+            return
+        else:
+            self.logger.info("Preloading file handles for multiprocessing.")
+            for index in tqdm.tqdm(range(len(self)), desc="Preloading file handles."):
+                image_index = self._get_image_index(index)
+                row_min, col_min, _, _ = self._get_tile_bounds(index)
+
+                (
+                    self.images[image_index]
+                    .combined_image[
+                        self.use_bands, row_min : row_min + 1, col_min : col_min + 1
+                    ]
+                    .compute()
+                )
+            self.is_preloaded = True
+            self.logger.info("File handles preloaded.")
 
     def _calculate_center_tile_coords(self) -> None:
         _, nrows, ncols = self.images[0].shape  # discarded value is nbands
@@ -140,16 +173,16 @@ class SatelliteDataset(torch.utils.data.Dataset):
             return raster
 
         # Normalize and convert to image
-        image = np.clip(
-            reshape_as_image(raster) / SatelliteDataset.RGB_RESCALE_VALUE,
+        rescaled_raster = np.clip(
+            raster / SatelliteDataset.RGB_RESCALE_VALUE,
             a_min=0,
             a_max=1,
         )
 
         if mode == "image":
-            return image
+            return reshape_as_image(rescaled_raster)
         elif mode == "tensor":
-            return self.normalizer.normalize(image)
+            return torch.from_numpy(rescaled_raster)
         else:
             raise ValueError(
                 f"Invalid mode {mode}. Must be one of `raster`, `image`, `tensor`"
@@ -274,7 +307,7 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
 
         unique_labels = np.unique(self.label_array)
         self.logger.info("Label-encoding: Found %s unique labels", len(unique_labels))
-        label_tensor = torch.from_numpy(reshape_as_image(self.label_array).squeeze())
+        label_tensor = torch.from_numpy(self.label_array).squeeze()
 
         self._labels_one_hot = torch.nn.functional.one_hot(
             label_tensor.long(), num_classes=len(unique_labels)

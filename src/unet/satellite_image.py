@@ -2,7 +2,7 @@
 that are stored in multiple shards on disk"""
 import os
 import pathlib
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import dask.array as da
 import numba
@@ -21,6 +21,8 @@ class SatelliteImage:
         self,
         shard_paths: List[os.PathLike],
         chunks: dict = {"band": 1, "x": 256, "y": 256},
+        lock: Optional[bool] = None,
+        cache: Optional[bool] = None,
     ):
         """
         Class to combine a satellite image stored in several shards on disk.
@@ -45,16 +47,16 @@ class SatelliteImage:
         """
 
         if isinstance(shard_paths, os.PathLike):
-            self._load_single_shard(shard_paths, chunks)
+            self._load_single_shard(shard_paths, chunks, lock, cache)
         else:
-            self._load_multiple_shards(shard_paths, chunks)
+            self._load_multiple_shards(shard_paths, chunks, lock, cache)
 
-    def _load_single_shard(self, path: os.PathLike, chunks: dict) -> None:
+    def _load_single_shard(self, path: os.PathLike, chunks: dict, lock, cache) -> None:
         """Load single shard"""
         self.shard_paths: List[os.PathLike] = [pathlib.Path(path)]
         self.shard_offsets: List[Tuple[float]] = [(0, 0)]
         self.shard_handles: List[XarrayDataArray] = [
-            xr.open_rasterio(path, chunks=chunks)
+            xr.open_rasterio(path, chunks=chunks, lock=lock, cache=cache)
         ]
         self.crs: str = self.shard_handles[0].crs
         self.transform: Tuple[float] = self.shard_handles[0].transform
@@ -65,7 +67,7 @@ class SatelliteImage:
         self._combined_y = self.combined_image.y
 
     def _load_multiple_shards(
-        self, shard_paths: List[os.PathLike], chunks: dict
+        self, shard_paths: List[os.PathLike], chunks: dict, lock, cache
     ) -> None:
         """Load multiple shards"""
         self.shard_paths: List[os.PathLike] = [
@@ -76,7 +78,8 @@ class SatelliteImage:
             for path in self.shard_paths
         ]
         self.shard_handles: List[XarrayDataArray] = [
-            xr.open_rasterio(path, chunks=chunks) for path in self.shard_paths
+            xr.open_rasterio(path, chunks=chunks, lock=lock, cache=cache)
+            for path in self.shard_paths
         ]
         self.crs: str = self.shard_handles[0].crs
         self.transform: Tuple[float] = self.shard_handles[0].transform
