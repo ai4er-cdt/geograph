@@ -7,7 +7,7 @@ encoder_weights: "imagenet" # put null for random init
 decoder_channels: [256, 128, 64, 32, 16]
 decoder_attention_type: null # Can be null or "scse"
 in_channels: 3
-out_channels: 19
+out_channels: 20
 # Activation on the last layer of the model, can be "sigmoid", "softmax", etc
 activation: null
 
@@ -18,11 +18,11 @@ activation: null
 epochs: 10
 batch_size: 2
 learning_rate: 3e-3
-loss: "Jaccard" # Supports "Jaccard" and "Focal"
+loss: "BCE" # Supports "Jaccard", "Dice", "Focal"
 checkpoint_freq: 1 # How many epochs we should train for before checkpointing the model.
 # If val_interval is a float, it is the proportion of training set between validation epochs.
 # If it is an int, it denotes the number of batches in between validation epochs.
-val_interval: 0.25
+val_interval: 1.0
 log_steps: 20 # How many gradient updates between each log point.
 parallel_engine: ddp
 cuda: True # Whether to use GPUs.
