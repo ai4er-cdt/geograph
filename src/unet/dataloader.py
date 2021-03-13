@@ -182,7 +182,7 @@ class SatelliteDataset(torch.utils.data.Dataset):
         if mode == "image":
             return reshape_as_image(rescaled_raster)
         elif mode == "tensor":
-            return torch.from_numpy(rescaled_raster)
+            return self.normalizer.normalize(torch.from_numpy(rescaled_raster))
         else:
             raise ValueError(
                 f"Invalid mode {mode}. Must be one of `raster`, `image`, `tensor`"

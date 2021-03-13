@@ -24,6 +24,8 @@ class ImagenetNormalizer:
     and std values.
 
     Values are taken from https://pytorch.org/docs/stable/torchvision/models.html
+
+    Subtracts mean and divides by standard deviation
     """
 
     def __init__(self):
@@ -33,7 +35,7 @@ class ImagenetNormalizer:
         std_normalize = transforms.Normalize(
             mean=self.dataset_mean, std=self.dataset_std
         )
-        self.transform = transforms.Compose([transforms.ToTensor(), std_normalize])
+        self.transform = std_normalize
 
     # pylint: disable=unused-argument
     def normalize(self, image: np.ndarray, **kwargs) -> Tensor:
