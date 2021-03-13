@@ -234,7 +234,7 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
         images_path: os.PathLike,
         labels_path: os.PathLike,
         use_bands: List[int],
-        overlap_threshold: float = 0.5,
+        overlap_threshold: float = 0.7,
         use_one_hot: bool = True,
         **kwargs,
     ) -> None:
