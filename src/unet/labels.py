@@ -64,7 +64,21 @@ def burn_vector_to_raster(
     save_path: os.PathLike,
     **kwargs
 ) -> None:
-    """TODO: write docstring"""
+    """
+    Create raster file (.tif) of labels from labelled vector data.
+
+    Args:
+        vector_data (GeoDataFrame): The vector data to turn into a label raster file
+        colname (str): The column name in `vector_data` which contains the labels.
+            Must be numeric.
+
+        template_path (os.PathLike): A path to a template geotiff over which the vector
+            data will be overlayed. The resulting label raster will have the same meta
+            data, resolution and shape as the template raster. It will contain the
+            label values in the first band. Vector data that is not contained in the
+            raster will not be burnt to raster and will be ignored.
+        save_path (os.PathLike): The path to save the label raster data at (as GeoTiff)
+    """
 
     with rasterio.open(template_path) as raster_data:
         out_arr = raster_data.read(1)
