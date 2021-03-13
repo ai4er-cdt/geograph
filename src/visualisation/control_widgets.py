@@ -7,7 +7,7 @@ import ipywidgets as widgets
 import traitlets
 import logging
 
-from src.visualisation import geoviewer
+from src.visualisation import geoviewer, widget_utils
 
 
 class BaseControlWidget(widgets.Box):
@@ -30,6 +30,53 @@ class BaseControlWidget(widgets.Box):
         self.logger.addHandler(self.log_handler)
 
         self.logger.info("BaseControlWidget initialised.")
+
+
+class GraphControlWidget(BaseControlWidget):
+    """Widget with full set of controls for GeoGraphViewer."""
+
+    def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
+        """Widget with full set of controls for GeoGraphViewer.
+
+        This is the control widget added to GeoGraphViewer. It combines other widgets
+        such as visbility control, metrics, settings and more.
+
+        Args:
+            viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
+        """
+        super().__init__(viewer=viewer)
+
+        # Create combined widget, each key corresponds to a tab
+
+        radio_layout = widgets.Layout(
+            display="flex",
+            flex_flow="column",
+            align_items="center",
+            width="100%",
+            justify_content="center",
+        )
+        visibility_widget = widgets.VBox(
+            children=[RadioVisibilityWidget(viewer=self.viewer)], layout=radio_layout
+        )
+
+        combined_widget_dict = dict(
+            View=widgets.VBox(
+                [
+                    visibility_widget,
+                    widget_utils.HRULE,
+                    MetricsWidget(viewer=self.viewer),
+                ]
+            ),
+            Timeline=TimelineWidget(viewer=self.viewer),
+            Settings=SettingsWidget(viewer=self.viewer),
+            Log=self.log_handler.out,
+        )
+        combined_widget = widgets.Tab()
+        combined_widget.children = list(combined_widget_dict.values())
+        for i, title in enumerate(combined_widget_dict):
+            combined_widget.set_title(i, title)
+
+        self.children = [combined_widget]
 
 
 class RadioVisibilityWidget(BaseControlWidget):
@@ -59,27 +106,48 @@ class RadioVisibilityWidget(BaseControlWidget):
         Returns:
             widgets.Widget: final widget to be added to GeoGraphViewer
         """
-        graph_selection = self.create_graph_selection()
+        graph_selection = self._create_layer_selection(layer_type="graphs")
+        map_selection = self._create_layer_selection(layer_type="maps")
         view_buttons = self.create_visibility_buttons()
 
-        widget = widgets.VBox([graph_selection, view_buttons])
+        widget = widgets.VBox(
+            [
+                widget_utils.create_html_header("Graph Selection"),
+                graph_selection,
+                widget_utils.HRULE,
+                widget_utils.create_html_header("Map Selection"),
+                map_selection,
+                widget_utils.HRULE,
+                widget_utils.create_html_header("View Selection"),
+                view_buttons,
+            ]
+        )
 
         return widget
 
-    def create_graph_selection(self) -> widgets.RadioButtons:
+    def _create_layer_selection(
+        self, layer_type: str = "graphs"
+    ) -> widgets.RadioButtons:
         """Create radio buttons to enable graph selection.
 
-        Returns:
-            widgets.RadioButtons: buttons to select graph
-        """
-        graph_list = []
-        graph_names = list(self.viewer.layer_dict["graphs"].keys())
-        for graph_name in graph_names:
-            graph_str = graph_name
-            graph_list.append((graph_str, graph_name))
+        Args:
+            layer_type (str, optional): one of "graphs" or "maps". Defaults to "graphs".
 
-        radio_buttons = widgets.RadioButtons(options=graph_list, description="")
-        widgets.link((radio_buttons, "value"), (self.viewer, "current_graph"))
+        Returns:
+            widgets.RadioButtons: buttons to select from layer_type
+        """
+        layer_list = []
+        layer_names = list(self.viewer.layer_dict[layer_type].keys())
+        for layer_name in layer_names:
+            layer_str = layer_name
+            layer_list.append((layer_str, layer_name))
+
+        radio_buttons = widgets.RadioButtons(options=layer_list, description="")
+        if layer_type == "graphs":
+            viewer_attr = "current_graph"
+        elif layer_type == "maps":
+            viewer_attr = "current_map"
+        widgets.link((radio_buttons, "value"), (self.viewer, viewer_attr))
 
         return radio_buttons
 
@@ -94,35 +162,41 @@ class RadioVisibilityWidget(BaseControlWidget):
         Returns:
             widgets.Box: box with button widgets
         """
-        # Creating view buttons
-        btn_layout = widgets.Layout(width="115px")
-        view_graph_btn = widgets.ToggleButton(
+
+        def create_toggle_button(
+            description: str, tooltip: str, icon: str, layout_kwargs: dict = None
+        ) -> widgets.ToggleButton:
+            """Create a toggle button with arguments.
+
+            Avoids having a shared layout, which breaks widgets.TwoByTwoLayout."""
+            if layout_kwargs is None:
+                layout_kwargs = dict(height="auto", width="auto")
+            return widgets.ToggleButton(
+                description=description,
+                tooltip=tooltip,
+                icon=icon,
+                layout=widgets.Layout(**layout_kwargs),
+            )
+
+        view_graph_btn = create_toggle_button(
             description="Graph",
             tooltip="View graph",
             icon="project-diagram",
-            layout=btn_layout,
         )
-        view_pgon_btn = widgets.ToggleButton(
+        view_pgon_btn = create_toggle_button(
             description="Polygons",
-            disabled=False,
-            button_style="",
             tooltip="View graph",
             icon="shapes",
-            layout=btn_layout,
         )
-        view_components_btn = widgets.ToggleButton(
+        view_components_btn = create_toggle_button(
             description="Components",
-            button_style="",
             tooltip="View graph",
             icon="circle",
-            layout=btn_layout,
         )
-        view_map_btn = widgets.ToggleButton(
+        view_map_btn = create_toggle_button(
             description="Map",
-            button_style="",
             tooltip="View graph",
             icon="globe-africa",
-            layout=btn_layout,
         )
 
         button_list = [
@@ -161,8 +235,11 @@ class RadioVisibilityWidget(BaseControlWidget):
         view_pgon_btn.value = True
         view_map_btn.value = True
 
-        buttons = widgets.VBox(
-            [widgets.HBox(button_list[:2]), widgets.HBox(button_list[2:])]
+        buttons = widgets.TwoByTwoLayout(
+            top_left=view_graph_btn,
+            top_right=view_pgon_btn,
+            bottom_left=view_components_btn,
+            bottom_right=view_map_btn,
         )
 
         return buttons
@@ -416,8 +493,12 @@ class MetricsWidget(BaseControlWidget):
         """
         super().__init__(viewer=viewer)
 
-        widget = self._create_metrics_widget()
-        self.children = [widget]
+        metrics_widget = self._create_metrics_widget()
+        self.children = [
+            widgets.VBox(
+                [widget_utils.create_html_header("Graph Metrics"), metrics_widget]
+            )
+        ]
 
     def _create_metrics_widget(self) -> widgets.VBox:
         """Create metrics visualisation widget.
@@ -426,12 +507,12 @@ class MetricsWidget(BaseControlWidget):
             widgets.VBox: metrics widget
         """
 
-        metrics_html = widgets.HTML("Select graph")
+        metrics_html = widgets.HTML("No graph selected.")
 
         def metrics_callback(change):
             try:
-                graph_name = change.new
-                metrics = change.owner.layer_dict["graphs"][graph_name]["metrics"]
+                graph_name = change["new"]
+                metrics = change["owner"].layer_dict["graphs"][graph_name]["metrics"]
 
                 metrics_str = ""
                 if metrics:
@@ -450,6 +531,7 @@ class MetricsWidget(BaseControlWidget):
                 )
 
         self.viewer.observe(metrics_callback, names=["current_graph"])
+        metrics_callback(dict(new=self.viewer.current_graph, owner=self.viewer))
 
         return metrics_html
 
@@ -548,7 +630,9 @@ class HoverWidget(BaseControlWidget):
     def _hover_callback(self, feature, **kwargs):  # pylint: disable=unused-argument
         """Callback function on hover on graph polygon patch"""
         try:
-            new_value = """<b>Current Patch</b></br>
+            new_value = widget_utils.create_html_header(
+                "Current Patch"
+            ).value + """</br>
                 <b>Class label:</b> {}</br>
 
                 <b>Area:</b> {:.2f} m^2
