@@ -48,23 +48,17 @@ class GraphControlWidget(BaseControlWidget):
 
         # Create combined widget, each key corresponds to a tab
 
-        radio_layout = widgets.Layout(
-            display="flex",
-            flex_flow="column",
-            align_items="center",
-            width="100%",
-            justify_content="center",
-        )
-        visibility_widget = widgets.VBox(
-            children=[RadioVisibilityWidget(viewer=self.viewer)], layout=radio_layout
-        )
+        visibility_widget = RadioVisibilityWidget(viewer=self.viewer)
+        metrics_widget = MetricsWidget(viewer=self.viewer)
+        viewer_height = int(viewer.layout.height.replace("px", ""))
+        metrics_widget.layout.height = "{}px".format(viewer_height * 0.3)
 
         combined_widget_dict = dict(
             View=widgets.VBox(
                 [
                     visibility_widget,
                     widget_utils.HRULE,
-                    MetricsWidget(viewer=self.viewer),
+                    metrics_widget,
                 ]
             ),
             # Timeline=TimelineWidget(viewer=self.viewer), # currently only placeholder
@@ -513,6 +507,10 @@ class MetricsWidget(BaseControlWidget):
         """
 
         metrics_html = widgets.HTML("No graph selected.")
+
+        # Added to ensure vertical scroll bar on right hand-side of box
+        metrics_html.layout.width = "300px"
+        metrics_html.layout.overflow_x = "hidden"
 
         def metrics_callback(change):
             try:
