@@ -8,6 +8,9 @@ from  src.preprocessing.load_landsat_esa import return_xy_npa, y_npa_to_xarray, 
 import os
 import time
 import numpy as np
+import dask
+import dask.array as da
+from dask.distributed import Client
 import xarray as xr
 from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, SAT_DIR
 from src.preprocessing.esa_compress import compress_esa, decompress_esa, FORW_D, REV_D
@@ -36,9 +39,9 @@ def clip(da_1, da_2):
     Mutually clips the dataarrays so that they end up within the same window.
     rm /gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data/inputs/take_esa_coords_True_use_mfd_False_use_ffil_True_use_ir_True_x.nc
     """
-    print("clipping")
-    print("before clipping, da_1", da_1)
-    print("after clipping, da_2", da_2)
+    # print("clipping")
+    # print("before clipping, da_1", da_1)
+    # print("after clipping, da_2", da_2)
 
     y_lim = [
         max([da_1.y.min(), da_2.y.min()]).values.tolist(),
@@ -355,6 +358,49 @@ def return_xy_npa(x_da, y_da, year=5):
         x_val, y_val = combine_first_two_indices(np.array(x_val_l), np.array(y_val_l))
     else:
         x_val, y_val = _return_xy_npa(x_da, y_da, yr=year)
+    return x_val, y_val
+
+
+@timeit
+def return_xy_dask(x_da, y_da, year=5):
+    """
+    return the x and y numpy arrays for a given number of years.
+    Currently this function just returns (N, D) for x and (N,) for Y
+    for UNET we want a function that returns (yr, y, xr, D) for x and (yr, y, x, D) for y
+    :param x_da: xarray.DataArray, inputs
+    :param y_da: xarray.DataArray, labels
+    :param year: ints, single or list
+    :return: x_val, y_val
+    """
+
+    def combine_first_two_indices(x_val, y_val):
+        return (
+            da.stack([x_val[:, :, i].ravel() for i in range(x_val.shape[2])], axis=1),
+            y_val.ravel(),
+        )
+
+    def _return_xy_dask_array(x_da, y_da, yr=5):
+        assert isinstance(yr, int)
+        x_val = da.stack(
+            [
+                x_da.isel(year=0, mn=mn, band=band).data.ravel()
+                for mn in range(len(x_da.mn.values))
+                for band in range(len(x_da.band.values))
+            ],
+            axis=1,
+        )  # [mn, band]
+        return x_val, y_da.isel(year=yr).data.ravel()
+
+    if isinstance(year, range) or isinstance(year, list):
+        x_val_l, y_val_l = [], []
+        for yr in year:
+            x_val_p, y_val_p = _return_xy_dask_array(x_da, y_da, yr=yr)
+            x_val_l.append(x_val_p)
+            y_val_l.append(y_val_p)
+        # x_val, y_val = da.stack(x_val_l), da.stack(y_val_l)
+        x_val, y_val = combine_first_two_indices(da.stack(x_val_l), da.stack(y_val_l))
+    else:
+        x_val, y_val = _return_xy_dask_array(x_da, y_da, yr=year)
     return x_val, y_val
 
 

@@ -26,8 +26,10 @@ import wandb
 import xgboost as xgb
 from sklearn import metrics
 import xarray as xr
+import dask
 import dask.array as da
 import dask.distributed
+from dask.distributed import Client
 from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, SAT_DIR
 from src.preprocessing.esa_compress import compress_esa, decompress_esa, FORW_D, REV_D
 from src.preprocessing.load_landsat_esa import (
@@ -35,6 +37,8 @@ from src.preprocessing.load_landsat_esa import (
     y_npa_to_xr,
     x_npa_to_xr,
     return_x_y_da,
+    clip,
+    return_xy_dask,
 )
 from src.utils import timeit
 from src.preprocessing.landsat_to_ncf import create_netcdfs
@@ -85,33 +89,17 @@ def train_xgb(
     if use_dask:
         # https://docs.dask.org/en/latest/array-api.html#dask.array.from_npy_stack
         # https://xgboost.readthedocs.io/en/latest/tutorials/dask.html
-        dask_direc = os.path.join(SAT_DIR, "dask_temp")
+        # dask_direc = os.path.join(SAT_DIR, "dask_temp")
+        # if not os.path.exists(dask_direc):
+        #     print("making ", dask_direc)
+        #     os.mkdir(dask_direc)
 
-        if not os.path.exists(dask_direc):
-            print("making ", dask_direc)
-            os.mkdir(dask_direc)
+        # cluster = dask.distributed.LocalCluster(n_workers=4, threads_per_worker=10)
+        # client = dask.distributed.Client(cluster)
+        client = Client(n_workers=12, threads_per_worker=10, memory_limit="10GB")
 
-        cluster = dask.distributed.LocalCluster(n_workers=4, threads_per_worker=10)
-        client = dask.distributed.Client(cluster)
-
-        def daskify(x):
-            future = client.scatter(x)
-            x = da.from_delayed(future, shape=x.shape, dtype=x.dtype)
-            x = x.rechunk()
-            return x.persist()
-
-        # train_X,
-        # train_Y,
-        # test_X,
-        # test_Y,
-
-        dtrain = xgb.dask.DaskDMatrix(client, daskify(train_X), daskify(train_Y))
-        dtest = xgb.dask.DaskDMatrix(client, daskify(test_X), daskify(test_Y))
-
-        del train_X
-        del train_Y
-        del test_X
-        del test_Y
+        dtrain = xgb.dask.DaskDMatrix(client, train_X, train_Y)
+        dtest = xgb.dask.DaskDMatrix(client, test_X, test_Y)
 
         output = xgb.dask.train(
             client,
@@ -124,7 +112,6 @@ def train_xgb(
         # x_all, y_all = return_xy_npa(
         #     x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
         # )  # all data as numpy.
-
         """
         xg_all = xgb.DMatrix(
             x_all, label=compress_esa(y_all)
@@ -135,13 +122,12 @@ def train_xgb(
         x = dask.delayed(load_array_from_file)(fn)
         x = da.from_delayed(x, shape=(1000, 1000, 1000), dtype=float)
         x = x.rechunk((100, 100, 100))
-        x = x.persist()
-        """
+        x = x.persist()"""
         # prediction = xgb.dask.predict(client, output, dtrain)
         # Or equivalently, pass ``output['booster']``:
         # prediction = xgb.dask.predict(client, output['booster'], dtrain)
-        prediction = xgb.dask.predict(client, output, dtest)
-        print(prediction)
+        # prediction = xgb.dask.predict(client, output, dtest)
+        # print(prediction)
         # https://stackoverflow.com/questions/45941528/how-to-efficiently-send-a-large-numpy-array-to-the-cluster-with-dask-array
     else:
         # label need to be 0 to num_class -1
@@ -201,7 +187,7 @@ if __name__ == "__main__":
         "mid_year_i": 19,
         "end_year_i": 24,
         "take_esa_coords": True,  # True,  # False,
-        "use_ffil": False,
+        "use_ffil": True,
         "use_mfd": False,
         "use_ir": False,
         "objective": "multi:softmax",
@@ -209,34 +195,55 @@ if __name__ == "__main__":
         "max_depth": 12,
         "nthread": 16,
         "num_round": 20,
-        "use_dask": False,
-        "prefer_remake": True,
+        "use_dask": True,
+        "prefer_remake": False,
     }
     print("cfd:\n", cfd)
 
     wandb.init(project="xgbc-esa-cci", entity="sdat2")  # my id for wandb
     wandb.config.update(cfd)
 
-    x_da, y_da = return_x_y_da(
-        take_esa_coords=cfd["take_esa_coords"],
-        use_ffil=cfd["use_ffil"],
-        use_mfd=cfd["use_mfd"],
-        use_ir=cfd["use_ir"],
-        prefer_remake=cfd["prefer_remake"],
-    )  # load preprocessed data from netcdfs
+    if cfd["use_dask"]:
+        input_direc = os.path.join(SAT_DIR, "inputs")
+        x_file_name = os.path.join(
+            input_direc,
+            "take_esa_coords_False_use_mfd_False_use_ffil_True_use_ir_False_x.nc",
+        )
+        y_file_name = os.path.join(
+            input_direc,
+            "take_esa_coords_False_use_mfd_False_use_ffil_False_use_ir_False_y.nc",
+        )
+        x_da = xr.open_dataset(
+            x_file_name, chunks={"year": 1, "band": 1, "mn": 1}
+        ).norm_refl
+        y_da = xr.open_dataset(y_file_name, chunks={"year": 1}).esa_cci
+        x_da, y_da = clip(x_da, y_da)
+        x_tr, y_tr = return_xy_dask(
+            x_da, y_da, year=range(cfd["start_year_i"], cfd["mid_year_i"])
+        )  # load numpy train data.
+        x_te, y_te = return_xy_dask(
+            x_da, y_da, year=range(cfd["mid_year_i"], cfd["end_year_i"])
+        )  # load numpy test data.
+    else:
+        x_da, y_da = return_x_y_da(
+            take_esa_coords=cfd["take_esa_coords"],
+            use_ffil=cfd["use_ffil"],
+            use_mfd=cfd["use_mfd"],
+            use_ir=cfd["use_ir"],
+            prefer_remake=cfd["prefer_remake"],
+        )  # load preprocessed data from netcdfs
+        x_tr, y_tr = return_xy_npa(
+            x_da, y_da, year=range(cfd["start_year_i"], cfd["mid_year_i"])
+        )  # load numpy train data.
+        x_te, y_te = return_xy_npa(
+            x_da, y_da, year=range(cfd["mid_year_i"], cfd["end_year_i"])
+        )  # load numpy test data.
 
     # there are now 24 years to choose from.
     # train set goes from 0 to 1. # print(x_da.year.values)
     # test_inversibility()
     # print("x_da", x_da)
     # print("y_da", y_da)
-
-    x_tr, y_tr = return_xy_npa(
-        x_da, y_da, year=range(cfd["start_year_i"], cfd["mid_year_i"])
-    )  # load numpy train data.
-    x_te, y_te = return_xy_npa(
-        x_da, y_da, year=range(cfd["mid_year_i"], cfd["end_year_i"])
-    )  # load numpy test data.
     bst = train_xgb(
         x_tr,
         compress_esa(y_tr),
