@@ -8,10 +8,14 @@ import IPython.display
 HRULE = widgets.HTML('<hr style="opacity: 0.5"/>')
 
 
-def create_html_header(text: str) -> widgets.HTML:
+def create_html_header(text: str, level=1) -> widgets.HTML:
     """Create html header widget from text."""
-    html_template = '<b style="opacity: 0.68">{}</b>'
-    return widgets.HTML(html_template.format(text))  # "<b>{}</b>".format(text))
+    opacity_levels = [1.0, 0.68, 0.55, 0.4]
+    opacity = opacity_levels[level]
+    html_template = '<b style="opacity: {}">{}</b>'
+    return widgets.HTML(
+        html_template.format(opacity, text)
+    )  # "<b>{}</b>".format(text))
 
 
 # Logging widgets

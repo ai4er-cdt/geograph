@@ -67,7 +67,7 @@ class GraphControlWidget(BaseControlWidget):
                     MetricsWidget(viewer=self.viewer),
                 ]
             ),
-            Timeline=TimelineWidget(viewer=self.viewer),
+            # Timeline=TimelineWidget(viewer=self.viewer), # currently only placeholder
             Settings=SettingsWidget(viewer=self.viewer),
             Log=self.log_handler.out,
         )
@@ -137,9 +137,11 @@ class RadioVisibilityWidget(BaseControlWidget):
             widgets.RadioButtons: buttons to select from layer_type
         """
         layer_list = []
-        layer_names = list(self.viewer.layer_dict[layer_type].keys())
-        for layer_name in layer_names:
+        layers = list(self.viewer.layer_dict[layer_type].items())
+        for layer_name, layer in layers:
             layer_str = layer_name
+            if layer_type == "graphs" and layer["is_habitat"]:
+                layer_str += " (habitat of {})".format(layer["parent"])
             layer_list.append((layer_str, layer_name))
 
         radio_buttons = widgets.RadioButtons(options=layer_list, description="")
@@ -185,17 +187,20 @@ class RadioVisibilityWidget(BaseControlWidget):
         )
         view_pgon_btn = create_toggle_button(
             description="Polygons",
-            tooltip="View graph",
+            tooltip="View polygons",
             icon="shapes",
         )
         view_components_btn = create_toggle_button(
             description="Components",
-            tooltip="View graph",
+            tooltip=(
+                "View components of graph. If current graph is habitat, components show"
+                " the reach of an animal in a component (based on max_travel_distance)."
+            ),
             icon="circle",
         )
         view_map_btn = create_toggle_button(
             description="Map",
-            tooltip="View graph",
+            tooltip="View map",
             icon="globe-africa",
         )
 
@@ -512,18 +517,40 @@ class MetricsWidget(BaseControlWidget):
         def metrics_callback(change):
             try:
                 graph_name = change["new"]
-                metrics = change["owner"].layer_dict["graphs"][graph_name]["metrics"]
+                graph_layer = change["owner"].layer_dict["graphs"][graph_name]
+                graph = graph_layer["original_graph"]
+                metrics = graph_layer["metrics"]
 
-                metrics_str = ""
+                # Adding general and habitat graph information
+                metrics_str = widget_utils.create_html_header(
+                    "Information", level=2
+                ).value
+
+                if graph_layer["is_habitat"]:
+                    information = {
+                        "parent": graph_layer["parent"],
+                        "valid_classes": graph.valid_classes,
+                        "max_travel_distance": graph.max_travel_distance,
+                        # "barrier_classes": graph_layer["barrier_classes"] #TODO: add
+                    }
+                else:
+                    information = {}
+                information["Number of edges"] = len(graph.graph.edges())
+                information["Number of nodes"] = len(graph.graph.nodes())
+
+                for info_name, info_value in information.items():
+                    metrics_str += "</br><b>{}:</b> {}".format(info_name, info_value)
+                metrics_str += "</br>"
+
+                # Adding metrics
+                metrics_str += widget_utils.create_html_header("Metrics", level=2).value
                 if metrics:
                     for metric in metrics:
-                        metrics_str += """
-                        <b>{}:</b> {:.2f}</br>
-                        """.format(
+                        metrics_str += "</br><b>{}:</b> {:.2f}".format(
                             metric.name, metric.value
                         )
                 else:
-                    metrics_str += "No metrics available for current graph."
+                    metrics_str += " No metrics available for current graph."
                 metrics_html.value = metrics_str
             except:  # pylint: disable=bare-except
                 self.logger.exception(

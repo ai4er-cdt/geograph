@@ -198,13 +198,18 @@ class GeoGraphViewer(ipyleaflet.Map):
                     current_graph.get_metric(metric)
                 )  # pylint: disable=protected-access
 
-            self.layer_dict["graphs"][current_name] = dict(
+            layer = dict(
                 is_habitat=is_habitat,
                 graph=dict(layer=graph_geo_data, active=True),
                 pgons=dict(layer=pgon_choropleth, active=True),
                 components=dict(layer=component_choropleth, active=False),
                 metrics=graph_metrics,
+                original_graph=current_graph,
             )
+            if is_habitat:
+                layer["parent"] = name
+
+            self.layer_dict["graphs"][current_name] = layer
 
         self.current_graph = name
         self.layer_update()
