@@ -25,7 +25,7 @@ def write_image(arr: np.array, save_path: os.PathLike, **raster_meta) -> None:
 
 
 def zeros_tif_like(
-    raster_data: rasterio.io.Dataset,
+    raster_data: rasterio.DatasetReader,
     save_path: os.PathLike,
     nbands: int = 1,
     dtype: str = "uint8",
