@@ -107,7 +107,7 @@ def label_subplots(axs: Sequence[matplotlib.axes], start_from: int=0, fontsize: 
         )
 
 
-def get_dim(fraction_of_line_width=1, ratio=(5 ** 0.5 - 1) / 2):
+def get_dim(fraction_of_line_width: float =1, ratio: float=(5 ** 0.5 - 1) / 2) -> Tuple[float, float]:
     """Return figure height, width in inches to avoid scaling in latex. Default is golden ratio.
     ​
         Parameters
