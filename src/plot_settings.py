@@ -78,7 +78,7 @@ def ps_defaults(use_tex=True):
     matplotlib.rcParams.update(p_setting)
 
 
-def label_subplots(axs, start_from=0, fontsize=10):
+def label_subplots(axs: Sequence[matplotlib.axes], start_from: int=0, fontsize: int=10) -> None:
     """
     Currently adds (a), (b), (c) etc. at the top left of each subplot panel.
     Labelling order achieved through ravelling the input list/ array
