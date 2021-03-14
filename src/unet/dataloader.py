@@ -48,15 +48,28 @@ class SatelliteDataset(torch.utils.data.Dataset):
         **kwargs,
     ):
 
+        # Initialize logger
         self.logger = logger
+
+        # Set tile size and bands to use
         self.tile_size = tile_size
         self.use_bands = use_bands
+        self.tile_mode = "tensor"
+
+        # Initialize empty tile coordinates
         self._tile_center_coords = None
-        self._tile_label_overlaps = None
-        self.normalizer = normalizer
+
+        # Initialize augmentator
+        self.use_augmentations = False
         self.augmentations = augmentations
-        self._load_satellite_images(images_path, chunks, **kwargs)
         self._construct_augmentor()
+
+        # Initialize normalizer
+        self.normalizer = normalizer
+
+        # Load satellite image (lazily)
+        self._load_satellite_images(images_path, chunks, **kwargs)
+        # Flag to indicate whether `_preoload_chunk_handles` has been called
         self.is_preloaded = False
 
     def _load_satellite_images(
@@ -97,7 +110,7 @@ class SatelliteDataset(torch.utils.data.Dataset):
     def tile_center_coords(self) -> np.ndarray:
         """Return center row-col coordinates of all tiles in the dataset"""
         if self._tile_center_coords is None:
-            self._calculate_center_tile_coords()
+            self._calculate_center_tile_coords()  # Calculate coords if not cached
         return self._tile_center_coords
 
     @property
@@ -245,7 +258,6 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
         labels_path: os.PathLike,
         use_bands: List[int],
         overlap_threshold: float = 0.7,
-        use_one_hot: bool = True,
         **kwargs,
     ) -> None:
 
@@ -254,8 +266,9 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
             use_bands=use_bands,
             **kwargs,
         )
-        self.use_one_hot = use_one_hot
         self.overlap_threshold = overlap_threshold
+        self._tile_label_overlaps = None
+        self.label_mode = "one-hot"
         self._load_labels(labels_path)
 
     def _load_labels(self, labels_path: os.PathLike) -> None:
@@ -360,7 +373,23 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
         image_index = self._get_image_index(index)
         tile_bounds = self._get_tile_bounds(index)
 
-        return (
-            self._get_tile_from_bounds(image_index, *tile_bounds),
-            self._get_tile_label(*tile_bounds),
+        tile = self._get_tile_from_bounds(
+            image_index, *tile_bounds, mode=self.tile_mode
         )
+        label = self._get_tile_label(*tile_bounds, mode=self.label_mode)
+
+        if self.use_augmentations:
+            if self.tile_mode != "tensor" or self.label_mode not in [
+                "one-hot",
+                "raster",
+            ]:
+                raise UserWarning(
+                    "Augmentations can only be used in with `tile_mode=='tensor'`"
+                    "and `label_mode==one-hot` or `label_mode=='raster'`"
+                )
+            # Use the same random seed to augment tile and label to make sure that
+            # the label aligns with the tile
+            seed = random.randint(0, int(1e9))
+            return self._augment(tile, seed), self._augment(label, seed)
+        else:
+            return tile, label
