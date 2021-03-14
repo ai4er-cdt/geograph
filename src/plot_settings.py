@@ -173,5 +173,5 @@ _paper_colors_abbv = [
     "#d7a4a3ff",
 ]
 _paper_colors = sns.color_palette(_paper_colors_abbv)
-# sns.palplot(_paper_colors)
+# Note: To inspect colors, call `sns.palplot(_paper_colors)`
 PALETTE = itertools.cycle(_paper_colors)
