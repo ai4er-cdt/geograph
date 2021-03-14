@@ -43,7 +43,7 @@ class SatelliteDataset(torch.utils.data.Dataset):
         tile_size: int = 256,
         normalizer: NormalizerABC = ImagenetNormalizer(),
         augmentations: Dict[str, bool] = {"rotation": False, "flip": False},
-        chunks: dict = {"band": 10, "x": 256, "y": 256},
+        chunks: Dict[str, int] = {"band": 10, "x": 256, "y": 256},
         logger: logging.Logger = logging.getLogger(),
         **kwargs,
     ):
