@@ -56,7 +56,6 @@ def train_model(cfg):
         max_epochs=cfg.epochs,
         logger=wandb_logger,
         log_every_n_steps=cfg.log_steps,
-        # limit_val_batches=0.0,
         val_check_interval=cfg.val_interval,
     )
 
@@ -65,7 +64,7 @@ def train_model(cfg):
 
     # Load best checkpoint
     unet = model.UNetModel.load_from_checkpoint(ckpt.best_model_path)
-
+    trainer.test(unet)
     # Save weights from checkpoint
     statedict_path: pathlib.Path = run_dir / "saved_models" / "unet.pt"
     os.makedirs(os.path.dirname(statedict_path), exist_ok=True)
