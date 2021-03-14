@@ -39,7 +39,7 @@ def train_model(cfg):
         dirpath=ckpt_dir,
         filename="{epoch}",
         period=cfg.checkpoint_freq,
-        monitor="train_loss",
+        monitor=cfg.eval_metric,
         save_top_k=2,
         mode="min",
     )

@@ -24,7 +24,7 @@ checkpoint_freq: 1 # How many epochs we should train for before checkpointing th
 # If val_interval is a float, it is the proportion of training set between validation epochs.
 # If it is an int, it denotes the number of batches in between validation epochs.
 val_interval: 1.0
-log_steps: 10 # How many gradient updates between each log point.
+log_steps: 20 # How many gradient updates between each log point.
 parallel_engine: ddp
 cuda: True # Whether to use GPUs.
 gpus: 1 # Number of GPUs to use.
