@@ -12,7 +12,7 @@ from src.plot_settings import (
     PALETTE,
     STD_CLR_LIST,
     CAM_BLUE,
-    CAM_RED,
+    BRICK_RED,
     OX_BLUE,
 )
 
@@ -50,10 +50,13 @@ import seaborn as sns
 
 
 def ps_defaults(use_tex: bool = True) -> None:
-    """
-    Apply plotting style to produce nice looking figures.
-    Call this at the start of a script which uses matplotlib,
-    and choose the either high (uses latex) or low (without latex)
+    """Apply plotting style to produce nice looking figures.
+    Call this at the start of a script which uses `matplotlib`.
+    Can enable `matplotlib` LaTeX backend if it is available.
+
+    Args:
+        use_tex (bool, optional): Whether or not to use latex matplotlib backend.
+            Defaults to True.
     """
     # matplotlib.use('agg') this used to be required for jasmin
     p_general = {
@@ -109,8 +112,7 @@ def label_subplots(
         start_from (int, optional): skips first ${start_from} labels. Defaults to 0.
         fontsize (int, optional): Font size for labels. Defaults to 10.
 
-    Returns
-    -------
+    Returns:
         void; alters the `matplotlib.pyplot.axes` objects
 
     """
@@ -137,20 +139,18 @@ def get_dim(
     fraction_of_line_width: float = 1, ratio: float = (5 ** 0.5 - 1) / 2
 ) -> Tuple[float, float]:
     """Return figure height, width in inches to avoid scaling in latex.
-       Default is golden ratio.
-    ​
-        Parameters
-        ----------
-        fraction_of_line_width: float
-                Fraction of the document width which you wish the figure to occupy
+       Default is golden ratio, with figur occupying full page width.
 
-        ratio: float
-                Fraction of figure width that the figure height should be
-    ​
-        Returns
-        -------
-        fig_dim: tuple
-                Dimensions of figure in inches
+    Args:
+        fig (matplotlib.pyplot.figure): Figure object to resize.
+        fraction_of_line_width (float, optional): Fraction of the document width
+            which you wish the figure to occupy.  Defaults to 1.
+        ratio (float, optional): Fraction of figure width that the figure height
+            should be. Defaults to (5 ** 0.5 - 1)/2.
+
+    Returns:
+        fig_dim (tuple):
+            Dimensions of figure in inches
     """
     thesis_width = 697.3  # roughly 6.5 inches
 
@@ -176,16 +176,16 @@ def set_dim(
     ratio: float = (5 ** 0.5 - 1) / 2,
 ) -> None:
     """Set aesthetic figure dimensions to avoid scaling in latex.
-    ​
-        Parameters
-        ----------
-        fraction_of_line_width: float
-                Fraction of the document width which you wish the figure to occupy.
 
-        ratio: float
-                Fraction of figure width that the figure height should be.
-    ​
-        Returns: void; alters current figure to have the desired dimensions
+    Args:
+        fig (matplotlib.pyplot.figure): Figure object to resize.
+        fraction_of_line_width (float, optional): Fraction of the document width
+            which you wish the figure to occupy.  Defaults to 1.
+        ratio (float, optional): Fraction of figure width that the figure height
+            should be. Defaults to (5 ** 0.5 - 1)/2.
+
+    Returns:
+        void; alters current figure to have the desired dimensions
     """
     fig.set_size_inches(
         get_dim(fraction_of_line_width=fraction_of_line_width, ratio=ratio)
@@ -206,4 +206,4 @@ _paper_colors = sns.color_palette(STD_CLR_LIST)
 PALETTE = itertools.cycle(_paper_colors)
 CAM_BLUE = "#a3c1ad"
 OX_BLUE = "#002147"
-CAM_RED = "#CB4154"
+BRICK_RED = "#CB4154"
