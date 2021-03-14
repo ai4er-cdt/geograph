@@ -141,7 +141,7 @@ def get_dim(fraction_of_line_width=1, ratio=(5 ** 0.5 - 1) / 2):
     return fig_dim
 
 
-def set_dim(fraction_of_line_width=1, ratio=(5 ** 0.5 - 1) / 2):
+def set_dim(fig: matplotlib.pyplot.figure, fraction_of_line_width: float=1, ratio: float=(5 ** 0.5 - 1) / 2) -> None:
     """Set aesthetic figure dimensions to avoid scaling in latex.
     ​
         Parameters
