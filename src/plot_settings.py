@@ -38,7 +38,6 @@ set_dim(fig, fraction_of_line_width=1, ratio=(5 ** 0.5 - 1) / 2)
 # label subplots
 label_subplots(axs, start_from=0, fontsize=10)
 
-
 """
 from typing import Sequence, Tuple
 import numpy as np
@@ -49,7 +48,7 @@ import matplotlib.style
 import seaborn as sns
 
 
-def ps_defaults(use_tex: bool = True) -> None:
+def ps_defaults(use_tex: bool = True):
     """Apply plotting style to produce nice looking figures.
     Call this at the start of a script which uses `matplotlib`.
     Can enable `matplotlib` LaTeX backend if it is available.

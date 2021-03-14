@@ -106,9 +106,7 @@ token.pickle
 
 # General pickle files
 *.pickle
-<<<<<<< HEAD
 
-#test data file
-test.tif
-=======
->>>>>>> 4b509d91d948b8a9d6ebc717b8a852b3bd0b3b37
+# Don't keep large files
+*.mp4
+*.nc
