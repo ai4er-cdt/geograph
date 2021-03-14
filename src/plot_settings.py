@@ -108,7 +108,7 @@ def label_subplots(axs: Sequence[matplotlib.axes], start_from: int=0, fontsize: 
 
 
 def get_dim(fraction_of_line_width=1, ratio=(5 ** 0.5 - 1) / 2):
-    """Get aesthetic figure dimensions to avoid scaling in latex.
+    """Return figure height, width in inches to avoid scaling in latex. Default is golden ratio.
     ​
         Parameters
         ----------
