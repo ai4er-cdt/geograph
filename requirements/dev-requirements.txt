@@ -23,9 +23,11 @@ pandas              # tabular data analysis
 matplotlib          # general python plotting
 seaborn             # fancier plotting styles
 descartes           # geospatial plotting of shapefiles
+folium              # plotting maps
 
 # interactive computing
 jupyter             # jupyter notebooks
+tqdm                # progress bars
 
 # geospatial analysis requirements
 rasterio            # opening and loading raster data
@@ -41,7 +43,7 @@ netCDF4             # makes sure that the default driver is netCDF4.
 bottleneck          # needed for fill forward (xarray.DataArray.ffil)
 
 # additional
-networkx
+networkx            # manipulating graph data
 
 # gdrive functionality
 google-api-python-client
