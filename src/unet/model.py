@@ -117,6 +117,7 @@ class UNetModel(pl.LightningModule):
                 dataset=train_set,
                 batch_size=self.config.batch_size,
                 num_workers=self.config.num_workers,
+                shuffle=True,
                 pin_memory=True,  # asynchronous data transfer to the GPU
                 multiprocessing_context=mp.get_context("fork"),
             )
