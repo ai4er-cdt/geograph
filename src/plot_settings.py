@@ -34,7 +34,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def ps_defaults(use_tex=True):
+def ps_defaults(use_tex: bool=True) -> None:
     """
     Apply plotting style to produce nice looking figures.
     Call this at the start of a script which uses matplotlib,
