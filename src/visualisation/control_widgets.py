@@ -225,7 +225,9 @@ class RadioVisibilityWidget(BaseControlWidget):
 
         buttons = widgets.VBox(
             [
+                widget_utils.create_html_header("Main", level=2),
                 widgets.HBox([view_graph_btn, view_pgon_btn, view_map_btn]),
+                widget_utils.create_html_header("Additional", level=2),
                 widgets.VBox(
                     [
                         view_components_btn,
@@ -601,6 +603,8 @@ class MetricsWidget(BaseControlWidget):
                 metrics_str += "</br>"
 
                 # Adding metrics
+                # TODO: avoid creating a widget just for this string
+                # may lead to inefficiency
                 metrics_str += widget_utils.create_html_header("Metrics", level=2).value
                 if metrics:
                     for metric in metrics:
