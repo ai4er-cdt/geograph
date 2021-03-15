@@ -1,6 +1,6 @@
 # Source code folder
 
-All re-usable source code for the project goes here. 
+All re-usable source code for the project goes here.
 
 The source folder is structured as follows:
 ```
@@ -15,7 +15,10 @@ src
 │
 ├── models         <- Scripts to train models and then use trained models to make
 │                     predictions
-└── tests          <- Scripts for unit tests of your functions
+│
+├── tests          <- Scripts for unit tests of your functions
+│
+└── visualisation  <- Scripts to visualise GeoGraphs
 ```
 
 This generic folder structure is useful for most project, but feel free to adapt it to your needs.
