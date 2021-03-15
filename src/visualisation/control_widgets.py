@@ -38,21 +38,24 @@ class GraphControlWidget(BaseControlWidget):
     def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
         """Widget with full set of controls for GeoGraphViewer.
 
-        This is the control widget added to GeoGraphViewer. It combines other widgets
-        such as visbility control, metrics, settings and more.
+        This is the control widget added to GeoGraphViewer. It is directly added to the
+        viewer and combines other widgets such as visbility control, metrics, settings
+        and more.
 
         Args:
             viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
         """
         super().__init__(viewer=viewer)
 
-        # Create combined widget, each key corresponds to a tab
-
+        # Creating individual (sub-)widgets
         visibility_widget = RadioVisibilityWidget(viewer=self.viewer)
         metrics_widget = MetricsWidget(viewer=self.viewer)
+        settings_widget = SettingsWidget(viewer=self.viewer)
+
         viewer_height = int(viewer.layout.height.replace("px", ""))
         metrics_widget.layout.height = "{}px".format(viewer_height * 0.3)
 
+        # Create combined widget, each key corresponds to a tab
         combined_widget_dict = dict(
             View=widgets.VBox(
                 [
@@ -62,9 +65,10 @@ class GraphControlWidget(BaseControlWidget):
                 ]
             ),
             # Timeline=TimelineWidget(viewer=self.viewer), # currently only placeholder
-            Settings=SettingsWidget(viewer=self.viewer),
+            Settings=settings_widget,
             Log=self.log_handler.out,
         )
+
         combined_widget = widgets.Tab()
         combined_widget.children = list(combined_widget_dict.values())
         for i, title in enumerate(combined_widget_dict):
@@ -80,8 +84,8 @@ class RadioVisibilityWidget(BaseControlWidget):
         """Widget to control visibility of graphs in GeoGraphViewer with radio buttons.
 
         This widget controls the visibility of graph as well as current map layers of
-        GeoGraphViewer. Further it sets the current_graph attribute of GeoGraphViewer
-        used by other widgets.
+        GeoGraphViewer. Further, it sets the current_graph attribute of GeoGraphViewer
+        that controls its state and is used by other widgets.
 
         Args:
             viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
@@ -122,13 +126,13 @@ class RadioVisibilityWidget(BaseControlWidget):
     def _create_layer_selection(
         self, layer_type: str = "graphs"
     ) -> widgets.RadioButtons:
-        """Create radio buttons to enable graph selection.
+        """Create radio buttons to enable layer selection.
 
         Args:
             layer_type (str, optional): one of "graphs" or "maps". Defaults to "graphs".
 
         Returns:
-            widgets.RadioButtons: buttons to select from layer_type
+            widgets.RadioButtons: buttons to select from available layers of layer_type
         """
         layer_list = []
         layers = list(self.viewer.layer_dict[layer_type].items())
@@ -153,9 +157,10 @@ class RadioVisibilityWidget(BaseControlWidget):
         """Create buttons that toggle the visibility of current graph and map.
 
         The visibility of the current graph (set in self.current_graph), its subparts
-        and the map (set in self.current_map) can be manipulated with the returned
-        buttons. Separate buttons for the polygons and the components of the graph are
-        included in the returned box.
+        (e.g. components, disconnected nodes, etc.) and the map (set in
+        self.current_map) can be controlled with the returned buttons. Separate
+        buttons for the polygons and the components of the graph are included in the
+        returned box.
 
         Returns:
             widgets.Box: box with button widgets
@@ -254,6 +259,21 @@ class LayerButtonWidget(widgets.ToggleButton):
         layout: Optional[widgets.Layout] = None,
         **kwargs,
     ) -> None:
+        """Toggle button to change the visibility of GeoGraphViewer layer.
+
+        Args:
+            viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
+            layer_type (str): type of layer
+            layer_subtype (str): subtype of layer
+            layer_name (Optional[str], optional): name of layer. Defaults to None. If
+                None, the layer_name is automatically set to viewer.current_graph or
+                viewer.current_map (depending on layer_type).
+            link_to_current_state (bool, optional): whether a traitlets link between
+                the current state of the viewer and the button layer_name should be
+                created. Defaults to True.
+            layout (Optional[widgets.Layout], optional): layout of the button.
+                Defaults to None.
+        """
 
         self.viewer = viewer
 
@@ -300,13 +320,14 @@ class LayerButtonWidget(widgets.ToggleButton):
 
     def _handle_view(self, change: Dict) -> None:
         """Callback function for trait events in view buttons"""
-        self.logger.info(
-            "LayerButtonWidget callback started for %s of %s. (type: %s)",
-            self.layer_subtype,
-            self.layer_name,
-            self.layer_type,
-        )
         try:
+            self.logger.info(
+                "LayerButtonWidget callback started for %s of %s. (type: %s)",
+                self.layer_subtype,
+                self.layer_name,
+                self.layer_type,
+            )
+
             owner = change.owner  # Button that is clicked or changed
 
             # Accessed if button is clicked (its value changed)
@@ -335,7 +356,7 @@ class LayerButtonWidget(widgets.ToggleButton):
                 self.viewer.layer_update()
         except:  # pylint: disable=bare-except
             self.logger.exception(
-                "Exception in view button callback on button click or change."
+                "Exception in LayerButtonWidget callback on button click or change."
             )
 
 
@@ -344,6 +365,8 @@ class CheckboxVisibilityWidget(BaseControlWidget):
 
     def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
         """Widget to control visibility of graphs in GeoGraphViewer with checkboxes.
+
+        Note: this is currently not used by the main GraphControlWidget.
 
         Args:
             viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
@@ -470,13 +493,14 @@ class CheckboxVisibilityWidget(BaseControlWidget):
             change (Dict): change dict provided by checkbox widget
         """
         try:
+            self.logger.debug("Checkbox callback called.")
             if change["name"] == "value":
                 owner = change["owner"]
                 self.viewer.set_layer_visibility(
                     owner.layer_type, owner.layer_name, owner.layer_subtype, change.new
                 )
 
-            self.viewer.layer_update()
+                self.viewer.layer_update()
         except:  # pylint: disable=bare-except
             self.logger.exception("Exception in view checkbox callback on click.")
 
@@ -487,7 +511,7 @@ class TimelineWidget(BaseControlWidget):
     def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
         """Widget to interact with GeoGraphTimeline.
 
-        Not fully implemented yet, currently just placeholder widget.
+        Note: not fully implemented yet, currently just placeholder widget.
 
         Args:
             viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to control
@@ -576,6 +600,8 @@ class MetricsWidget(BaseControlWidget):
 
         def metrics_callback(change):
             try:
+                self.logger.debug("MetricsWidget callback called.")
+
                 graph_name = change["new"]
                 graph_layer = change["owner"].layer_dict["graphs"][graph_name]
                 graph = graph_layer["original_graph"]
@@ -626,10 +652,12 @@ class MetricsWidget(BaseControlWidget):
 
 
 class SettingsWidget(BaseControlWidget):
-    """Widget for misc settings in GeoGraphViewer."""
+    """Widget for settings in GeoGraphViewer."""
 
     def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
-        """Widget for misc settings in GeoGraphViewer.
+        """Widget for settings in GeoGraphViewer.
+
+        Enables setting node size and color, and zoom level of viewer.
 
         Args:
             viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to show settings for
@@ -658,7 +686,7 @@ class SettingsWidget(BaseControlWidget):
         )
 
         self._widget_output = widgets.interactive_output(
-            self.set_graph_style_callback,
+            self._set_graph_style_callback,
             dict(radius=radius_slider, node_color=node_color_picker),
         )
 
@@ -677,8 +705,12 @@ class SettingsWidget(BaseControlWidget):
 
         return settings_widget
 
-    def set_graph_style_callback(self, *args, **kwargs):
-        """Callback function to set graph style in geoviewer"""
+    def _set_graph_style_callback(self, *args, **kwargs):
+        """Callback function to set graph style in geoviewer.
+
+        Args:
+            args, kwargs: arguments to be passed on to viewer.set_graph_style().
+        """
         try:
             self.logger.debug("Callback: graph style callback started.")
             self.viewer.set_graph_style(*args, **kwargs)
@@ -687,13 +719,13 @@ class SettingsWidget(BaseControlWidget):
 
 
 class HoverWidget(BaseControlWidget):
-    """Widget for misc settings in GeoGraphViewer."""
+    """Widget for showing patch information on mouse hover in GeoGraphViewer."""
 
     def __init__(self, viewer: geoviewer.GeoGraphViewer) -> None:
-        """Widget for misc settings in GeoGraphViewer.
+        """Widget for showing patch information on mouse hover in GeoGraphViewer.
 
         Args:
-            viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to show settings for
+            viewer (geoviewer.GeoGraphViewer): GeoGraphViewer to show patch info in.
         """
         super().__init__(viewer=viewer)
 
@@ -701,7 +733,7 @@ class HoverWidget(BaseControlWidget):
         self.children = [widget]
 
     def _create_hover_widget(self) -> widgets.VBox:
-        """Create settings widget.
+        """Create hover widget.
 
         Returns:
             widgets.VBox: settings widget
@@ -710,6 +742,7 @@ class HoverWidget(BaseControlWidget):
         self.hover_html.layout.margin = "10px 10px 10px 10px"
         self.hover_html.layout.max_width = "300px"
 
+        # Add callback to all patch (pgon) layer of graphs
         for graph_dict in self.viewer.layer_dict["graphs"].values():
             pgon_choropleth = graph_dict["pgons"]["layer"]
             pgon_choropleth.on_hover(self._hover_callback)
@@ -719,6 +752,7 @@ class HoverWidget(BaseControlWidget):
     def _hover_callback(self, feature, **kwargs):  # pylint: disable=unused-argument
         """Callback function on hover on graph polygon patch"""
         try:
+            # self.logger.debug("HoverWidget callback called.")
             new_value = widget_utils.create_html_header(
                 "Current Patch"
             ).value + """</br>
