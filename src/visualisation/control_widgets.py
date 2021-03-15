@@ -1,7 +1,7 @@
 """Module with widgets to control GeoGraphViewer."""
 
 from __future__ import annotations
-from typing import Dict
+from typing import Dict, Optional
 
 import ipywidgets as widgets
 import traitlets
@@ -161,76 +161,41 @@ class RadioVisibilityWidget(BaseControlWidget):
             widgets.Box: box with button widgets
         """
 
-        def create_toggle_button(
-            description: str, tooltip: str, icon: str, layout_kwargs: dict = None
-        ) -> widgets.ToggleButton:
-            """Create a toggle button with arguments.
-
-            Avoids having a shared layout, which breaks widgets.TwoByTwoLayout."""
-            if layout_kwargs is None:
-                layout_kwargs = dict(height="auto", width="auto")
-            return widgets.ToggleButton(
-                description=description,
-                tooltip=tooltip,
-                icon=icon,
-                layout=widgets.Layout(**layout_kwargs),
-            )
-
-        view_graph_btn = create_toggle_button(
+        view_graph_btn = LayerButtonWidget(
             description="Graph",
             tooltip="View graph",
             icon="project-diagram",
+            layer_type="graphs",
+            layer_subtype="graph",
+            viewer=self.viewer,
         )
-        view_pgon_btn = create_toggle_button(
+        view_pgon_btn = LayerButtonWidget(
             description="Polygons",
             tooltip="View polygons",
             icon="shapes",
+            layer_type="graphs",
+            layer_subtype="pgons",
+            viewer=self.viewer,
         )
-        view_components_btn = create_toggle_button(
+        view_components_btn = LayerButtonWidget(
             description="Components",
             tooltip=(
                 "View components of graph. If current graph is habitat, components show"
                 " the reach of an animal in a component (based on max_travel_distance)."
             ),
             icon="circle",
+            layer_type="graphs",
+            layer_subtype="components",
+            viewer=self.viewer,
         )
-        view_map_btn = create_toggle_button(
+        view_map_btn = LayerButtonWidget(
             description="Map",
             tooltip="View map",
             icon="globe-africa",
+            layer_type="maps",
+            layer_subtype="map",
+            viewer=self.viewer,
         )
-
-        button_list = [
-            view_graph_btn,
-            view_pgon_btn,
-            view_components_btn,
-            view_map_btn,
-        ]
-
-        # Setting up callback on click
-        for button, layer_subtype in zip(
-            button_list, ["graph", "pgons", "components", "map"]
-        ):
-            # Adding traits to button so we're able to access this information in
-            # the callback called when clicked
-            button.add_traits(
-                layer_type=traitlets.Unicode().tag(sync=True),
-                layer_subtype=traitlets.Unicode().tag(sync=True),
-                layer_name=traitlets.Unicode().tag(sync=True),
-            )
-            if layer_subtype == "map":
-                button.layer_type = "maps"
-                button.layer_name = self.viewer.current_map
-                # If current map changes the function of this button changes
-                widgets.dlink((self.viewer, "current_map"), (button, "layer_name"))
-            else:
-                button.layer_type = "graphs"
-                button.layer_name = self.viewer.current_graph
-                widgets.dlink((self.viewer, "current_graph"), (button, "layer_name"))
-
-            button.layer_subtype = layer_subtype
-
-            button.observe(self._handle_view, names=["value", "layer_name"])
 
         view_graph_btn.value = True
         view_pgon_btn.value = True
@@ -244,6 +209,64 @@ class RadioVisibilityWidget(BaseControlWidget):
         )
 
         return buttons
+
+
+class LayerButtonWidget(widgets.ToggleButton):
+    """Toggle button to change the visibility of GeoGraphViewer layer."""
+
+    def __init__(
+        self,
+        viewer: geoviewer.GeoGraphViewer,
+        layer_type: str,
+        layer_subtype: str,
+        layer_name: Optional[str] = None,
+        link_to_current_state: bool = True,
+        layout: Optional[widgets.Layout] = None,
+        **kwargs,
+    ) -> None:
+
+        self.viewer = viewer
+
+        # Setting log with handler, that allows access to log
+        # via self.log_handler.show_logs()
+        self.logger = logging.getLogger(type(self).__name__)
+        self.logger.setLevel(self.viewer.logger.level)
+        self.log_handler = self.viewer.log_handler
+        self.logger.addHandler(self.log_handler)
+
+        if layout is None:
+            layout = widgets.Layout(height="auto", width="auto")
+
+        super().__init__(layout=layout, **kwargs)
+
+        self.add_traits(
+            layer_type=traitlets.Unicode().tag(sync=True),
+            layer_subtype=traitlets.Unicode().tag(sync=True),
+            layer_name=traitlets.Unicode().tag(sync=True),
+        )
+        self.layer_subtype = layer_subtype
+        self.layer_type = layer_type
+
+        if layer_type == "maps":
+            if layer_name is None:
+                layer_name = self.viewer.current_map
+            self.layer_name = layer_name
+
+            # If current map changes the function of this button changes
+            if link_to_current_state:
+                widgets.dlink((self.viewer, "current_map"), (self, "layer_name"))
+
+        elif layer_type == "graphs":
+            if layer_name is None:
+                layer_name = self.viewer.current_graph
+            self.layer_name = layer_name
+
+            if link_to_current_state:
+                widgets.dlink((self.viewer, "current_graph"), (self, "layer_name"))
+
+        self.observe(self._handle_view, names=["value", "layer_name"])
+
+        self.logger.info("Initialised.")
 
     def _handle_view(self, change: Dict) -> None:
         """Callback function for trait events in view buttons"""
