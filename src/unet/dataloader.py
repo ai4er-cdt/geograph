@@ -257,6 +257,7 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
         images_path: os.PathLike,
         labels_path: os.PathLike,
         use_bands: List[int],
+        n_classes: int,
         overlap_threshold: float = 0.7,
         **kwargs,
     ) -> None:
@@ -267,6 +268,7 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
             **kwargs,
         )
         self.overlap_threshold = overlap_threshold
+        self.n_classes = n_classes
         self._tile_label_overlaps = None
         self.label_mode = "one-hot"
         self._load_labels(labels_path)
@@ -335,7 +337,7 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
 
         # One hot encode axes: will be in H x W x C ordering
         labels_one_hot = torch.nn.functional.one_hot(
-            label_tensor.long(), num_classes=len(unique_labels)
+            label_tensor.long(), num_classes=self.n_classes
         )
 
         # Permute axes to have C x H x W ordering
