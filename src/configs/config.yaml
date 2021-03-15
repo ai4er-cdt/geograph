@@ -6,7 +6,7 @@ encoder_depth: 3  # Note: this value must agree with len(decoder_channels)
 encoder_weights: "imagenet" # put null for random init
 decoder_channels: [256, 128, 64]
 decoder_attention_type: null # Can be null or "scse"
-in_channels: 10  # Note: This value must agree with len(use_bands)
+in_channels: 3  # Note: This value must agree with len(use_bands)
 out_channels: 20  # This is the number of ouptut classes
 # Activation on the last layer of the model, can be "sigmoid", "softmax", etc
 activation: null
