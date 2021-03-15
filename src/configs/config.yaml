@@ -2,21 +2,22 @@
 # See https://smp.readthedocs.io/en/latest/models.html#unet
 # for full options
 encoder_name: "mobilenet_v2"
-encoder_depth: 5
+encoder_depth: 3  # Note: this value must agree with len(decoder_channels)
 encoder_weights: "imagenet" # put null for random init
-decoder_channels: [256, 128, 64, 32, 16]
+decoder_channels: [256, 128, 64]
 decoder_attention_type: null # Can be null or "scse"
-in_channels: 3
-out_channels: 20
+in_channels: 10  # Note: This value must agree with len(use_bands)
+out_channels: 20  # This is the number of ouptut classes
 # Activation on the last layer of the model, can be "sigmoid", "softmax", etc
 activation: null
 
 # Dataset hyperparams
-augment: False
+use_bands: [2, 1, 0]  # the bands to use. Use [2, 1, 0] for RGB. Available bands: 0-9
+augment: True
 
 # Training hyperparams
-epochs: 10
-batch_size: 2
+epochs: 100
+batch_size: 64
 learning_rate: 3e-3
 loss: "Dice" # Supports "Jaccard", "Dice", "Focal"
 eval_metric: "Jaccard" # See above
@@ -28,8 +29,8 @@ log_steps: 20 # How many gradient updates between each log point.
 parallel_engine: ddp
 cuda: True # Whether to use GPUs.
 gpus: 1 # Number of GPUs to use.
-num_workers: 8 # Number of subprocesses to use for data loading.
-seed: 42 # Random seed.
+num_workers: 5 # Number of subprocesses to use for data loading.
+seed: 9851 # Random seed.
 run_name: ??? # Mandatory string argument that describes the run.
 
 # Hydra config overrides:

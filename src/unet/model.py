@@ -95,8 +95,10 @@ class UNetModel(pl.LightningModule):
     def train_dataloader(self):
         """Load train dataset."""
         images_path = SENTINEL_POLESIA_DIR / "train"
-        labels_path = GWS_DATA_DIR / "polesia_burned_superclasses_all_touched_10m.tif"
-        rgb_bands = [2, 1, 0]
+        labels_path = (
+            SENTINEL_POLESIA_DIR / "labels" / "polesia_labels_10m_train-tiled.tif"
+        )
+
         if self.config.augment:
             aug_dict = {"rotation": True, "flip": True}
         else:
@@ -106,9 +108,11 @@ class UNetModel(pl.LightningModule):
             train_set = LabelledSatelliteDataset(
                 images_path=images_path,
                 labels_path=labels_path,
-                use_bands=rgb_bands,
+                use_bands=self.config.use_bands[:],
                 overlap_threshold=0.7,
                 augmentations=aug_dict,
+                chunks={"band": 1, "x": 256, "y": 256},
+                n_classes=self.config.out_channels,
             )
             # pylint: disable=protected-access
             train_set._preload_chunk_handles()
@@ -126,9 +130,11 @@ class UNetModel(pl.LightningModule):
             train_set = LabelledSatelliteDataset(
                 images_path=images_path,
                 labels_path=labels_path,
-                use_bands=rgb_bands,
+                use_bands=self.config.use_bands[:],
                 overlap_threshold=0.7,
                 augmentations=aug_dict,
+                chunks={"band": 1, "x": 256, "y": 256},
+                n_classes=self.config.out_channels,
             )
             train_set.use_augmentations = self.config.augment
             dataloader = DataLoader(
@@ -143,15 +149,18 @@ class UNetModel(pl.LightningModule):
     def val_dataloader(self):
         """Load validation dataset."""
         images_path = SENTINEL_POLESIA_DIR / "train"
-        labels_path = GWS_DATA_DIR / "polesia_burned_superclasses_all_touched_10m.tif"
-        rgb_bands = [2, 1, 0]
+        labels_path = (
+            SENTINEL_POLESIA_DIR / "labels" / "polesia_labels_10m_valid-tiled.tif"
+        )
         if self.config.num_workers > 0:
             dask.config.set(scheduler="threads")
             val_set = LabelledSatelliteDataset(
                 images_path=images_path,
                 labels_path=labels_path,
-                use_bands=rgb_bands,
-                overlap_threshold=0.7,
+                use_bands=self.config.use_bands[:],
+                overlap_threshold=0.9,
+                chunks={"band": 1, "x": 256, "y": 256},
+                n_classes=self.config.out_channels,
             )
             # pylint: disable=protected-access
             val_set._preload_chunk_handles()
@@ -170,8 +179,10 @@ class UNetModel(pl.LightningModule):
             val_set = LabelledSatelliteDataset(
                 images_path=images_path,
                 labels_path=labels_path,
-                use_bands=rgb_bands,
-                overlap_threshold=0.7,
+                use_bands=self.config.use_bands[:],
+                overlap_threshold=0.9,
+                chunks={"band": 1, "x": 256, "y": 256},
+                n_classes=self.config.out_channels,
             )
             dataloader = DataLoader(
                 dataset=val_set,
@@ -184,7 +195,52 @@ class UNetModel(pl.LightningModule):
         return dataloader
 
     def test_dataloader(self):
-        return self.val_dataloader()
+        """Load validation dataset."""
+        images_path = SENTINEL_POLESIA_DIR / "train"
+        labels_path = (
+            SENTINEL_POLESIA_DIR / "labels" / "polesia_labels_10m_test-tiled.tif"
+        )
+        if self.config.num_workers > 0:
+            dask.config.set(scheduler="threads")
+            test_set = LabelledSatelliteDataset(
+                images_path=images_path,
+                labels_path=labels_path,
+                use_bands=self.config.use_bands[:],
+                overlap_threshold=0.9,
+                chunks={"band": 1, "x": 256, "y": 256},
+                n_classes=self.config.out_channels,
+            )
+            # pylint: disable=protected-access
+            test_set._preload_chunk_handles()
+            # Best practice to use shuffle=False for validation and testing.
+            dataloader = DataLoader(
+                dataset=test_set,
+                batch_size=2,
+                shuffle=False,
+                sampler=SubsetRandomSampler(range(len(test_set) // 8)),
+                num_workers=self.config.num_workers,
+                pin_memory=True,
+                multiprocessing_context=mp.get_context("fork"),
+            )
+            dask.config.set(scheduler="single-threaded")
+        else:
+            test_set = LabelledSatelliteDataset(
+                images_path=images_path,
+                labels_path=labels_path,
+                use_bands=self.config.use_bands[:],
+                overlap_threshold=0.9,
+                chunks={"band": 1, "x": 256, "y": 256},
+                n_classes=self.config.out_channels,
+            )
+            dataloader = DataLoader(
+                dataset=test_set,
+                batch_size=2,
+                shuffle=False,
+                sampler=SubsetRandomSampler(range(len(test_set) // 8)),
+                num_workers=self.config.num_workers,
+                pin_memory=True,
+            )
+        return dataloader
 
     def get_lossses(self, names: List[str]):
         """Return the loss function based on the config."""

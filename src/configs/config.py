@@ -19,6 +19,13 @@ def validate_config(cfg: DictConfig) -> DictConfig:
         cfg.parallel_engine = None
     cfg.gpus = min(torch.cuda.device_count(), cfg.gpus)
 
+    if len(cfg.decoder_channels) != cfg.encoder_depth:
+        raise UserWarning("Encoder depth must match the number of decoder channels")
+    if len(cfg.use_bands) != cfg.in_channels:
+        raise UserWarning(
+            "Number of bands to use must agree with number of input channels."
+        )
+
     print("----------------- Options ---------------")
     print(OmegaConf.to_yaml(cfg))
     print("-----------------   End -----------------")
