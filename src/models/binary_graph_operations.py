@@ -1,6 +1,7 @@
 """Contains tools for binary operations between GeoGraph objects."""
 from __future__ import annotations
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TYPE_CHECKING
+
 from numpy import ndarray
 import geopandas as gpd
 from shapely.geometry.base import BaseGeometry
@@ -12,6 +13,9 @@ from src.models.polygon_utils import (
     collapse_empty_polygon,
     EMPTY_POLYGON,
 )
+
+if TYPE_CHECKING:
+    from src.models import geograph
 
 # For switching identifiction mode in `identify_node`
 _BULK_SPATIAL_IDENTIFICATION_FUNCTION = {
@@ -26,8 +30,8 @@ class NodeMap:
 
     def __init__(
         self,
-        src_graph: "GeoGraph",
-        trg_graph: "GeoGraph",
+        src_graph: geograph.GeoGraph,
+        trg_graph: geograph.GeoGraph,
         mapping: Dict[int, List[int]],
     ) -> None:
         """
@@ -51,12 +55,12 @@ class NodeMap:
         self._mapping = mapping
 
     @property
-    def src_graph(self) -> "GeoGraph":
+    def src_graph(self) -> geograph.GeoGraph:
         """Keys in the mapping dict correspond to node indices in the `src_graph`"""
         return self._src_graph
 
     @property
-    def trg_graph(self) -> "GeoGraph":
+    def trg_graph(self) -> geograph.GeoGraph:
         """Values in the mapping dict correspond to node indices in the `trg_graph`"""
         return self._trg_graph
 
@@ -92,7 +96,9 @@ class NodeMap:
         )
 
 
-def identify_node(node: dict, other_graph: "GeoGraph", mode: str = "corner") -> ndarray:
+def identify_node(
+    node: dict, other_graph: geograph.GeoGraph, mode: str = "corner"
+) -> ndarray:
     """
     Return list of all node ids in `other_graph` which identify with the given `node`.
 
@@ -132,7 +138,9 @@ def identify_node(node: dict, other_graph: "GeoGraph", mode: str = "corner") -> 
     return candidate_ids
 
 
-def identify_graphs(graph1: "GeoGraph", graph2: "GeoGraph", mode: str) -> NodeMap:
+def identify_graphs(
+    graph1: geograph.GeoGraph, graph2: geograph.GeoGraph, mode: str
+) -> NodeMap:
     """
     Idenitfy all nodes from `graph1` with nodes from `graph2` based on the given `mode`
 
