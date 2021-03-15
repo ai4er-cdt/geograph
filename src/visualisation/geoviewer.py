@@ -89,6 +89,13 @@ class GeoGraphViewer(ipyleaflet.Map):
             },
         )
 
+        self.graph_subtypes = [
+            "pgons",
+            "graph",
+            "components",
+            "disconnected_nodes",
+            "poorly_connected_nodes",
+        ]
         self.metrics = metric_list
 
         self.hover_widget = None
@@ -191,6 +198,34 @@ class GeoGraphViewer(ipyleaflet.Map):
                 )
             component_choropleth = self._get_choropleth_from_df(component_df)
 
+            # Getting disconnected (no-edge) nodes
+            disconnected_nx_graph = nx_graph.subgraph(
+                [node for node in nx_graph.nodes() if nx_graph.degree[node] == 0]
+            )
+
+            discon_nodes, _ = graph_utils.create_node_edge_geometries(
+                disconnected_nx_graph
+            )
+
+            discon_nodes_geo_data = ipyleaflet.GeoData(
+                geo_dataframe=discon_nodes.to_crs(WGS84),
+                name=current_name + "_disconnected_nodes",
+                **self.custom_style
+            )
+
+            # Getting poorly connected (one-edge) nodes
+            poorly_connected_nx_graph = nx_graph.subgraph(
+                [node for node in nx_graph.nodes() if nx_graph.degree[node] == 1]
+            )
+            poorly_con_nodes, _ = graph_utils.create_node_edge_geometries(
+                poorly_connected_nx_graph
+            )
+            poorly_con_nodes_geo_data = ipyleaflet.GeoData(
+                geo_dataframe=poorly_con_nodes.to_crs(WGS84),
+                name=current_name + "_poorly_connected_nodes",
+                **self.custom_style
+            )
+
             # Getting metrics
             graph_metrics = []
             for metric in self.metrics:
@@ -203,6 +238,10 @@ class GeoGraphViewer(ipyleaflet.Map):
                 graph=dict(layer=graph_geo_data, active=True),
                 pgons=dict(layer=pgon_choropleth, active=True),
                 components=dict(layer=component_choropleth, active=False),
+                disconnected_nodes=dict(layer=discon_nodes_geo_data, active=False),
+                poorly_connected_nodes=dict(
+                    layer=poorly_con_nodes_geo_data, active=False
+                ),
                 metrics=graph_metrics,
                 original_graph=current_graph,
             )
@@ -255,12 +294,9 @@ class GeoGraphViewer(ipyleaflet.Map):
             if map_layer["map"]["active"]
         ]
         for graph in self.layer_dict["graphs"].values():
-            if graph["pgons"]["active"]:
-                layers.append(graph["pgons"]["layer"])
-            if graph["graph"]["active"]:
-                layers.append(graph["graph"]["layer"])
-            if graph["components"]["active"]:
-                layers.append(graph["components"]["layer"])
+            for graph_subtype in self.graph_subtypes:
+                if graph[graph_subtype]["active"]:
+                    layers.append(graph[graph_subtype]["layer"])
 
         self.layers = tuple(layers)
 

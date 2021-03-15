@@ -196,7 +196,22 @@ class RadioVisibilityWidget(BaseControlWidget):
             layer_subtype="map",
             viewer=self.viewer,
         )
-
+        view_disconnected_nodes_btn = LayerButtonWidget(
+            description="Disconnected patches",
+            tooltip="View disconnected patches (patches with no edge)",
+            icon="shapes",
+            layer_type="graphs",
+            layer_subtype="disconnected_nodes",
+            viewer=self.viewer,
+        )
+        view_poorly_con_nodes_btn = LayerButtonWidget(
+            description="Poorly conn. patches",
+            tooltip="View poorly connected patches (patches with single edge)",
+            icon="shapes",
+            layer_type="graphs",
+            layer_subtype="poorly_connected_nodes",
+            viewer=self.viewer,
+        )
         view_graph_btn.value = True
         view_pgon_btn.value = True
         view_map_btn.value = True
@@ -206,6 +221,19 @@ class RadioVisibilityWidget(BaseControlWidget):
             top_right=view_pgon_btn,
             bottom_left=view_components_btn,
             bottom_right=view_map_btn,
+        )
+
+        buttons = widgets.VBox(
+            [
+                widgets.HBox([view_graph_btn, view_pgon_btn, view_map_btn]),
+                widgets.VBox(
+                    [
+                        view_components_btn,
+                        view_disconnected_nodes_btn,
+                        view_poorly_con_nodes_btn,
+                    ]
+                ),
+            ]
         )
 
         return buttons
@@ -270,6 +298,12 @@ class LayerButtonWidget(widgets.ToggleButton):
 
     def _handle_view(self, change: Dict) -> None:
         """Callback function for trait events in view buttons"""
+        self.logger.info(
+            "LayerButtonWidget callback started for %s of %s. (type: %s)",
+            self.layer_subtype,
+            self.layer_name,
+            self.layer_type,
+        )
         try:
             owner = change.owner  # Button that is clicked or changed
 
@@ -534,7 +568,8 @@ class MetricsWidget(BaseControlWidget):
         metrics_html = widgets.HTML("No graph selected.")
 
         # Added to ensure vertical scroll bar on right hand-side of box
-        metrics_html.layout.width = "300px"
+        # TODO: find a better fix to ensure width of all sub-widgets are the same
+        metrics_html.layout.width = "242px"
         metrics_html.layout.overflow_x = "hidden"
 
         def metrics_callback(change):
