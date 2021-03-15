@@ -33,6 +33,10 @@ def validate_config(cfg: DictConfig) -> DictConfig:
     if cfg.encoder_weights == "imagenet" and cfg.in_channels != 3:
         raise UserWarning("Imagenet initialisation only works with 3 in_channels.")
 
+    # Check that is using image net weights, we normalise to imagenet
+    if cfg.normaliser == "imagenet" and cfg.in_channels != 3:
+        raise UserWarning("Imagenet normlisation only works with 3 in_channels.")
+
     print("----------------- Options ---------------")
     print(OmegaConf.to_yaml(cfg))
     print("-----------------   End -----------------")

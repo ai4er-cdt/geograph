@@ -14,6 +14,7 @@ activation: null
 # Dataset hyperparams
 use_bands: [2, 1, 0]  # the bands to use. Use [2, 1, 0] for RGB. Available bands: 0-9
 augment: True
+normaliser: "imagenet"  # Normalisaton. Use "imagenet" for imagenet normaliser, null for identity.
 
 # Training hyperparams
 epochs: 100

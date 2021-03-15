@@ -1,6 +1,7 @@
 """Module for the Pytorch Lightning Unet model."""
 import multiprocessing as mp
 from typing import List
+import logging
 
 import dask
 import pytorch_lightning as pl
@@ -9,6 +10,7 @@ import segmentation_models_pytorch.losses as losses
 import torch
 from src.constants import GWS_DATA_DIR
 from src.unet.dataloader import LabelledSatelliteDataset
+from src.unet.normalisers import ImagenetNormaliser, IdentityNormaliser
 from torch.nn.modules.loss import BCELoss, BCEWithLogitsLoss
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
@@ -37,11 +39,13 @@ class UNetModel(pl.LightningModule):
 
     def __init__(self, config) -> None:
         super().__init__()
+        self.unet_logger = logging.getLogger("unet")
         self.save_hyperparameters(config)
         self.config = config
         self.model: torch.nn.Module = get_unet_model(config)
         self.loss = self.get_lossses([config.loss])
         self.eval_metric = self.get_lossses([config.eval_metric])
+        self.normaliser = self.get_normaliser(config.normaliser)
 
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.parameters(), lr=self.config.learning_rate)
@@ -94,6 +98,7 @@ class UNetModel(pl.LightningModule):
 
     def train_dataloader(self):
         """Load train dataset."""
+        self.unet_logger.info("Train-loader: Loading training data")
         images_path = SENTINEL_POLESIA_DIR / "train"
         labels_path = (
             SENTINEL_POLESIA_DIR / "labels" / "polesia_labels_10m_train-tiled.tif"
@@ -111,6 +116,7 @@ class UNetModel(pl.LightningModule):
                 use_bands=self.config.use_bands[:],
                 overlap_threshold=0.7,
                 augmentations=aug_dict,
+                normaliser=self.normaliser,
                 chunks={"band": 1, "x": 256, "y": 256},
                 n_classes=self.config.out_channels,
             )
@@ -133,6 +139,7 @@ class UNetModel(pl.LightningModule):
                 use_bands=self.config.use_bands[:],
                 overlap_threshold=0.7,
                 augmentations=aug_dict,
+                normaliser=self.normaliser,
                 chunks={"band": 1, "x": 256, "y": 256},
                 n_classes=self.config.out_channels,
             )
@@ -148,6 +155,7 @@ class UNetModel(pl.LightningModule):
 
     def val_dataloader(self):
         """Load validation dataset."""
+        self.unet_logger.info("Valid-loader: Loading validation data")
         images_path = SENTINEL_POLESIA_DIR / "train"
         labels_path = (
             SENTINEL_POLESIA_DIR / "labels" / "polesia_labels_10m_valid-tiled.tif"
@@ -159,6 +167,7 @@ class UNetModel(pl.LightningModule):
                 labels_path=labels_path,
                 use_bands=self.config.use_bands[:],
                 overlap_threshold=0.9,
+                normaliser=self.normaliser,
                 chunks={"band": 1, "x": 256, "y": 256},
                 n_classes=self.config.out_channels,
             )
@@ -181,6 +190,7 @@ class UNetModel(pl.LightningModule):
                 labels_path=labels_path,
                 use_bands=self.config.use_bands[:],
                 overlap_threshold=0.9,
+                normaliser=self.normaliser,
                 chunks={"band": 1, "x": 256, "y": 256},
                 n_classes=self.config.out_channels,
             )
@@ -196,6 +206,7 @@ class UNetModel(pl.LightningModule):
 
     def test_dataloader(self):
         """Load validation dataset."""
+        self.unet_logger.info("Test-loader: Loading test data")
         images_path = SENTINEL_POLESIA_DIR / "train"
         labels_path = (
             SENTINEL_POLESIA_DIR / "labels" / "polesia_labels_10m_test-tiled.tif"
@@ -207,6 +218,7 @@ class UNetModel(pl.LightningModule):
                 labels_path=labels_path,
                 use_bands=self.config.use_bands[:],
                 overlap_threshold=0.9,
+                normaliser=self.normaliser,
                 chunks={"band": 1, "x": 256, "y": 256},
                 n_classes=self.config.out_channels,
             )
@@ -229,6 +241,7 @@ class UNetModel(pl.LightningModule):
                 labels_path=labels_path,
                 use_bands=self.config.use_bands[:],
                 overlap_threshold=0.9,
+                normaliser=self.normaliser,
                 chunks={"band": 1, "x": 256, "y": 256},
                 n_classes=self.config.out_channels,
             )
@@ -244,6 +257,8 @@ class UNetModel(pl.LightningModule):
 
     def get_lossses(self, names: List[str]):
         """Return the loss function based on the config."""
+
+        self.unet_logger.info("Selecting loss function: %s", names)
         if len(names) > 1:
             raise NotImplementedError
         else:
@@ -267,3 +282,14 @@ class UNetModel(pl.LightningModule):
                     return BCEWithLogitsLoss()
                 else:
                     return BCELoss()
+
+    def get_normaliser(self, name: str):
+        """Return the normaliser based on the config."""
+
+        self.unet_logger.info("Selecting normaliser: %s", name)
+        if name == "imagenet":
+            return ImagenetNormaliser()
+        elif name is None:
+            return IdentityNormaliser()
+        else:
+            raise NotImplementedError(f"Normaliser {name} is not implemented.")

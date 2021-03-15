@@ -12,7 +12,7 @@ import torchvision.transforms.functional as TF
 import tqdm
 from rasterio.plot import reshape_as_image
 
-from src.unet.normalizers import ImagenetNormalizer, NormalizerABC
+from src.unet.normalisers import ImagenetNormaliser, NormaliserABC
 from src.unet.satellite_image import SatelliteImage
 
 # pylint: disable=missing-function-docstring  #TODO: Docstring
@@ -41,10 +41,10 @@ class SatelliteDataset(torch.utils.data.Dataset):
         images_path: os.PathLike,
         use_bands: List[int],
         tile_size: int = 256,
-        normalizer: NormalizerABC = ImagenetNormalizer(),
+        normaliser: NormaliserABC = ImagenetNormaliser(),
         augmentations: Dict[str, bool] = {"rotation": False, "flip": False},
         chunks: Dict[str, int] = {"band": 10, "x": 256, "y": 256},
-        logger: logging.Logger = logging.getLogger(),
+        logger: logging.Logger = logging.getLogger("dataset"),
         **kwargs,
     ):
 
@@ -64,8 +64,8 @@ class SatelliteDataset(torch.utils.data.Dataset):
         self.augmentations = augmentations
         self._construct_augmentor()
 
-        # Initialize normalizer
-        self.normalizer = normalizer
+        # Initialize normaliser
+        self.normaliser = normaliser
 
         # Load satellite image (lazily)
         self._load_satellite_images(images_path, chunks, **kwargs)
@@ -206,7 +206,7 @@ class SatelliteDataset(torch.utils.data.Dataset):
         if mode == "image":
             return reshape_as_image(rescaled_raster)
         elif mode == "tensor":
-            return self.normalizer.normalize(torch.from_numpy(rescaled_raster))
+            return self.normaliser.normalise(torch.from_numpy(rescaled_raster))
         else:
             raise ValueError(
                 f"Invalid mode {mode}. Must be one of `raster`, `image`, `tensor`"
@@ -215,12 +215,15 @@ class SatelliteDataset(torch.utils.data.Dataset):
     def _construct_augmentor(self) -> None:
         """Initialise augmentor for tiles (must be given as torch.Tensor)"""
 
+        self.logger.info("Augmentor: Constructing augmentor.")
         augmentor_pipeline = []
         if self.augmentations["rotation"]:
+            self.logger.info("Augmentor: Enabling multiples of 90-degree rotations")
             rotator = RotationChoice(angles=[0, 90, 180, 270])
             augmentor_pipeline.append(rotator)
 
         if self.augmentations["flip"]:
+            self.logger.info("Augmentor: Enabling horizontal and vertical flips.")
             augmentor_pipeline.append(transforms.RandomHorizontalFlip(0.5))
             augmentor_pipeline.append(transforms.RandomVerticalFlip(0.5))
 
@@ -316,6 +319,10 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
 
     def _calculate_tile_label_overlaps(self) -> None:
 
+        self.logger.info(  # pylint: disable=logging-fstring-interpolation
+            "Label-overlaps: Calculatig label overlap with tiles. Ignoring tiles "
+            f"with less than {self.overlap_threshold*100:.2f}% labelled pixels."
+        )
         self._tile_label_overlaps = np.array(
             [
                 self._labelled_fraction(
@@ -333,6 +340,7 @@ class LabelledSatelliteDataset(SatelliteDataset, torch.utils.data.Dataset):
         # Find number of unique labels for one hot enconding
         unique_labels = np.unique(self.label_array)
         self.logger.info("Label-encoding: Found %s unique labels", len(unique_labels))
+        self.logger.info("Label-encoding: Working with %s classes.", self.n_classes)
         label_tensor = torch.from_numpy(self.label_array)
 
         # One hot encode axes: will be in H x W x C ordering
