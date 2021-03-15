@@ -19,12 +19,19 @@ def validate_config(cfg: DictConfig) -> DictConfig:
         cfg.parallel_engine = None
     cfg.gpus = min(torch.cuda.device_count(), cfg.gpus)
 
+    # Check that the number of decoder channels matches the depth of the encoder
     if len(cfg.decoder_channels) != cfg.encoder_depth:
         raise UserWarning("Encoder depth must match the number of decoder channels")
+
+    # Check that number of bands to use for each image matches the net's input channels
     if len(cfg.use_bands) != cfg.in_channels:
         raise UserWarning(
             "Number of bands to use must agree with number of input channels."
         )
+
+    # Check that if using image net we only work on RGB bands:
+    if cfg.encoder_weights == "imagenet" and cfg.in_channels != 3:
+        raise UserWarning("Imagenet initialisation only works with 3 in_channels.")
 
     print("----------------- Options ---------------")
     print(OmegaConf.to_yaml(cfg))
