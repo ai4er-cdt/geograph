@@ -1,7 +1,7 @@
 """This module contains the GeoGraphViewer to visualise GeoGraphs"""
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Dict, Union
+from typing import TYPE_CHECKING, List, Union
 
 import folium
 import pandas as pd
@@ -31,7 +31,6 @@ class GeoGraphViewer(ipyleaflet.Map):
         self,
         center: List[int, int] = CHERNOBYL_COORDS_WGS84,
         zoom: int = 7,
-        crs: Dict = ipyleaflet.projections.EPSG3857,
         layout: Union[widgets.Layout, None] = None,
         metric_list: List[str] = metrics.STANDARD_METRICS,
         logging_level=logging.DEBUG,
@@ -40,32 +39,35 @@ class GeoGraphViewer(ipyleaflet.Map):
         """Class for interactively viewing a GeoGraph.
 
         Args:
-            center ([type], optional): center of the map. Defaults to
+            center (List[int, int], optional): center of the map. Defaults to
                 CHERNOBYL_COORDS_WGS84.
-            zoom (int, optional): [description]. Defaults to 7.
-            crs ([type], optional): [description]. Defaults to
-                ipyleaflet.projections.EPSG3857.
-            layout (widgets.Layout, optional): layout passed to ipyleaflet.Map
-            logging_level: level of logs to be collected by self.logger. Defaults to
+            zoom (int, optional): initial zoom level. Defaults to 7.
+            layout (Union[widgets.Layout, None], optional): layout passed to
+                ipyleaflet.Map. Defaults to None.
+            metric_list (List[str], optional): list of GeoGraph metrics to be shown.
+                Defaults to metrics.STANDARD_METRICS.
+            logging_level ([type], optional): python logging level. Defaults to
                 logging.DEBUG.
         """
         super().__init__(
             center=center,
             zoom=zoom,
             scroll_wheel_zoom=True,
-            crs=crs,
+            crs=ipyleaflet.projections.EPSG3857,  # EPSG code for WGS84 CRS
             zoom_snap=0.1,
             **kwargs
         )
+        # There seems to be no easy way to add UTM35N to ipyleaflet.Map(), hence WGS84.
+        self.gpd_crs_code = WGS84
+        self.metrics = metric_list
+        if layout is None:
+            self.layout = widgets.Layout(height="700px")
 
-        # Setting log with handler, that allows access to log via handler.show_logs()
+        # Setting log with handler, allows access to log via handler.show_logs()
         self.logger = logging.getLogger(type(self).__name__)
         self.logger.setLevel(logging_level)
         self.log_handler = widget_utils.OutputWidgetHandler()
         self.logger.addHandler(self.log_handler)
-
-        if layout is None:
-            self.layout = widgets.Layout(height="700px")
 
         default_map_layer = ipyleaflet.TileLayer(
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -74,16 +76,16 @@ class GeoGraphViewer(ipyleaflet.Map):
             min_zoom=4,
         )
 
-        # Note: entries in layer dict follow the convention:
+        # Note: entries in layer_dict follow the convention:
         # ipywidgets_layer = layer_dict[type][name][subtype]["layer"]
         # Layers of type "maps" only have subtype "map".
+        # The layer_dict overrules the ipyleaflet.Map() attribute .layers
         self.layer_dict = dict(
             maps=dict(
                 OpenStreetMap=dict(map=dict(layer=default_map_layer, active=True))
             ),
             graphs=dict(),
         )
-
         self.layer_style = style.DEFAULT_LAYER_STYLE
 
         self.graph_subtypes = [
@@ -93,13 +95,9 @@ class GeoGraphViewer(ipyleaflet.Map):
             "disconnected_nodes",
             "poorly_connected_nodes",
         ]
-        self.metrics = metric_list
 
-        self.hover_widget = None
-        self._widget_output = {}
-
-        # Setting the order and current view of graph and map
-        # with the latter two as traits
+        # Setting the current view of graph and map as traits. Together with layer_dict
+        # these two determine the state of the widget.
         self.add_traits(
             current_graph=traitlets.Unicode().tag(sync=True),
             current_map=traitlets.Unicode().tag(sync=True),
@@ -112,7 +110,17 @@ class GeoGraphViewer(ipyleaflet.Map):
     def set_layer_visibility(
         self, layer_type: str, layer_name: str, layer_subtype: str, active: bool
     ) -> None:
-        """Set visiblity for layer_dict[layer_type][layer_name][layer_subtype]."""
+        """Set visiblity for a specific layer
+
+        Set the visibility for layer in
+        `layer_dict[layer_type][layer_name][layer_subtype]`.
+
+        Args:
+            layer_type (str): type of layer (e.g. "maps","graphs")
+            layer_name (str): name of layer
+            layer_subtype (str): subtype of layer (e.g. "map","components")
+            active (bool): whether layer is activate (=visible)
+        """
         self.layer_dict[layer_type][layer_name][layer_subtype]["active"] = active
 
     def hidde_all_layers(self) -> None:
@@ -133,7 +141,8 @@ class GeoGraphViewer(ipyleaflet.Map):
         """Add a layer on the map.
 
         Args:
-            layer (Layer instance): the new layer to add.
+            layer (Layer instance): the new layer to add
+            name (str): name for the layer. This shows up in viewer control widgets.
         """
         if isinstance(layer, dict):
             if name is None:
@@ -173,67 +182,71 @@ class GeoGraphViewer(ipyleaflet.Map):
             nx_graph = current_graph.graph
             is_habitat = not current_name == name
 
-            nodes, edges = graph_utils.create_node_edge_geometries(nx_graph)
+            # Creating layer with geometries representing graph on map
+            nodes, edges = graph_utils.create_node_edge_geometries(
+                nx_graph, crs=self.gpd_crs_code
+            )
             graph_geometries = pd.concat([edges, nodes]).reset_index()
             graph_geo_data = ipyleaflet.GeoData(
-                geo_dataframe=graph_geometries.to_crs(WGS84),
+                geo_dataframe=graph_geometries,
                 name=current_name + "_graph",
                 **self.layer_style["graph"]
             )
 
+            # Creating choropleth layer for patch polygons
             pgon_df = current_graph.df.loc[list(nx_graph)]
             pgon_choropleth = self._get_choropleth_from_df(pgon_df)
 
+            # Creating layer for graph components
             component_df = current_graph.get_graph_components(
                 calc_polygons=True
             ).df.copy()
             if is_habitat:
-                self.logger.debug("Graph: %s", graph)
                 component_df.geometry = component_df.geometry.buffer(
                     current_graph.max_travel_distance
                 )
-            # component_choropleth = self._get_choropleth_from_df(component_df)
             component_choropleth = ipyleaflet.GeoData(
                 geo_dataframe=component_df.to_crs(WGS84),
                 name=current_name + "_components",
                 **self.layer_style["components"]
             )
 
-            # Getting disconnected (no-edge) nodes
+            # Creating layer for disconnected (no-edge) nodes
             disconnected_nx_graph = nx_graph.subgraph(
                 [node for node in nx_graph.nodes() if nx_graph.degree[node] == 0]
             )
 
             discon_nodes, _ = graph_utils.create_node_edge_geometries(
-                disconnected_nx_graph
+                disconnected_nx_graph, crs=self.gpd_crs_code
             )
 
             discon_nodes_geo_data = ipyleaflet.GeoData(
-                geo_dataframe=discon_nodes.to_crs(WGS84),
+                geo_dataframe=discon_nodes,
                 name=current_name + "_disconnected_nodes",
                 **self.layer_style["disconnected_nodes"]
             )
 
-            # Getting poorly connected (one-edge) nodes
+            # Creating layer for poorly connected (one-edge) nodes
             poorly_connected_nx_graph = nx_graph.subgraph(
                 [node for node in nx_graph.nodes() if nx_graph.degree[node] == 1]
             )
             poorly_con_nodes, _ = graph_utils.create_node_edge_geometries(
-                poorly_connected_nx_graph
+                poorly_connected_nx_graph, crs=self.gpd_crs_code
             )
             poorly_con_nodes_geo_data = ipyleaflet.GeoData(
-                geo_dataframe=poorly_con_nodes.to_crs(WGS84),
+                geo_dataframe=poorly_con_nodes,
                 name=current_name + "_poorly_connected_nodes",
                 **self.layer_style["poorly_connected_nodes"]
             )
 
-            # Getting metrics
+            # Getting graph metrics
             graph_metrics = []
             for metric in self.metrics:
                 graph_metrics.append(
                     current_graph.get_metric(metric)
                 )  # pylint: disable=protected-access
 
+            # Combining all layers and adding them to layer_dict
             layer = dict(
                 is_habitat=is_habitat,
                 graph=dict(layer=graph_geo_data, active=True),
@@ -268,7 +281,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         df = df.to_crs(WGS84)
         geo_data = df.__geo_interface__
 
-        # Fix here because ipyleaflet.choropleth can't reach individual
+        # This fix is needed because ipyleaflet.choropleth can't reach individual
         # properties for key
         for feature in geo_data["features"]:
             feature["class_label"] = feature["properties"]["class_label"]
@@ -298,12 +311,14 @@ class GeoGraphViewer(ipyleaflet.Map):
                     layers.append(graph[graph_subtype]["layer"])
 
         self.layers = tuple(layers)
+        self.logger.debug("layer_update() called.")
 
-    def set_graph_style(self, radius: float = 10, node_color=None) -> None:
+    def set_graph_style(self, radius: float = 10, node_color: str = None) -> None:
         """Set the style of any graphs added to viewer.
 
         Args:
             radius (float): radius of nodes in graph. Defaults to 10.
+            node_color (str): (CSS) color of graph node (e.g. "blue")
         """
         for name, graph in self.layer_dict["graphs"].items():
             layer = graph["graph"]["layer"]
@@ -379,7 +394,7 @@ class FoliumGeoGraphViewer:
         The added graph is visualised in the viewer.
 
         Args:
-            graph (geograph.GeoGraph): GeoGraph to be shown.
+            graph (geograph.GeoGraph): GeoGraph to be shown
         """
 
         self._add_graph_to_folium_map(graph)
@@ -392,7 +407,7 @@ class FoliumGeoGraphViewer:
         """Add graph to folium map.
 
         Args:
-            graph (geograph.GeoGraph): GeoGraph to be added.
+            graph (geograph.GeoGraph): GeoGraph to be added
         """
         self.widget = folium_utils.add_graph_to_folium_map(
             folium_map=self.widget, graph=graph.graph
