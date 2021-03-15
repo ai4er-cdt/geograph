@@ -59,8 +59,9 @@ def ps_defaults(use_tex: bool = True):
     """
     # matplotlib.use('agg') this used to be required for jasmin
     p_general = {
-        "font.family": "serif",
-        "font.serif": [],
+        "font.family": "STIXGeneral", # Nice alternative font.
+        # "font.family": "serif",
+        # "font.serif": [],
         # Use 10pt font in plots, to match 10pt font in document
         "axes.labelsize": 10,
         "font.size": 10,
@@ -70,9 +71,8 @@ def ps_defaults(use_tex: bool = True):
         "ytick.labelsize": 8,
         # Set the font for maths
         "mathtext.fontset": "cm",
-        # "font.family": "STIXGeneral", # Nice alternative font.
-        "font.sans-serif": ["DejaVu Sans"],  # gets rid of error messages
-        "font.monospace": [],
+        # "font.sans-serif": ["DejaVu Sans"],  # gets rid of error messages
+        # "font.monospace": [],
         "lines.linewidth": 0.75,
         "scatter.marker": "+",
         "image.cmap": "RdYlBu_r",
@@ -101,6 +101,8 @@ def label_subplots(
     labels: Sequence[str] = [chr(ord("`")+z) for z in range(1, 27)],
     start_from: int = 0,
     fontsize: int = 10,
+    x_pos: float = 0.02,
+    y_pos: float = 0.95,
 ) -> None:
     """Adds (a), (b), (c) at the top left of each subplot panel.
     Labelling order achieved through ravelling the input list / array.
@@ -110,6 +112,8 @@ def label_subplots(
         labels (Sequence[str]): A sequence of labels for the subplots.
         start_from (int, optional): skips first ${start_from} labels. Defaults to 0.
         fontsize (int, optional): Font size for labels. Defaults to 10.
+        x_pos (float, optional): Relative x position of labels. Defaults to 0.02.
+        y_pos (float, optional): Relative y position of labels. Defaults to 0.95.
 
     Returns:
         void; alters the `matplotlib.pyplot.axes` objects
@@ -123,8 +127,8 @@ def label_subplots(
         subset_labels.append(labels[i + start_from])
     for i, label in enumerate(subset_labels):
         axs.ravel()[i].text(
-            0.02,
-            0.95,
+            x_pos,
+            y_pos,
             str("(" + label + ")"),
             color="black",
             transform=axs.ravel()[i].transAxes,

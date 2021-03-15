@@ -6,11 +6,12 @@ esa-compress.py
 from src.preprocessing.esa_compress import esa_to_superclasses, eunis_to_superclasses
 
 """
+from typing import Tuple
 import numpy as np
 import xarray as xr
 
 
-def _make_esa_map_d():
+def _make_esa_map_d() -> Tuple[dict, dict]:
     """
     This function creats the mapping between the esa cci habitat labels and
     a reduced set of the same length. Only usable if the same habitat labels as in the
@@ -54,11 +55,11 @@ FORW_D, REV_D = _make_esa_map_d()  # Makes global objects for the mapping dicts.
 # Create the unvectorised functions.
 
 
-def _compress_esa(x):
+def _compress_esa(x: int) -> int:
     return FORW_D[x]
 
 
-def _decompress_esa(x):
+def _decompress_esa(x: int) -> int:
     return REV_D[x]
 
 
@@ -68,7 +69,7 @@ compress_esa = np.vectorize(_compress_esa)
 decompress_esa = np.vectorize(_decompress_esa)
 
 
-def esa_to_superclasses(input_array):
+def esa_to_superclasses(input_array: xr.DataArray) -> xr.DataArray:
     """input xarray.DataArray with esa cci classes and output dataarray with new classes
     but same coords and attributes as input"""
     new_class_1 = np.where(
@@ -131,7 +132,7 @@ def esa_to_superclasses(input_array):
     return output_array_final
 
 
-def eunis_to_superclasses(input_array):
+def eunis_to_superclasses(input_array: xr.DataArray) -> xr.DataArray:
     """input xarray.DataArray with eunis classes and output dataarray with super classes
     but same coords and attributes as input"""
 

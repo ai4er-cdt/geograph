@@ -56,6 +56,7 @@ http://web.pdx.edu/~nauna/resources/10_BandCombinations.htm
 
 
 """
+from typing import Tuple
 import os
 import numpy as np
 import numpy.ma as ma
@@ -68,7 +69,7 @@ from src.constants import SAT_DIR
 
 
 @timeit
-def return_path_dataarray():
+def return_path_dataarray() -> xr.DataArray:
     """
     makes path to the google earth engine landsat data.
     if the file doesn't exist, it becomes 'None' in the netcdf.
@@ -80,14 +81,13 @@ def return_path_dataarray():
     im_type = ["hab", "chern"]
     month_groups = ["JFM", "AMJ", "JAS", "OND"]
     ir = [0, 1]
-    directory = SAT_DIR
-    # year, month_group, im_type
+    # year, month_group, im_type, ir
     path_array = np.empty(
         [len(years), len(month_groups), len(im_type), len(ir)], dtype=object
     )
     for year in years:
         if year not in incomplete_years:
-            path = os.path.join(directory, str(year))
+            path = os.path.join(SAT_DIR, str(year))
             for i in os.listdir(path):
                 full_name = os.path.join(path, i)
                 coord_list = [years, month_groups, im_type]
@@ -117,16 +117,16 @@ def return_path_dataarray():
 
 @timeit
 def return_normalized_array(
-    one,
-    two,
-    three,
-    filter_together=True,
-    high_limit=1.5e3,
-    low_limit=0,
-    high_filter=True,
-    low_filter=True,
-    common_norm=True,
-):
+    one: np.array,
+    two: np.array,
+    three: np.array,
+    filter_together: bool = True,
+    high_limit: float = 1.5e3,
+    low_limit: float = 0,
+    high_filter: bool = True,
+    low_filter: bool = True,
+    common_norm: bool = True,
+) -> np.array:
     """
     Function takes numpy bands and converts it to a preprocessed numpy array.
     :param filter_together: if True will only display points where all 3 members of a band
@@ -141,7 +141,7 @@ def return_normalized_array(
     print("high_limit \t", high_limit)
 
     # Normalize bands into 0.0 - 1.0 scale
-    def norm(array):
+    def norm(array: np.array) -> np.array:
         array_min, array_max = np.nanmin(array), np.nanmax(array)
         if common_norm:
             # This doesn't guarantee it's between 0 and 1 if the filter is off.
@@ -149,10 +149,12 @@ def return_normalized_array(
         else:
             return (array - array_min) / (array_max - array_min)
 
-    def filt(data_array, filter_array):
+    def filt(data_array: np.array, filter_array: np.array) -> np.array:
         return ma.masked_where(filter_array, data_array).filled(np.nan)
 
-    def comb_and_filt(red, green, blue, filter_red, filter_green, filter_blue):
+    def comb_and_filt(red: np.array, green: np.array, blue: np.array, 
+            filter_red: np.array, filter_green: np.array, 
+            filter_blue: np.array) -> Tuple[np.array, np.array, np.array]:
         filter_array = np.logical_or(
             np.logical_or(filter_red, filter_green), filter_blue
         )
@@ -162,14 +164,15 @@ def return_normalized_array(
             filt(blue, filter_array),
         )
 
-    def filter_sep_and_norm(array):
+    def filter_sep_and_norm(array: np.array) -> np.array:
         if high_filter:
             array = filt(array, array >= high_limit).filled(np.nan)
         if low_filter:
             array = filt(array, array <= low_limit).filled(np.nan)
         return norm(array)
 
-    def filter_tog_and_norm(red, green, blue):
+    def filter_tog_and_norm(red: np.array, green: np.array, 
+        blue: np.array) -> Tuple[np.array, np.array, np.array]:
         if high_filter:
             filter_red, filter_green, filter_blue = (
                 red >= high_limit,
@@ -204,9 +207,9 @@ def return_normalized_array(
 
 
 def load_rgb_data(
-    file_name=os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"),
-    high_limit=1500,
-):
+    file_name: str=os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"),
+    high_limit: int = 1500,
+) -> Tuple[np.array, list]:
     """
     :param file_name: full path to .tif image.
     """
@@ -239,7 +242,7 @@ def load_rgb_data(
 
 
 @timeit
-def create_netcdfs():
+def create_netcdfs() -> None:
     """
     Create the landsat preprocessed data and save it as netcdfs for the
     different seasons.

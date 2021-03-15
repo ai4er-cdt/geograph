@@ -36,15 +36,25 @@ def animate_prediction(x_da: xr.DataArray, y_da: xr.DataArray, pred_da: xr.DataA
     """
 
     def gen_frame_func(x_da: xr.DataArray, y_da: xr.DataArray,
-                       pred_da: xr.DataArray):
+                       pred_da: xr.DataArray) -> any:
         """Create imageio frame function for xarray.DataArray visualisation.
         Args:
             x_da (xr.DataArray): 3 or 6 bands, 4 seasons, 20 years
             y_da (xr.DataArray): 1 band, 20 years
             pred_da (xr.DataArray): 1 band, 20 years
         Returns:
+            make_frame (function): function to create each frame.
+
         """
-        def make_frame(index: int):
+        def make_frame(index: int) -> np.array:
+            """[summary]
+
+            Args:
+                index (int): [description]
+
+            Returns:
+                image (np.array): np.frombuffer output that can be fed into imageio
+            """
             if len(x_da.band.values) == 3:
                 fig, ((ax1, ax2), (ax3, ax4), (ax5, ax6)) = plt.subplots(
                     3, 2, figsize=(10, 10)
@@ -59,7 +69,6 @@ def animate_prediction(x_da: xr.DataArray, y_da: xr.DataArray, pred_da: xr.DataA
                 ) = plt.subplots(5, 2, figsize=(10, 17))
             else:
                 assert False
-            # da.sel(year=year).plot(cmap=cmap, clim=(min, max))
 
             x_da.isel(year=index, mn=0, band=slice(0, 3)).plot.imshow(ax=ax1)
             x_da.isel(year=index, mn=1, band=slice(0, 3)).plot.imshow(ax=ax2)

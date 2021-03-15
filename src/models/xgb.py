@@ -99,7 +99,7 @@ def train_xgb_dask(
             param,
             dtrain,
             num_boost_round=num_round,
-            evals=[(dtrain, "train"), (dtrain, "test")],
+            evals=[(dtrain, "train"), (dtest, "test")],
         )
     bst.save_model(
         os.path.join(wandb.run.dir, wandb.run.name + "_xgb.model")
