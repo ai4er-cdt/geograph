@@ -10,9 +10,15 @@ import ipyleaflet
 import traitlets
 import logging
 
-from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
 from src.models import metrics, geograph
-from src.visualisation import folium_utils, graph_utils, widget_utils, control_widgets
+from src.visualisation import (
+    folium_utils,
+    graph_utils,
+    widget_utils,
+    control_widgets,
+    style,
+)
+from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
 
 if TYPE_CHECKING:
     import geopandas as gpd
@@ -78,16 +84,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             graphs=dict(),
         )
 
-        self.custom_style = dict(
-            style={"color": "black", "fillColor": "orange"},
-            hover_style={"fillColor": "red", "fillOpacity": 0.2},
-            point_style={
-                "radius": 10,
-                "color": "red",
-                "fillOpacity": 0.8,
-                "weight": 3,
-            },
-        )
+        self.layer_style = style.DEFAULT_LAYER_STYLE
 
         self.graph_subtypes = [
             "pgons",
@@ -134,10 +131,9 @@ class GeoGraphViewer(ipyleaflet.Map):
 
     def add_layer(self, layer: Union[dict, ipyleaflet.Layer], name=None) -> None:
         """Add a layer on the map.
-        Parameters
-        ----------
-        layer: Layer instance
-            The new layer to add.
+
+        Args:
+            layer (Layer instance): the new layer to add.
         """
         if isinstance(layer, dict):
             if name is None:
@@ -182,7 +178,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             graph_geo_data = ipyleaflet.GeoData(
                 geo_dataframe=graph_geometries.to_crs(WGS84),
                 name=current_name + "_graph",
-                **self.custom_style
+                **self.layer_style["graph"]
             )
 
             pgon_df = current_graph.df.loc[list(nx_graph)]
@@ -196,7 +192,12 @@ class GeoGraphViewer(ipyleaflet.Map):
                 component_df.geometry = component_df.geometry.buffer(
                     current_graph.max_travel_distance
                 )
-            component_choropleth = self._get_choropleth_from_df(component_df)
+            # component_choropleth = self._get_choropleth_from_df(component_df)
+            component_choropleth = ipyleaflet.GeoData(
+                geo_dataframe=component_df.to_crs(WGS84),
+                name=current_name + "_components",
+                **self.layer_style["components"]
+            )
 
             # Getting disconnected (no-edge) nodes
             disconnected_nx_graph = nx_graph.subgraph(
@@ -210,7 +211,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             discon_nodes_geo_data = ipyleaflet.GeoData(
                 geo_dataframe=discon_nodes.to_crs(WGS84),
                 name=current_name + "_disconnected_nodes",
-                **self.custom_style
+                **self.layer_style["disconnected_nodes"]
             )
 
             # Getting poorly connected (one-edge) nodes
@@ -223,7 +224,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             poorly_con_nodes_geo_data = ipyleaflet.GeoData(
                 geo_dataframe=poorly_con_nodes.to_crs(WGS84),
                 name=current_name + "_poorly_connected_nodes",
-                **self.custom_style
+                **self.layer_style["poorly_connected_nodes"]
             )
 
             # Getting metrics
@@ -279,9 +280,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             geo_data=geo_data,
             choro_data=choro_data,
             key_on="class_label",
-            border_color="black",
-            hover_style={"fillOpacity": 1},
-            style={"fillOpacity": 0.5},
+            **self.layer_style["pgons"]
         )
 
         return choropleth
@@ -312,10 +311,12 @@ class GeoGraphViewer(ipyleaflet.Map):
             # Below doesn't work because traitlet change not observed
             # layer.point_style['radius'] = radius
 
-            self.custom_style["point_style"]["radius"] = radius
-            self.custom_style["style"]["fillColor"] = node_color
+            self.layer_style["graph"]["point_style"]["radius"] = radius
+            self.layer_style["graph"]["style"]["fillColor"] = node_color
             layer = ipyleaflet.GeoData(
-                geo_dataframe=layer.geo_dataframe, name=layer.name, **self.custom_style
+                geo_dataframe=layer.geo_dataframe,
+                name=layer.name,
+                **self.layer_style["graph"]
             )
             self.layer_dict["graphs"][name]["graph"]["layer"] = layer
         self.layer_update()

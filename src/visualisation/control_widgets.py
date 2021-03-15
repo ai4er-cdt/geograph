@@ -653,7 +653,7 @@ class SettingsWidget(BaseControlWidget):
         node_color_picker = widgets.ColorPicker(
             concise=True,
             description="Node color",
-            value=self.viewer.custom_style["style"]["fillColor"],
+            value=self.viewer.layer_style["graph"]["style"]["fillColor"],
             disabled=False,
         )
 
@@ -680,8 +680,8 @@ class SettingsWidget(BaseControlWidget):
     def set_graph_style_callback(self, *args, **kwargs):
         """Callback function to set graph style in geoviewer"""
         try:
+            self.logger.debug("Callback: graph style callback started.")
             self.viewer.set_graph_style(*args, **kwargs)
-            self.logger.debug("Graph style changed.")
         except:  # pylint: disable=bare-except
             self.logger.exception("Exception in when setting graph style.")
 
