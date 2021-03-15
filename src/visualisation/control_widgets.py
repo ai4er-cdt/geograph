@@ -204,7 +204,7 @@ class RadioVisibilityWidget(BaseControlWidget):
         view_disconnected_nodes_btn = LayerButtonWidget(
             description="Disconnected patches",
             tooltip="View disconnected patches (patches with no edge)",
-            icon="shapes",
+            icon="exclamation-circle",
             layer_type="graphs",
             layer_subtype="disconnected_nodes",
             viewer=self.viewer,
@@ -212,7 +212,7 @@ class RadioVisibilityWidget(BaseControlWidget):
         view_poorly_con_nodes_btn = LayerButtonWidget(
             description="Poorly conn. patches",
             tooltip="View poorly connected patches (patches with single edge)",
-            icon="shapes",
+            icon="exclamation-circle",
             layer_type="graphs",
             layer_subtype="poorly_connected_nodes",
             viewer=self.viewer,
