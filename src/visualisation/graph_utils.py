@@ -22,7 +22,7 @@ def create_node_edge_geometries(
 
     Args:
         graph (nx.Graph): graph with nodes and edges
-        crs (str, optional): coordinate reference system. Defaults to UTM35N.
+        crs (str, optional): coordinate reference system of graph. Defaults to UTM35N.
 
     Returns:
         Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]: dataframes of nodes and edges

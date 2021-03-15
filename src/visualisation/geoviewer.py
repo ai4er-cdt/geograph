@@ -184,11 +184,11 @@ class GeoGraphViewer(ipyleaflet.Map):
 
             # Creating layer with geometries representing graph on map
             nodes, edges = graph_utils.create_node_edge_geometries(
-                nx_graph, crs=self.gpd_crs_code
+                nx_graph, crs=current_graph.crs
             )
             graph_geometries = pd.concat([edges, nodes]).reset_index()
             graph_geo_data = ipyleaflet.GeoData(
-                geo_dataframe=graph_geometries,
+                geo_dataframe=graph_geometries.to_crs(self.gpd_crs_code),
                 name=current_name + "_graph",
                 **self.layer_style["graph"]
             )
@@ -217,11 +217,11 @@ class GeoGraphViewer(ipyleaflet.Map):
             )
 
             discon_nodes, _ = graph_utils.create_node_edge_geometries(
-                disconnected_nx_graph, crs=self.gpd_crs_code
+                disconnected_nx_graph, crs=current_graph.crs
             )
 
             discon_nodes_geo_data = ipyleaflet.GeoData(
-                geo_dataframe=discon_nodes,
+                geo_dataframe=discon_nodes.to_crs(self.gpd_crs_code),
                 name=current_name + "_disconnected_nodes",
                 **self.layer_style["disconnected_nodes"]
             )
@@ -231,10 +231,10 @@ class GeoGraphViewer(ipyleaflet.Map):
                 [node for node in nx_graph.nodes() if nx_graph.degree[node] == 1]
             )
             poorly_con_nodes, _ = graph_utils.create_node_edge_geometries(
-                poorly_connected_nx_graph, crs=self.gpd_crs_code
+                poorly_connected_nx_graph, crs=current_graph.crs
             )
             poorly_con_nodes_geo_data = ipyleaflet.GeoData(
-                geo_dataframe=poorly_con_nodes,
+                geo_dataframe=poorly_con_nodes.to_crs(self.gpd_crs_code),
                 name=current_name + "_poorly_connected_nodes",
                 **self.layer_style["poorly_connected_nodes"]
             )
