@@ -476,6 +476,7 @@ class GeoGraph:
 
         # Build union polygon.
         polygon = self.df["geometry"].loc[node_list].unary_union
+
         # Remove nodes from graph and rows from df
         self._remove_nodes(node_list)
         # Add final node to graph and df
