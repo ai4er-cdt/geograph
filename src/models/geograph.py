@@ -118,6 +118,7 @@ class GeoGraph:
         self._columns_to_rename: Optional[Dict[str, str]] = columns_to_rename
         self._tolerance: float = tolerance
         self.metrics: Dict[str, Metric] = {}
+        self.class_metrics: Dict[str, Dict[int, Metric]] = {}
 
         if raster_save_path is not None:
             raster_save_path = pathlib.Path(raster_save_path)
@@ -201,6 +202,11 @@ class GeoGraph:
         Note: Uses `iloc` type indexing.
         """
         return self.df["class_label"].values
+
+    @property
+    def classes(self) -> np.ndarray:
+        """Return a list of the sorted, unique class labels in the graph"""
+        return np.unique(self.df["class_label"].values)
 
     @property
     def geometry(self):
@@ -690,26 +696,47 @@ class GeoGraph:
             self.components = comp_geograph
         return comp_geograph
 
-    def get_metric(self, name: str) -> metrics.Metric:
+    def get_metric(
+        self, name: str, class_value: Optional[int] = None, **metric_kwargs
+    ) -> metrics.Metric:
         """
         Calculate and save the metric with name `name` for the current GeoGraph.
 
         Args:
             name (str): The name of a valid metric for a GeoGraph.
+            class_value(int): The landcover class label if a class level metric is
+                desired. None if a landscape/component level metric is desired.
+                Defaults to None.
 
         Returns:
             metrics.Metric: The Metric object, containing the value as well as
             other information about the metric.
         """
-        if name not in metrics.METRICS_DICT:
-            raise ValueError("`name` must be the name of a valid metric.")
-        try:
-            result = self.metrics[name]
-        except KeyError:
-            # pylint: disable=protected-access
-            result = metrics._get_metric(name=name, geo_graph=self)
-            self.metrics[name] = result
-        return result
+
+        # Case 1: Landscape/component level metrics
+        if class_value is None:
+            try:
+                result = self.metrics[name]
+            except KeyError:
+                # pylint: disable=protected-access
+                result = metrics._get_metric(name=name, geo_graph=self, **metric_kwargs)
+                self.metrics[name] = result
+            return result
+
+        # Case 2: Class level metrics
+        else:
+            try:
+                result = self.class_metrics[name][class_value]
+            except KeyError:
+                # pylint: disable=protected-access
+                result = metrics._get_metric(
+                    name=name, geo_graph=self, class_value=class_value, **metric_kwargs
+                )
+                if name in self.class_metrics.keys():
+                    self.class_metrics[name][class_value] = result
+                else:
+                    self.class_metrics[name] = {class_value: result}
+            return result
 
     def identify_node(
         self, node_id: int, other_graph: GeoGraph, mode: str
@@ -853,7 +880,7 @@ class HabitatGeoGraph(GeoGraph):
         self.components = self.get_graph_components(
             calc_polygons=True, add_distance_edges=add_component_edges
         )
-        self.metrics: Dict[str, Metric] = {}
+
         print(
             f"Habitat successfully loaded with {self.graph.number_of_nodes()} nodes",
             f"and {self.graph.number_of_edges()} edges.",
