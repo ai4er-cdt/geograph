@@ -106,7 +106,7 @@ class GeoGraph:
             **transform (affine.Affine, optional): Affine transformation to
             apply when polygonising. Defaults to the identity transform.
             **connectivity (int, optional): Use 4 or 8 pixel connectivity for
-            grouping pixels into features. 8 can cause issues, Defaults to 4.
+            grouping pixels into features. Defaults to 4.
             **apply_buffer (bool, optional): Apply shapely buffer function to
             the polygons after polygonising. This can fix issues with the
             polygonisation creating invalid geometries.
@@ -257,10 +257,10 @@ class GeoGraph:
 
         Args:
             raster_path (pathlib.Path): A path to a file of raster data in
-            GeoTiff format.
+                GeoTiff format.
             save_path (pathlib.Path, optional): A path to a file to save the
-            polygonised raster data in. A path to a GPKG file is recommended,
-            but Shapefiles also work.
+                polygonised raster data in. A path to a GPKG file is recommended,
+                but Shapefiles also work.
 
         Returns:
             gpd.GeoDataFrame: The dataframe containing polygon objects.
@@ -286,8 +286,8 @@ class GeoGraph:
         Args:
             data_array (np.ndarray): 2D numpy array with the raster data.
             save_path (pathlib.Path, optional): A path to a file to save the
-            polygonised raster data in. A path to a GPKG file is recommended,
-            but Shapefiles also work.
+                polygonised raster data in. A path to a GPKG file is recommended,
+                but Shapefiles also work.
 
         Returns:
             gpd.GeoDataFrame: The dataframe containing polygon objects.
@@ -744,7 +744,7 @@ class GeoGraph:
         """Return all node ids in `other_graph` which identify with `node_id`."""
         return binary_graph_operations.identify_node(
             self.df.loc[node_id], other_graph=other_graph, mode=mode
-        ).tolist()
+        )
 
     def _remove_node(self, node_id: int):
         self._remove_nodes([node_id])

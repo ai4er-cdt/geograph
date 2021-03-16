@@ -2,27 +2,15 @@
 from __future__ import annotations
 from typing import Dict, List, Tuple, TYPE_CHECKING
 
-from numpy import ndarray
 import geopandas as gpd
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import Polygon
-from src.models.polygon_utils import (
-    connect_with_interior_bulk,
-    connect_with_interior_or_edge_bulk,
-    connect_with_interior_or_edge_or_corner_bulk,
-    collapse_empty_polygon,
-    EMPTY_POLYGON,
-)
+
+from src.utils.polygon_utils import collapse_empty_polygon, EMPTY_POLYGON
+import src.utils.geopandas_utils as gpd_utils
 
 if TYPE_CHECKING:
     from src.models import geograph
-
-# For switching identifiction mode in `identify_node`
-_BULK_SPATIAL_IDENTIFICATION_FUNCTION = {
-    "corner": connect_with_interior_or_edge_or_corner_bulk,
-    "edge": connect_with_interior_or_edge_bulk,
-    "interior": connect_with_interior_bulk,
-}
 
 
 class NodeMap:
@@ -98,7 +86,7 @@ class NodeMap:
 
 def identify_node(
     node: dict, other_graph: geograph.GeoGraph, mode: str = "corner"
-) -> ndarray:
+) -> List[int]:
     """
     Return list of all node ids in `other_graph` which identify with the given `node`.
 
@@ -118,24 +106,9 @@ def identify_node(
                 identified with each other. Touching corners or edges are not counted.
 
     Returns:
-        np.ndarray: List of node ids in `other_graph` which identify with `node`.
+        List[int]: List of node ids in `other_graph` which identify with `node`.
     """
-    # Mode switch
-    assert mode in ["corner", "edge", "interior"]
-    have_valid_overlap = _BULK_SPATIAL_IDENTIFICATION_FUNCTION[mode]
-
-    # Get potential candidates for overlap
-    candidate_ids = other_graph.rtree.query(node["geometry"], sort=True)
-    # Filter candidates according to the same class label
-    candidate_ids = candidate_ids[
-        other_graph.class_label[candidate_ids] == node["class_label"]
-    ]
-    # Filter candidates accroding to correct spatial overlap
-    candidate_ids = candidate_ids[
-        have_valid_overlap(node["geometry"], other_graph.geometry[candidate_ids])
-    ]
-
-    return other_graph.df.index.values[candidate_ids]
+    return gpd_utils.identify_node(node, other_graph.df, mode=mode)
 
 
 def identify_graphs(
@@ -160,12 +133,7 @@ def identify_graphs(
     Returns:
         NodeMap: A NodeMap containing the map from `graph1` to `graph2`.
     """
-
-    assert graph1.crs == graph2.crs, "CRS systems of graphs do not agree."
-    mapping = {index1: [] for index1 in graph1.df.index}
-
-    for index in graph1.df.index:  # TODO: Speed up & enable trivial parallelisation
-        mapping[index] = graph1.identify_node(index, graph2, mode=mode)
+    mapping = gpd_utils.identify_dfs(graph1.df, graph2.df, mode=mode)
 
     return NodeMap(src_graph=graph1, trg_graph=graph2, mapping=mapping)
 
