@@ -48,6 +48,9 @@ class UNetModel(pl.LightningModule):
         self.normaliser = self.get_normaliser(config.normaliser)
 
     def configure_optimizers(self):
+        self.unet_logger.info(
+            "Configuring optimizer with learning rate %s", self.config.learning_rate
+        )
         opt = torch.optim.Adam(self.parameters(), lr=self.config.learning_rate)
         return opt
 
