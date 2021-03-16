@@ -58,6 +58,7 @@ def _num_patches(geo_graph: geograph.GeoGraph) -> Metric:
         name="num_patches",
         description="The number of patches in the graph.",
         variant="conventional",
+        unit="dimensionless",
     )
 
 
@@ -71,6 +72,7 @@ def _avg_patch_area(geo_graph: geograph.GeoGraph) -> Metric:
         name="avg_patch_area",
         description="The average area of the patches in the graph.",
         variant="conventional",
+        unit="CRS.unit**2",
     )
 
 
@@ -80,7 +82,7 @@ def _total_area(geo_graph: geograph.GeoGraph) -> Metric:
         name="total_area",
         description="The total area of all the patches in the graph.",
         variant="conventional",
-        unit="CRS.x_length * CRS.y_length",
+        unit="CRS.unit**2",
     )
 
 
@@ -90,6 +92,7 @@ def _patch_density(geo_graph: geograph.GeoGraph) -> Metric:
         name="patch_density",
         description="Number of patches divided by total area of the graph.",
         variant="conventional",
+        unit="1 / CRS.unit**2",
     )
 
 
@@ -103,6 +106,7 @@ def _largest_patch_index(geo_graph: geograph.GeoGraph) -> Metric:
         name="largest_patch_index",
         description="The proportion of landscape comprised by the largest patch.",
         variant="conventional",
+        unit="dimensionless",
     )
 
 
@@ -134,6 +138,7 @@ def _shannon_diversity_index(geo_graph: geograph.GeoGraph) -> Metric:
         name="shannon_diversity_index",
         description=description,
         variant="conventional",
+        unit="dimensionless",
     )
 
 
@@ -164,6 +169,7 @@ def _simpson_diversity_index(geo_graph: geograph.GeoGraph) -> Metric:
         name="simpson_diversity_index",
         description=description,
         variant="conventional",
+        unit="dimensionless",
     )
 
 
@@ -193,7 +199,7 @@ def _class_total_area(geo_graph: geograph.GeoGraph, class_value: int) -> Metric:
         name=f"total_area_class={class_value}",
         description=f"Total area of all patches of class {class_value} in the graph.",
         variant="conventional",
-        unit="CRS.x_length * CRS.y_length",
+        unit="CRS.unit**2",
     )
 
 
@@ -205,10 +211,11 @@ def _class_avg_patch_area(geo_graph: geograph.GeoGraph, class_value: int) -> Met
     class_total_area = geo_graph.get_metric("total_area", class_value=class_value).value
 
     return Metric(
-        value=class_num_patches / class_total_area,
+        value=class_total_area / class_num_patches,
         name=f"avg_patch_area_class={class_value}",
         description=f"The average area of patches of class {class_value} in the graph.",
         variant="conventional",
+        unit="CRS.unit**2",
     )
 
 
@@ -218,6 +225,7 @@ def _class_num_patches(geo_graph: geograph.GeoGraph, class_value: int) -> Metric
         name=f"num_patches_class={class_value}",
         description=f"The number of patches of class {class_value} in the graph.",
         variant="conventional",
+        unit="dimensionless",
     )
 
 
@@ -233,6 +241,7 @@ def _class_proportion_of_landscape(
         name=f"proportion_of_landscape_class={class_value}",
         description=f"The proportional abundance of {class_value} in the graph.",
         variant="conventional",
+        unit="dimensionless",
     )
 
 
@@ -248,6 +257,7 @@ def _class_patch_density(geo_graph: geograph.GeoGraph, class_value: int) -> Metr
         name=f"patch_density_class={class_value}",
         description=f"Density of patches of class {class_value} in the graph.",
         variant="conventional",
+        unit="1 / CRS.unit**2",
     )
 
 
@@ -276,6 +286,7 @@ def _class_largest_patch_index(
         name=f"patch_density_class={class_value}",
         description=description,
         variant="conventional",
+        unit="dimensionless",
     )
 
 
@@ -291,6 +302,7 @@ def _class_total_edge(geo_graph: geograph.GeoGraph, class_value: int) -> Metric:
         name=f"total_edge_class={class_value}",
         description=f"Total edgelength of patches of class {class_value} in the graph.",
         variant="conventional",
+        unit="CRS.unit",
     )
 
 
@@ -316,6 +328,7 @@ def _class_edge_density(geo_graph: geograph.GeoGraph, class_value: int) -> Metri
         name=f"total_edge_density_class={class_value}",
         description=description,
         variant="conventional",
+        unit="1 / CRS.unit",
     )
 
 
@@ -341,6 +354,7 @@ def _class_shape_index(geo_graph: geograph.GeoGraph, class_value: int) -> Metric
         name=f"shape_index_class={class_value}",
         description=description,
         variant="conventional",
+        unit="dimensionless",
     )
 
 
@@ -370,6 +384,7 @@ def _class_effective_mesh_size(
         name=f"effective_mesh_size_class={class_value}",
         description=description,
         variant="conventional",
+        unit="CRS.unit**2",
     )
 
 
@@ -381,6 +396,7 @@ CLASS_METRICS_DICT = {
     "patch_density": _class_patch_density,
     "largest_patch_index": _class_largest_patch_index,
     "total_edge": _class_total_edge,
+    "edge_density": _class_edge_density,
     "shape_index": _class_shape_index,
     "effective_mesh_size": _class_effective_mesh_size,
 }
@@ -394,6 +410,7 @@ def _num_components(geo_graph: geograph.GeoGraph) -> Metric:
         name="num_components",
         description="The number of connected components in the graph.",
         variant="component",
+        unit="dimensionless",
     )
 
 
@@ -407,6 +424,7 @@ def _avg_component_area(geo_graph: geograph.GeoGraph) -> Metric:
         name="avg_component_area",
         description="The average area of the components in the graph",
         variant="component",
+        unit="CRS.unit**2",
     )
 
 
@@ -447,6 +465,7 @@ def _avg_component_isolation(geo_graph: geograph.GeoGraph) -> Metric:
         name="avg_component_isolation",
         description="The average distance to the next-nearest component",
         variant="component",
+        unit="dimensionless",
     )
 
 
