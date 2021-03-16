@@ -112,3 +112,4 @@ token.pickle
 # Don't keep large files
 *.mp4
 *.nc
+*.model

@@ -16,12 +16,17 @@ import matplotlib.pyplot as plt
 from src.data_loading.landcover_plot_utils import classes_to_rgb
 from src.utils import timeit
 from src.plot_settings import ps_defaults, label_subplots
+
 ps_defaults(use_tex=False)
 
 
 @timeit
-def animate_prediction(x_da: xr.DataArray, y_da: xr.DataArray, pred_da: xr.DataArray,
-                       video_path: str = "joint_val.mp4") -> None:
+def animate_prediction(
+    x_da: xr.DataArray,
+    y_da: xr.DataArray,
+    pred_da: xr.DataArray,
+    video_path: str = "joint_val.mp4",
+) -> None:
     """This function animates the inputs, labels, and the corresponding
        predictions of the model.
 
@@ -31,12 +36,13 @@ def animate_prediction(x_da: xr.DataArray, y_da: xr.DataArray, pred_da: xr.DataA
         pred_da (xr.DataArray): 1 band, 20 years
         video_path (str, optional): relative text path to output mp4 file.
             Defaults to "joint_val.mp4".
-    
+
     Based on code originally from Tom Anderson: tomand@bas.ac.uk.
     """
 
-    def gen_frame_func(x_da: xr.DataArray, y_da: xr.DataArray,
-                       pred_da: xr.DataArray) -> any:
+    def gen_frame_func(
+        x_da: xr.DataArray, y_da: xr.DataArray, pred_da: xr.DataArray
+    ) -> any:
         """Create imageio frame function for xarray.DataArray visualisation.
         Args:
             x_da (xr.DataArray): 3 or 6 bands, 4 seasons, 20 years
@@ -46,6 +52,7 @@ def animate_prediction(x_da: xr.DataArray, y_da: xr.DataArray, pred_da: xr.DataA
             make_frame (function): function to create each frame.
 
         """
+
         def make_frame(index: int) -> np.array:
             """[summary]
 
@@ -85,9 +92,9 @@ def animate_prediction(x_da: xr.DataArray, y_da: xr.DataArray, pred_da: xr.DataA
                 x_da.isel(year=index, mn=3, band=slice(3, 6)).plot.imshow(ax=ax4b)
                 for ax in [ax1b, ax2b, ax3b, ax4b]:
                     ax.set_xlabel("")
-                label_subplots([ax1, ax2, ax1b, ax2b, ax3, ax4, ax3b, ax4b, ax5, ax6])
+                label_subplots([ax1, ax2, ax1b, ax2b, ax3, ax4, ax3b, ax4b, ax5, ax6], y_pos=1.07)
             else:
-                label_subplots([ax1, ax2, ax3, ax4, ax5, ax6])
+                label_subplots([ax1, ax2, ax3, ax4, ax5, ax6], y_pos=1.07)
 
             xr.DataArray(
                 data=classes_to_rgb(y_da.isel(year=index).values),
@@ -120,8 +127,13 @@ def animate_prediction(x_da: xr.DataArray, y_da: xr.DataArray, pred_da: xr.DataA
 
         return make_frame
 
-    def xarray_to_video(x_da: xr.DataArray, y_da: xr.DataArray, pred_da: xr.DataArray,
-                        video_path: str, fps: int = 5) -> None:
+    def xarray_to_video(
+        x_da: xr.DataArray,
+        y_da: xr.DataArray,
+        pred_da: xr.DataArray,
+        video_path: str,
+        fps: int = 5,
+    ) -> None:
         """Generate video of an xarray.DataArray.
         The full set of time coordinates of the datasets are used.
         Args:
@@ -131,8 +143,9 @@ def animate_prediction(x_da: xr.DataArray, y_da: xr.DataArray, pred_da: xr.DataA
             video_path (str, optional): relative text path to output mp4 file.
         """
         video_indices = list(range(len(y_da.year.values)))
-        make_frame = gen_frame_func(x_da,y_da, pred_da)
-        imageio.mimsave(video_path,
+        make_frame = gen_frame_func(x_da, y_da, pred_da)
+        imageio.mimsave(
+            video_path,
             [make_frame(index) for index in tqdm(video_indices, desc=video_path)],
             fps=fps,
         )

@@ -48,7 +48,7 @@ import matplotlib.style
 import seaborn as sns
 
 
-def ps_defaults(use_tex: bool = True):
+def ps_defaults(use_tex: bool = True) -> None:
     """Apply plotting style to produce nice looking figures.
     Call this at the start of a script which uses `matplotlib`.
     Can enable `matplotlib` LaTeX backend if it is available.
@@ -59,7 +59,7 @@ def ps_defaults(use_tex: bool = True):
     """
     # matplotlib.use('agg') this used to be required for jasmin
     p_general = {
-        "font.family": "STIXGeneral", # Nice alternative font.
+        "font.family": "STIXGeneral",  # Nice alternative font.
         # "font.family": "serif",
         # "font.serif": [],
         # Use 10pt font in plots, to match 10pt font in document
@@ -98,7 +98,7 @@ def ps_defaults(use_tex: bool = True):
 
 def label_subplots(
     axs: Sequence[matplotlib.pyplot.axes],
-    labels: Sequence[str] = [chr(ord("`")+z) for z in range(1, 27)],
+    labels: Sequence[str] = [chr(ord("`") + z) for z in range(1, 27)],
     start_from: int = 0,
     fontsize: int = 10,
     x_pos: float = 0.02,
