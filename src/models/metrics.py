@@ -371,7 +371,7 @@ def _class_effective_mesh_size(
     class_areas = geo_graph.df["geometry"][
         geo_graph.df["class_label"] == class_value
     ].area
-    total_area = geo_graph.get_metric("total_area", class_value=class_value).value
+    total_area = geo_graph.get_metric("total_area").value
 
     description = (
         "A <= MESH <= A ; MESH approaches its minimum when there is a single"
