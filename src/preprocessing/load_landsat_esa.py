@@ -2,20 +2,23 @@
 load_landsat_esa.py
 ================================================================
 
-from  src.preprocessing.load_landsat_esa import return_xy_npa, y_npa_to_xarray, x_npa_to_xarray
+usage:
+
+from src.preprocessing.load_landsat_esa import return_xy_npa, y_npa_to_xarray, x_npa_to_xarray
 
 """
 from typing import Sequence, Tuple
 import os
 import time
 import numpy as np
-import dask
 import dask.array as da
-from dask.distributed import Client
 import xarray as xr
-from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, SAT_DIR
-from src.preprocessing.esa_compress import compress_esa, decompress_esa, FORW_D, REV_D
+from src.constants import GWS_DATA_DIR, SAT_DIR  # ESA_LANDCOVER_DIR,
 from src.utils import timeit
+
+# import dask
+# from dask.distributed import Client
+# from src.preprocessing.esa_compress import compress_esa, decompress_esa, FORW_D, REV_D
 
 
 @timeit
@@ -26,11 +29,21 @@ def return_x_y_da(
     use_ir: bool = False,
     prefer_remake: bool = False,
 ) -> Tuple[xr.DataArray, xr.DataArray]:
-    """
-    Uses _return_x_y_da() only if the netcdf has not already been made.
-    :param take_esa_coords: lower resolution
-    :param use_mfd: use mfd
-    'return_x_y_da'  1106.26691 s
+    """Returns compatible X and Y xr.datarrays for Chernobyl
+        can take roughly  1106 s if making full dataset.
+        Memoises function _return_x_y_da so that the dataset doesn't need to
+        be remade if it already exists with the same parameters.
+
+    Args:
+        take_esa_coords (bool, optional): If true maps onto 300m ESA CCI grid. Defaults to False.
+        use_mfd (bool, optional): Use open_mfdataset etc. for ultra-lazy loading. Defaults to True.
+        use_ffil (bool, optional): Fill forward Landsat to remove nans. Defaults to False.
+        use_ir (bool, optional): Take Landsat IR bands. Defaults to False.
+        prefer_remake (bool, optional): Will ignore existing files, and remake them instead.
+            Defaults to False.
+
+    Returns:
+        Tuple[xr.DataArray, xr.DataArray]: X and Y xarray.DataArray's
     """
     names = [
         "take_esa_coords_"
@@ -99,14 +112,18 @@ def _return_x_y_da(
     use_ffil: bool = True,
     use_ir: bool = False,
 ) -> Tuple[xr.DataArray, xr.DataArray]:
-    """
-    This function is memoised by return_x_y_da() so that if it's already been run with
-    the same inputs, it will load the preprocessed data.
-    Load the preprocced Landsat and ESA-CCI data on the same format of xarray.dataaray.
-    :param take_esa_coords: bool, if true use the lower resolution grid from esa ccis
-    :param use_mfd: use mfd to load datasets so that lazy loading / computation is achieved.
-    :param use_ffil: forward fill nan values along dim year.
-    current time taken to run: '_return_x_y_da'  431.59196 s
+    """This function is memoised by return_x_y_da() so that if it's already
+       been run with the same inputs, it won't run again.
+
+    Args:
+        take_esa_coords (bool, optional): if true use the lower resolution grid from esa ccis.
+            Defaults to False.
+        use_mfd (bool, optional): lazy loading / computation. Defaults to True.
+        use_ffil (bool, optional): forward fill nan values along dim year. Defaults to True.
+        use_ir (bool, optional): use Landsat IR bands. Defaults to False.
+
+    Returns:
+        Tuple[xr.DataArray, xr.DataArray]: X and Y xarray.DataArray's
     """
     mn_l = ["JFM", "AMJ", "JAS", "OND"]
 
@@ -125,7 +142,9 @@ def _return_x_y_da(
         )
 
     @timeit
-    def return_part_x_da(ty_v: str = "chern", mn_v: str = "JAS", ir_ap: str = "") -> xr.DataArray:
+    def return_part_x_da(
+        ty_v: str = "chern", mn_v: str = "JAS", ir_ap: str = ""
+    ) -> xr.DataArray:
         directory = os.path.join(SAT_DIR, "nc_" + ty_v)
         print(os.path.join(directory, ty_v + "_" + mn_v + ir_ap + ".nc"))
         return xr.open_dataset(
@@ -137,7 +156,9 @@ def _return_x_y_da(
         return ([os.path.join(directory, ty_v + "_" + mn_v + ".nc") for mn_v in mn_l],)
 
     @timeit
-    def reindex_da(mould_da: xr.DataArray, putty_da: xr.DataArray) -> Tuple[xr.DataArray, xr.DataArray]:
+    def reindex_da(
+        mould_da: xr.DataArray, putty_da: xr.DataArray
+    ) -> Tuple[xr.DataArray, xr.DataArray]:
         """reindex the putty_da to become like the mould_da"""
         return putty_da.reindex(
             x=mould_da.coords["x"].values,
@@ -229,14 +250,15 @@ def _return_x_y_da(
 
 @timeit
 def clip(da_1: xr.DataArray, da_2: xr.DataArray) -> Tuple[xr.DataArray, xr.DataArray]:
-    """clip
-    Mutually clips the dataarrays so that they end up within the same window.
-    rm /gws/nopw/j04/ai4er/guided-team-challenge/2021/biodiversity/gee_satellite_data/inputs/take_esa_coords_True_use_mfd_False_use_ffil_True_use_ir_True_x.nc
-    """
-    # print("clipping")
-    # print("before clipping, da_1", da_1)
-    # print("after clipping, da_2", da_2)
+    """Mutually clips the dataarrays so that they end up within the same window.
 
+    Args:
+        da_1 (xr.DataArray): y and x coords comparible to da_2.
+        da_2 (xr.DataArray): y and x coords comparible to da_2.
+
+    Returns:
+        Tuple[xr.DataArray, xr.DataArray]: y and x coords compatible between da_1 and da_2.
+    """
     y_lim = [
         max([da_1.y.min(), da_2.y.min()]).values.tolist(),
         min([da_1.y.max(), da_2.y.max()]).values.tolist(),
@@ -245,16 +267,6 @@ def clip(da_1: xr.DataArray, da_2: xr.DataArray) -> Tuple[xr.DataArray, xr.DataA
         max([da_1.x.min(), da_2.x.min()]).values.tolist(),
         min([da_1.x.max(), da_2.x.max()]).values.tolist(),
     ]
-    # print("y_lim", y_lim)
-    # print("x_lim", x_lim)
-
-    # y_lim [50.54583333333017, 52.434722222219214]
-    # x_lim [28.40694444446111, 31.420833333350238]
-    # 'clip'  0.09438 s
-    # now changed to the opposite direction
-
-    # da_1 = da_1.sel(x=slice(x_lim[0], x_lim[1]))
-    # da_2 = da_2.sel(x=slice(x_lim[0], x_lim[1]))
 
     def isAscending(xs):
         for n in range(len(xs) - 1):
@@ -296,25 +308,28 @@ def clip(da_1: xr.DataArray, da_2: xr.DataArray) -> Tuple[xr.DataArray, xr.DataA
     else:
         assert False
 
-    # print("after clipping, da_1", da_1)
-    # print("after clipping, da_2", da_2)
-
     return da_1, da_2
 
 
 @timeit
-def return_xy_npa(x_da: xr.DataArray, y_da: xr.DataArray, year=5) -> Tuple[np.array, np.array]:
-    """
-    return the x and y numpy arrays for a given number of years.
+def return_xy_npa(
+    x_da: xr.DataArray, y_da: xr.DataArray, year=5
+) -> Tuple[np.array, np.array]:
+    """return the x and y numpy arrays for a given number of years.
     Currently this function just returns (N, D) for x and (N,) for Y
-    for UNET we want a function that returns (yr, y, xr, D) for x and (yr, y, x, D) for y
-    :param x_da: xarray.dataarray, inputs
-    :param y_da: xarray.dataarray, labels
-    :param year: ints, single or list
-    :return: x_val, y_val
+
+    Args:
+        x_da (xr.DataArray): inputs
+        y_da (xr.DataArray): labels
+        year (int, optional): single or list. Defaults to 5.
+
+    Returns:
+        Tuple[np.array, np.array]: x_val, y_val
     """
 
-    def combine_first_two_indices(x_val: np.array, y_val: np.array) -> Tuple[np.array, np.array]:
+    def combine_first_two_indices(
+        x_val: np.array, y_val: np.array
+    ) -> Tuple[np.array, np.array]:
         return (
             np.swapaxes(
                 np.array([x_val[:, :, i].ravel() for i in range(x_val.shape[2])]), 0, 1
@@ -322,7 +337,9 @@ def return_xy_npa(x_da: xr.DataArray, y_da: xr.DataArray, year=5) -> Tuple[np.ar
             y_val.ravel(),
         )
 
-    def _return_xy_npa(x_da: xr.DataArray, y_da: xr.DataArray, yr: int =5) -> Tuple[np.array, np.array]:
+    def _return_xy_npa(
+        x_da: xr.DataArray, y_da: xr.DataArray, yr: int = 5
+    ) -> Tuple[np.array, np.array]:
         assert isinstance(yr, int)
         x_val = np.asarray(
             [
@@ -347,24 +364,32 @@ def return_xy_npa(x_da: xr.DataArray, y_da: xr.DataArray, year=5) -> Tuple[np.ar
 
 
 @timeit
-def return_xy_dask(x_da: xr.DataArray, y_da: xr.DataArray, year: int = 5) -> Tuple[np.array, np.array]:
-    """
-    return the x and y numpy arrays for a given number of years.
+def return_xy_dask(
+    x_da: xr.DataArray, y_da: xr.DataArray, year: int = 5
+) -> Tuple[da.array, da.array]:
+    """return the x and y numpy arrays for a given number of years.
     Currently this function just returns (N, D) for x and (N,) for Y
-    for UNET we want a function that returns (yr, y, xr, D) for x and (yr, y, x, D) for y
-    :param x_da: xarray.DataArray, inputs
-    :param y_da: xarray.DataArray, labels
-    :param year: ints, single or list
-    :return: x_val, y_val
+
+    Args:
+        x_da (xr.DataArray): inputs
+        y_da (xr.DataArray): labels
+        year (int, optional): single or list. Defaults to 5.
+
+    Returns:
+        Tuple[da.array, da.array]: x_val, y_val
     """
 
-    def combine_first_two_indices(x_val: da.array, y_val: da.array) -> Tuple[da.array, da.array]:
+    def combine_first_two_indices(
+        x_val: da.array, y_val: da.array
+    ) -> Tuple[da.array, da.array]:
         return (
             da.stack([x_val[:, :, i].ravel() for i in range(x_val.shape[2])], axis=1),
             y_val.ravel(),
         )
 
-    def _return_xy_dask_array(x_da: xr.DataArray, y_da: xr.DataArray, yr: int = 5) -> Tuple[da.array, da.array]:
+    def _return_xy_dask_array(
+        x_da: xr.DataArray, y_da: xr.DataArray, yr: int = 5
+    ) -> Tuple[da.array, da.array]:
         assert isinstance(yr, int)
         x_val = da.stack(
             [
@@ -390,38 +415,46 @@ def return_xy_dask(x_da: xr.DataArray, y_da: xr.DataArray, year: int = 5) -> Tup
 
 
 @timeit
-def y_npa_to_xr(npa: np.array, da: xr.DataArray, reshape: bool = True) -> xr.DataArray:
+def y_npa_to_xr(npa: np.array, xda: xr.DataArray, reshape: bool = True) -> xr.DataArray:
+    """Reformat numpy array to be like a given xarray.dataarray.
+       Inverse of return_xy for the y values at least.
+
+    Args:
+        npa (np.array): float array for output
+        xda (xr.DataArray): the mould DataArray for the output.
+        reshape (bool, optional): Whether or not to reshape the npa.
+           Defaults to True.
+
+    Returns:
+        xr.DataArray: containing npa in output
     """
-    Reformat numpy array to be like a given xarray.dataarray.
-    Inverse of return_xy for the y values at least.
-    :param npa: numpy array, float.
-    :param da: xarray.dataarray, the mould da for the output.
-    :return: xarray.dataarray, containing npa.
-    """
-    x = da.x.values
-    y = da.y.values
+    x = xda.x.values
+    y = xda.y.values
     coords_d = dict(x=(["x"], x), y=(["y"], y))
-    coords_d["year"] = da.year.values
+    coords_d["year"] = xda.year.values
 
     if reshape:
-        data = npa.reshape(da.values.shape)
+        data = npa.reshape(xda.values.shape)
     else:
         data = npa
 
     return xr.DataArray(
         data=data,
-        dims=da.dims,
+        dims=xda.dims,
         coords=coords_d,
     )
 
 
 @timeit
 def x_npa_to_xr(npa: np.array, da: xr.DataArray) -> xr.DataArray:
-    """
-    Reformat numpy array to be like a given xarray.dataarray.
-    :param npa: numpy array, float.
-    :param da: xarray.dataarray, the mould da for the output.
-    :return: xarray.dataarray, containing npa.
+    """Reformat numpy array to be like a given xarray.dataarray.
+
+    Args:
+        npa (np.array): numpy array, float.
+        da (xr.DataArray): xarray.DataArray, the mould da for the output.
+
+    Returns:
+        xr.DataArray:  xarray.DataArray, containing npa.
     """
     map_to_feat = np.array(
         [
@@ -451,15 +484,20 @@ def x_npa_to_xr(npa: np.array, da: xr.DataArray) -> xr.DataArray:
 
 
 @timeit
-def return_xy_np_grid(x_da: xr.DataArray, y_da: xr.DataArray, year: int = 5):
+def return_xy_np_grid(
+    x_da: xr.DataArray, y_da: xr.DataArray, year: int = 5
+) -> Tuple[np.array, np.array]:
     """return the x and y numpy arrays for a given number of years.
-       Currently this function just returns (N, D) for x and (N,) for Y
-       for UNET we want a function that returns (yr, y, xr, D) for x 
+       for UNET we want a function that returns (yr, y, xr, D) for x
        and (yr, y, x, D) for y
-    :param x_da: xarray.dataarray, inputs
-    :param y_da: xarray.dataarray, labels
-    :param year: ints, single or list
-    :return: x_val, y_val
+
+    Args:
+        x_da (xr.DataArray): inputs
+        y_da (xr.DataArray): labels
+        year (int, optional): single or list. Defaults to 5.
+
+    Returns:
+        Tuple[np.array, np.array]: x_val, y_val
     """
 
     def _return_xy_npa(x_da, y_da, yr=5):
@@ -496,7 +534,7 @@ def return_xy_np_grid(x_da: xr.DataArray, y_da: xr.DataArray, year: int = 5):
 
 @timeit
 def test_inversibility(x_da: xr.DataArray, y_da: xr.DataArray, cfd: dict):
-    """Tests whether the format works.
+    """Tests whether the reformatting works.
 
     Args:
         x_da (xr.DataArray): x_inputs

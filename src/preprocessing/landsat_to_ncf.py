@@ -127,12 +127,28 @@ def return_normalized_array(
     low_filter: bool = True,
     common_norm: bool = True,
 ) -> np.array:
+    """Function takes numpy.array bands and converts it to a preprocessed numpy array.
+
+    Args:
+        one (np.array): First band
+        two (np.array): Second band
+        three (np.array): Third band
+        filter_together (bool, optional): if True will only display points where all 3 members of a band
+        are with the thresholds. Defaults to True.
+        high_limit (float, optional): The aforementioned threshold. Defaults to 1.5e3.
+        low_limit (float, optional): a lower threshold. Defaults to 0.
+        high_filter (bool, optional): whether to turn the high limit on. Defaults to True.
+        low_filter (bool, optional): [whether to turn the lower limit on. Defaults to True.
+        common_norm (bool, optional): [description]. Defaults to True.
+
+    Returns:
+        np.array: floats between 0 and 1
     """
-    Function takes numpy bands and converts it to a preprocessed numpy array.
-    :param filter_together: if True will only display points where all 3 members of a band
-    are below the threshold.
+    """
+    
+    :param filter_together: 
     :param high_limit: The aforementioned threshold.
-    :param low_limit: Adding a lower threshold.
+    :param low_limit: Adding 
     :param high_filter: Bool, whether to turn the high limit on.
     :param low_filter: Bool, whether to turn the lower limit on.
     :param common_norm: Bool, whether to norm between the upper and lower limit.
@@ -152,9 +168,14 @@ def return_normalized_array(
     def filt(data_array: np.array, filter_array: np.array) -> np.array:
         return ma.masked_where(filter_array, data_array).filled(np.nan)
 
-    def comb_and_filt(red: np.array, green: np.array, blue: np.array, 
-            filter_red: np.array, filter_green: np.array, 
-            filter_blue: np.array) -> Tuple[np.array, np.array, np.array]:
+    def comb_and_filt(
+        red: np.array,
+        green: np.array,
+        blue: np.array,
+        filter_red: np.array,
+        filter_green: np.array,
+        filter_blue: np.array,
+    ) -> Tuple[np.array, np.array, np.array]:
         filter_array = np.logical_or(
             np.logical_or(filter_red, filter_green), filter_blue
         )
@@ -171,8 +192,9 @@ def return_normalized_array(
             array = filt(array, array <= low_limit).filled(np.nan)
         return norm(array)
 
-    def filter_tog_and_norm(red: np.array, green: np.array, 
-        blue: np.array) -> Tuple[np.array, np.array, np.array]:
+    def filter_tog_and_norm(
+        red: np.array, green: np.array, blue: np.array
+    ) -> Tuple[np.array, np.array, np.array]:
         if high_filter:
             filter_red, filter_green, filter_blue = (
                 red >= high_limit,
@@ -207,11 +229,17 @@ def return_normalized_array(
 
 
 def load_rgb_data(
-    file_name: str=os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"),
+    file_name: str = os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"),
     high_limit: int = 1500,
 ) -> Tuple[np.array, list]:
-    """
-    :param file_name: full path to .tif image.
+    """Loads data from tif image and preprcesses it.
+
+    Args:
+        file_name (str, optional): full path to .tif image. Defaults to os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif").
+        high_limit (int, optional): high limit to filter bands to. Defaults to 1500.
+
+    Returns:
+        Tuple[np.array, list]: [floats between 0 and 1, description of bands]
     """
     # Open the file:
     raster = rasterio.open(file_name)
@@ -230,23 +258,13 @@ def load_rgb_data(
         raster.descriptions[ins[2] - 1],
     ]
 
-    """
-    if "IR" not in file_name:
-        # for color arrays the order needs to be rgb not bgr
-        descriptions.reverse()
-        return return_normalized_array(three, two, one, **kwargs), descriptions
-    else:
-        return return_normalized_array(one, two, three, **kwargs), descriptions
-    """
     return return_normalized_array(one, two, three, high_limit=high_limit), descriptions
 
 
 @timeit
 def create_netcdfs() -> None:
-    """
-    Create the landsat preprocessed data and save it as netcdfs for the
-    different seasons.
-    """
+    """Create the landsat preprocessed data and save it as netcdfs for the
+    different seasons."""
     tmp_path = os.path.join(SAT_DIR, "tmp_nc")
     if not os.path.exists(tmp_path):
         os.mkdir(tmp_path)
@@ -258,13 +276,7 @@ def create_netcdfs() -> None:
         (1, "chern")
     ]:  # enumerate(path_da.coords["ty"].values.tolist()):  # [(1, "chern")]:
         for mn, mn_v in enumerate(path_da.coords["mn"].values.tolist()):
-            """
-            #[(0, "JFM"),
-            #(1, "AMJ")
-            #(2, "JAS"),
-            #(3, "OND")
-            #]:
-            """
+            # [(0, "JFM"), #(1, "AMJ") #(2, "JAS"), #(3, "OND") #]:
             #  [(1, "AMJ"), (2, "JAS"), (3, "OND")]:  # enumerate(path_da.coords["mn"].values.tolist()):
             for ir in [0]:  # [1]:  #[0, 1]
                 path_list = []

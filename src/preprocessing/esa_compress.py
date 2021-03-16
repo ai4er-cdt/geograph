@@ -12,11 +12,12 @@ import xarray as xr
 
 
 def _make_esa_map_d() -> Tuple[dict, dict]:
-    """
-    This function creats the mapping between the esa cci habitat labels and
+    """This function creates the mapping between the esa cci habitat labels and
     a reduced set of the same length. Only usable if the same habitat labels as in the
     Chernobyl region are used.
-    :return: forw_d, rev_d; two dictionaries for the forwards / reverse transformation.
+
+    Returns:
+        Tuple[dict, dict]: two dictionaries for the forwards / reverse transformation.
     """
     a = [
         0,
@@ -70,8 +71,16 @@ decompress_esa = np.vectorize(_decompress_esa)
 
 
 def esa_to_superclasses(input_array: xr.DataArray) -> xr.DataArray:
-    """input xarray.DataArray with esa cci classes and output dataarray with new classes
-    but same coords and attributes as input"""
+    """input xarray.DataArray with esa cci classes and
+        output xarray.DataArray with new classes
+        but same coords and attributes as input
+
+    Args:
+        input_array (xr.DataArray): esa cci classes
+
+    Returns:
+        xr.DataArray: new classes
+    """
     new_class_1 = np.where(
         (input_array == 10)
         | (input_array == 11)
@@ -134,7 +143,14 @@ def esa_to_superclasses(input_array: xr.DataArray) -> xr.DataArray:
 
 def eunis_to_superclasses(input_array: xr.DataArray) -> xr.DataArray:
     """input xarray.DataArray with eunis classes and output dataarray with super classes
-    but same coords and attributes as input"""
+        but same coords and attributes as input
+
+    Args:
+        input_array (xr.DataArray): eunis classes
+
+    Returns:
+        xr.DataArray: super classes
+    """
 
     new_class_1 = np.where(
         (input_array == 21)

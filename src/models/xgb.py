@@ -51,7 +51,7 @@ def train_xgb_dask(
     x_da: xr.DataArray,
     y_da: xr.DataArray,
     cfd: dict,
-    objective: str ="multi:softmax",
+    objective: str = "multi:softmax",
     eta: float = 0.3,
     max_depth: int = 12,
     nthread: int = 16,
@@ -84,32 +84,33 @@ def train_xgb_dask(
     param["num_class"] = np.max(train_Y) + 1  # max size of labels.
     wandb.config.update(param)
 
-    print('about to use dask')
+    print("about to use dask")
     # https://xgboost.readthedocs.io/en/latest/tutorials/dask.html
     # cluster = dask.distributed.LocalCluster(n_workers=4, threads_per_worker=10)
     # client = dask.distributed.Client(cluster)
-    print('test_X type ', type(test_X))
-    print('test_Y type ', type(test_Y))
+    print("test_X type ", type(test_X))
+    print("test_Y type ", type(test_Y))
     client = Client(n_workers=12, threads_per_worker=10, memory_limit="10GB")
     dtrain = xgb.dask.DaskDMatrix(client, train_X, train_Y)
     dtest = xgb.dask.DaskDMatrix(client, test_X, test_Y)
 
     bst = xgb.dask.train(
-            client,
-            param,
-            dtrain,
-            num_boost_round=num_round,
-            evals=[(dtrain, "train"), (dtest, "test")],
-        )
+        client,
+        param,
+        dtrain,
+        num_boost_round=num_round,
+        evals=[(dtrain, "train"), (dtest, "test")],
+    )
     bst.save_model(
         os.path.join(wandb.run.dir, wandb.run.name + "_xgb.model")
-        )  # save model.
+    )  # save model.
     # prediction = xgb.dask.predict(client, output, dtrain)
     # Or equivalently, pass ``output['booster']``:
     # prediction = xgb.dask.predict(client, output['booster'], dtrain)
     # prediction = xgb.dask.predict(client, output, dtest)
     # print(prediction)
     # https://stackoverflow.com/questions/45941528/how-to-efficiently-send-a-large-numpy-array-to-the-cluster-with-dask-array
+
 
 @timeit
 def train_xgb(
@@ -120,7 +121,7 @@ def train_xgb(
     x_da: xr.DataArray,
     y_da: xr.DataArray,
     cfd: dict,
-    objective: str ="multi:softmax",
+    objective: str = "multi:softmax",
     eta: float = 0.3,
     max_depth: int = 12,
     nthread: int = 16,
@@ -155,46 +156,42 @@ def train_xgb(
     xg_test = xgb.DMatrix(test_X, label=test_Y)  # make test DMatrix
     watchlist = [(xg_train, "train"), (xg_test, "test")]
     bst = xgb.train(
-            param,
-            xg_train,
-            num_round,
-            watchlist,
-            callbacks=[wandb.xgboost.wandb_callback()],
-        )
+        param,
+        xg_train,
+        num_round,
+        watchlist,
+        callbacks=[wandb.xgboost.wandb_callback()],
+    )
     # get prediction
     pred = bst.predict(xg_test)  # predict for the test set.
     error_rate = np.sum(pred != test_Y) / test_Y.shape[0]
     print("Test error using softmax = {}".format(error_rate))
     wandb.log({"Error Rate": error_rate})
     bst.save_model(
-            os.path.join(wandb.run.dir, wandb.run.name + "_xgb.model")
-        )  # save model.
+        os.path.join(wandb.run.dir, wandb.run.name + "_xgb.model")
+    )  # save model.
     x_all, y_all = return_xy_npa(
-            x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
-        )  # all data as numpy.
+        x_da, y_da, year=range(cfd["start_year_i"], cfd["end_year_i"])
+    )  # all data as numpy.
     xg_all = xgb.DMatrix(
-            x_all, label=compress_esa(y_all)
-        )  # pass all data to xgb data matrix
+        x_all, label=compress_esa(y_all)
+    )  # pass all data to xgb data matrix
     y_pr_all = decompress_esa(
-            bst.predict(xg_all)
-        )  # predict whole time period using model
+        bst.predict(xg_all)
+    )  # predict whole time period using model
     y_pr_da = y_npa_to_xr(
-            y_pr_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
-        )  # transform full prediction to dataarray.
+        y_pr_all, y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"]))
+    )  # transform full prediction to dataarray.
     y_pr_da.to_netcdf(
-            os.path.join(wandb.run.dir, wandb.run.name + "_y.nc")
-        )  # save to netcdf
+        os.path.join(wandb.run.dir, wandb.run.name + "_y.nc")
+    )  # save to netcdf
     animate_prediction(
-            x_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
-            y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
-            y_pr_da,
-            video_path=os.path.join(wandb.run.dir, wandb.run.name + "_joint_val.mp4"),
-        )  # animate prediction vs inputs.
-    print(
-        "Classification accuracy: {}".format(
-            metrics.accuracy_score(y_all, y_pr_all)
-            )
-        )
+        x_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
+        y_da.isel(year=range(cfd["start_year_i"], cfd["end_year_i"])),
+        y_pr_da,
+        video_path=os.path.join(wandb.run.dir, wandb.run.name + "_joint_val.mp4"),
+    )  # animate prediction vs inputs.
+    print("Classification accuracy: {}".format(metrics.accuracy_score(y_all, y_pr_all)))
     # return bst
 
 
@@ -224,7 +221,7 @@ if __name__ == "__main__":
     wandb.config.update(cfd)
 
     if cfd["use_dask"]:
-        print('loading dask')
+        print("loading dask")
         input_direc = os.path.join(SAT_DIR, "inputs")
         x_file_name = os.path.join(
             input_direc,
