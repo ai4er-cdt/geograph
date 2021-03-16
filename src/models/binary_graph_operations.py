@@ -135,7 +135,7 @@ def identify_node(
         have_valid_overlap(node["geometry"], other_graph.geometry[candidate_ids])
     ]
 
-    return candidate_ids
+    return other_graph.df.index.values[candidate_ids]
 
 
 def identify_graphs(
