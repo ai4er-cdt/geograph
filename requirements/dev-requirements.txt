@@ -40,6 +40,7 @@ xarray              # useful data structures
 rioxarray           # adaptation of xarray for raterio.
 "dask[dataframe]"   # allows more lazy operation for xarray.
 "dask[distributed]" # allows distributed computing
+dask[array]     # allows to composite multiple satellite images stored in different shards
 netCDF4             # makes sure that the default driver is netCDF4.
 bottleneck          # needed for fill forward (xarray.DataArray.ffil)
 
@@ -60,6 +61,11 @@ xgboost         # gradient boosted regression
 sklearn         # sklearn
 graphviz        # can plot the decission tree
 
-# Pytorch lighnning
+#pytorch
 pillow
+torch==1.8
+torchvision
+wandb
 pytorch-lightning
+git+https://github.com/qubvel/segmentation_models.pytorch
+hydra-core

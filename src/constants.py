@@ -30,6 +30,10 @@ ESA_LANDCOVER_DIR = CEDA_DIR / "esacci/land_cover/data/land_cover_maps/v2.0.7"
 
 SAT_DIR = os.path.join(GWS_DATA_DIR, "gee_satellite_data")
 
+SENTINEL_DIR = GWS_DATA_DIR / "sentinel2_data"
+SENTINEL_POLESIA_DIR = SENTINEL_DIR / "Polesia_10m"
+SENTINEL_CHERNOBYL_DIR = SENTINEL_DIR / "Chernobyl_10m"
+
 # Coordinate reference systems (crs)
 WGS84 = "EPSG:4326"  # WGS84 standard crs (latitude, longitude)
 UTM35N = "EPSG:32635"  # https://epsg.io/32635 - preferred crs for chernobyl region

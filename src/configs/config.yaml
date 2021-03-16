@@ -1,0 +1,42 @@
+# Model hyperparams
+# See https://smp.readthedocs.io/en/latest/models.html#unet
+# for full options
+encoder_name: "mobilenet_v2"
+encoder_depth: 3  # Note: this value must agree with len(decoder_channels)
+encoder_weights: "imagenet" # put null for random init
+decoder_channels: [256, 128, 64]
+decoder_attention_type: null # Can be null or "scse"
+in_channels: 3  # Note: This value must agree with len(use_bands)
+out_channels: 20  # This is the number of ouptut classes
+# Activation on the last layer of the model, can be "sigmoid", "softmax", etc
+activation: null
+
+# Dataset hyperparams
+use_bands: [2, 1, 0]  # the bands to use. Use [2, 1, 0] for RGB. Available bands: 0-9
+augment: True
+normaliser: "imagenet"  # Normalisaton. Use "imagenet" for imagenet normaliser, null for identity.
+
+# Training hyperparams
+epochs: 100
+batch_size: 64
+learning_rate: 3e-3
+loss: "Dice" # Supports "Jaccard", "Dice", "Focal"
+eval_metric: "Jaccard" # See above
+checkpoint_freq: 1 # How many epochs we should train for before checkpointing the model.
+# If val_interval is a float, it is the proportion of training set between validation epochs.
+# If it is an int, it denotes the number of batches in between validation epochs.
+val_interval: 1.0
+log_steps: 20 # How many gradient updates between each log point.
+parallel_engine: ddp
+cuda: True # Whether to use GPUs.
+gpus: 1 # Number of GPUs to use.
+num_workers: 5 # Number of subprocesses to use for data loading.
+seed: 9851 # Random seed.
+run_name: ??? # Mandatory string argument that describes the run.
+
+# Hydra config overrides:
+hydra:
+  run:
+    dir: logs/${run_name}
+  sweep:
+    dir: logs/${run_name}

@@ -106,8 +106,7 @@ if __name__ == '__main__':
     #   - For 2 classes, use n_classes=1
     #   - For N > 2 classes, use n_classes=N
     net = UNet(n_channels=12, n_classes=37, bilinear=True)
-    net.to(device=device)   
-    
+    net.to(device=device)
     data_path = [
             GWS_DATA_DIR / "esa_cci_rois" / f"esa_cci_{year}_chernobyl.geojson"
             for year in range(1992, 2016)
