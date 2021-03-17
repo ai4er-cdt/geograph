@@ -66,8 +66,8 @@ def _decompress_esa(x: int) -> int:
 
 # Vectorize the functions
 
-compress_esa = np.vectorize(_compress_esa)
-decompress_esa = np.vectorize(_decompress_esa)
+compress_esa = np.vectorize(_compress_esa, otypes=[int])
+decompress_esa = np.vectorize(_decompress_esa, otypes=[int])
 
 
 def esa_to_superclasses(input_array: xr.DataArray) -> xr.DataArray:
