@@ -47,7 +47,7 @@ def train_model(cfg, logger: logging.Logger = logging.getLogger()):
         dirpath=ckpt_dir,
         filename="{epoch}",
         period=cfg.checkpoint_freq,
-        monitor=cfg.eval_metrics[0],
+        monitor=f"Validation: {cfg.eval_metrics[0]}",
         save_top_k=cfg.save_top_k,
         mode="min",
     )
