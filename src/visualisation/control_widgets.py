@@ -93,7 +93,7 @@ class RadioVisibilityWidget(BaseControlWidget):
         super().__init__(viewer=viewer)
 
         # Resetting all prior visibility control
-        self.viewer.hidde_all_layers()
+        self.viewer.hide_all_layers()
 
         widget = self.assemble_widget()
         self.children = [widget]

@@ -123,18 +123,17 @@ class GeoGraphViewer(ipyleaflet.Map):
         """
         self.layer_dict[layer_type][layer_name][layer_subtype]["active"] = active
 
-    def hidde_all_layers(self) -> None:
+    def hide_all_layers(self) -> None:
         """ Hide all layers in self.layer_dict."""
         for layer_type, type_dict in self.layer_dict.items():
             for layer_name in type_dict:
                 if layer_type == "maps":
                     self.set_layer_visibility(layer_type, layer_name, "map", False)
                 elif layer_type == "graphs":
-                    self.set_layer_visibility(layer_type, layer_name, "graph", False)
-                    self.set_layer_visibility(layer_type, layer_name, "pgons", False)
-                    self.set_layer_visibility(
-                        layer_type, layer_name, "components", False
-                    )
+                    for layer_subtype in self.graph_subtypes:
+                        self.set_layer_visibility(
+                            layer_type, layer_name, layer_subtype, False
+                        )
         self.layer_update()
 
     def add_layer(self, layer: Union[dict, ipyleaflet.Layer], name=None) -> None:
@@ -217,7 +216,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             )
 
             discon_nodes, _ = graph_utils.create_node_edge_geometries(
-                disconnected_nx_graph, crs=current_graph.crs
+                disconnected_nx_graph, crs=current_graph.crs, include_edges=False
             )
 
             discon_nodes_geo_data = ipyleaflet.GeoData(
@@ -231,7 +230,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                 [node for node in nx_graph.nodes() if nx_graph.degree[node] == 1]
             )
             poorly_con_nodes, _ = graph_utils.create_node_edge_geometries(
-                poorly_connected_nx_graph, crs=current_graph.crs
+                poorly_connected_nx_graph, crs=current_graph.crs, include_edges=False
             )
             poorly_con_nodes_geo_data = ipyleaflet.GeoData(
                 geo_dataframe=poorly_con_nodes.to_crs(self.gpd_crs_code),
