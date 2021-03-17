@@ -1,7 +1,7 @@
 """Main module to load and train the model. This should be the program entry point."""
+import logging
 import os
 import pathlib
-import logging
 
 import hydra
 import torch
@@ -47,7 +47,7 @@ def train_model(cfg, logger: logging.Logger = logging.getLogger()):
         dirpath=ckpt_dir,
         filename="{epoch}",
         period=cfg.checkpoint_freq,
-        monitor=cfg.eval_metric,
+        monitor=cfg.eval_metrics[0],
         save_top_k=cfg.save_top_k,
         mode="min",
     )

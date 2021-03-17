@@ -9,10 +9,10 @@ decoder_channels: [256, 128, 64]
 decoder_attention_type: null # Can be null or "scse"
 in_channels: 3  # Note: This value must agree with len(use_bands)
 out_channels: 20  # This is the number of ouptut classes
-# Activation on the last layer of the model, can be 
+# Activation on the last layer of the model, can be
 # "sigmoid", "softmax", etc
-activation: null
-# Provide path to a checkpoint model to continue training or null to 
+activation: "sigmoid"
+# Provide path to a checkpoint model to continue training or null to
 # start from scratch
 load_from_checkpoint: null  # null to start from scratch
 
@@ -27,8 +27,9 @@ normaliser: "imagenet"  # Normalisaton. Use "imagenet" for imagenet normaliser, 
 epochs: 100
 batch_size: 32
 learning_rate: 3e-3
-loss: "Dice" # Supports "Jaccard", "Dice", "Focal"
-eval_metric: "Jaccard" # See above
+loss: "Jaccard" # Supports "Jaccard", "Dice", "Focal", "BCE", "Accuracy", "IoU"
+# See above for supported eval metrics - the first metric in the list is used for checkpoints
+eval_metrics: ["Jaccard", "Dice", "Accuracy"]
 checkpoint_freq: 1 # How many epochs we should train for before checkpointing the model.
 save_top_k: 2  # The top k checkpoints with the lowest validation loss will be saved
 # If val_interval is a float, it is the proportion of training set between validation epochs.
