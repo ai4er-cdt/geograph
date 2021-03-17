@@ -1,44 +1,48 @@
-# Group Team Challenge 2021: Biodiversity Team
+<p align="center">
+<img src="docs/images/geograph_logo.png" alt="GeoGraph" width="300px">
+</p>
+
+Group Team Challenge 2021: Biodiversity Team
 
  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
  <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
-__Table of contents:__  
+__Table of contents:__
 1. Getting started
 2. Code formatting
 3. Requirements
 4. Project structure
 ## 1. Getting started
 ### 1.1 Cloning the project and its submodules
-To get started, first clone the github repository via:  
+To get started, first clone the github repository via:
 ```git clone --recurse-submodules git@github.com:ai4er-cdt/gtc-biodiversity.git```
 
 Note that this line uses the `--recurse-submodules` flag when it clones. This is needed
-if you would like to also pull the overleaf report that is linked to our project repository as 
-a submodule. 
-When pulling from overleaf, it will ask you for your overleaf username and password. 
+if you would like to also pull the overleaf report that is linked to our project repository as
+a submodule.
+When pulling from overleaf, it will ask you for your overleaf username and password.
 
-If you do not want to clone the overleaf files, simply omit the `--recurse-submodules` flag.  
+If you do not want to clone the overleaf files, simply omit the `--recurse-submodules` flag.
 If you cloned the repository without the submodules, but would like to add them later, use
 ```
 git submodule update --init
-``` 
+```
 
-#### 1.1.1 Pulling updates from the submodule: 
-Once you have initialized the submodule, you can fetch and update any changes to the submodules via `git submodule update --remote --merge`.  
-To make this command more user-friendly, you can define 
+#### 1.1.1 Pulling updates from the submodule:
+Once you have initialized the submodule, you can fetch and update any changes to the submodules via `git submodule update --remote --merge`.
+To make this command more user-friendly, you can define
 an alias instead:
-```git config alias.supdate 'submodule update --remote --merge'``` 
+```git config alias.supdate 'submodule update --remote --merge'```
 This way you can simply run `git supdate` when you want to update your submodules.
 
-#### 1.1.2 Pushing updates to the submodule: 
-To push updates to from your local branch to the submodule remote, simply enter the submodule directory and perform the usual `git add`, `git commit` and `git push` workflow. 
+#### 1.1.2 Pushing updates to the submodule:
+To push updates to from your local branch to the submodule remote, simply enter the submodule directory and perform the usual `git add`, `git commit` and `git push` workflow.
 
-If you push an update to the superproject which includes an update to the submodule, use 
-`git push --recurse-submodules=on-demand`.  
-To make this command more user-friendly, you can define 
+If you push an update to the superproject which includes an update to the submodule, use
+`git push --recurse-submodules=on-demand`.
+To make this command more user-friendly, you can define
 an alias instead:
-```git config alias.spush 'push --recurse-submodules=on-demand'``` 
+```git config alias.spush 'push --recurse-submodules=on-demand'```
 This way you can simply run `git spush` when you want to push with submodule dependency checking.
 
 #### 1.1.3 More info on git submodules:
@@ -47,7 +51,7 @@ If you'd like to learn more about submodules, then this is the authoritative lin
 ### 1.2 Setting up the python environment
 Once you cloned the repo to your system, enter the repository and run the following commands:
 ```
-# 1. Highly recommended: 
+# 1. Highly recommended:
 make env  # creates a conda environment with python 3.8 and installs dependencies
 conda activate ./env  # activate the environment you just created
 make jupyter_pro  # activate a couple of nice jupyter notebook extensions
@@ -62,7 +66,7 @@ make vscode_pro  # Activates a couple of nice extensions in VSCode
 
 ## 2. Code formatting
 To automatically format your code, make sure you have `black` installed (`pip install black`) and call
-```black . ``` 
+```black . ```
 from within the project directory.
 
 ## 3. Requirements
