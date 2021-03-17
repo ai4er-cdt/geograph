@@ -1,71 +1,14 @@
-"""
-This module contains visualisation functions for GeoGraphs.
-"""
-from __future__ import annotations
+"""Module with utility functions to plot graphs in folium."""
 
-from typing import Callable, List, Optional, Tuple
+from __future__ import annotations
+from typing import Optional, List, Tuple, Callable
 
 import folium
 import geopandas as gpd
 import networkx as nx
-import shapely.geometry
 
-from src.constants import CEZ_DATA_PATH, CHERNOBYL_COORDS_WGS84, UTM35N
-from src.models import geograph
-
-
-class GeoGraphViewer:
-    """Class for viewing GeoGraph object"""
-
-    def __init__(self, map_type: str = "folium") -> None:
-        """Class for viewing GeoGraph object.
-
-        Args:
-            map_type (str, optional): defines which package is used for creating the
-                map. One of ["folium","ipyleaflet"]. Folium is more widely compatible
-                and may also run on google colab but the viewer functionality is
-                limited, whereas ipyleaflet won't run on google colab but offers the
-                full viewer functionality.
-                Defaults to "folium".
-        """
-        if map_type == "ipyleaflet":
-            raise NotImplementedError
-        self.map_type = map_type
-        self.widget = None
-
-    def _repr_html_(self) -> str:
-        """Return raw html of widget as string.
-
-        This method gets called by IPython.display.display().
-        """
-
-        if self.widget is not None:
-            return self.widget._repr_html_()  # pylint: disable=protected-access
-
-    def add_graph(self, graph: geograph.GeoGraph) -> None:
-        """Add graph to viewer.
-
-        The added graph is visualised in the viewer.
-
-        Args:
-            graph (geograph.GeoGraph): GeoGraph to be shown.
-        """
-
-        if self.map_type == "folium":
-            self._add_graph_to_folium_map(graph)
-
-    def add_layer_control(self) -> None:
-        """Add layer control to the viewer."""
-        if self.map_type == "folium":
-            folium.LayerControl().add_to(self.widget)
-
-    def _add_graph_to_folium_map(self, graph: geograph.GeoGraph) -> None:
-        """Add graph to folium map.
-
-        Args:
-            graph (geograph.GeoGraph): GeoGraph to be added.
-        """
-        self.widget = add_graph_to_folium_map(folium_map=self.widget, graph=graph.graph)
+from src.constants import CHERNOBYL_COORDS_WGS84, UTM35N, CEZ_DATA_PATH
+from src.visualisation import graph_utils
 
 
 def add_graph_to_folium_map(
@@ -160,7 +103,7 @@ def add_graph_to_folium_map(
 
     # Adding graph data
     if graph is not None:
-        node_gdf, edge_gdf = create_node_edge_geometries(graph, crs=crs)
+        node_gdf, edge_gdf = graph_utils.create_node_edge_geometries(graph, crs=crs)
 
         # add graph edges to map
         if not edge_gdf.empty:
@@ -182,42 +125,6 @@ def add_graph_to_folium_map(
         folium.LayerControl().add_to(folium_map)
 
     return folium_map
-
-
-def create_node_edge_geometries(
-    graph: nx.Graph, crs: str = UTM35N
-) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
-    """Create node and edge geometries for the networkx graph G.
-
-    Returns node and edge geometries in two GeoDataFrames. The output can be used for
-    plotting a graph.
-
-    Args:
-        graph (nx.Graph): graph with nodes and edges
-        crs (str, optional): coordinate reference system. Defaults to UTM35N.
-
-    Returns:
-        Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]: dataframes of nodes and edges
-            respectively.
-    """
-
-    node_gdf = gpd.GeoDataFrame(columns=["id", "geometry"])
-    rep_points = graph.nodes(data="rep_point")
-    for idx, rep_point in rep_points:
-        node_gdf.loc[idx] = [idx, rep_point]
-
-    edge_gdf = gpd.GeoDataFrame(columns=["id", "geometry"])
-    for idx, (node_a, node_b) in enumerate(graph.edges()):
-        point_a = rep_points[node_a]
-        point_b = rep_points[node_b]
-        line = shapely.geometry.LineString([point_a, point_b])
-
-        edge_gdf.loc[idx] = [idx, line]
-
-    node_gdf = node_gdf.set_crs(crs)
-    edge_gdf = edge_gdf.set_crs(crs)
-
-    return node_gdf, edge_gdf
 
 
 def get_style_function(color: str = "#ff0000") -> Callable[[], dict]:
