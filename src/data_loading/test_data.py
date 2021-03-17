@@ -105,6 +105,14 @@ def get_polygon_gdf(name: str = "squares_apart") -> gpd.GeoDataFrame:
             origin=CHERNOBYL_COORDS_UTM35N,
             crs=UTM35N,
         )
+    elif name == "chernobyl_10_squares_touching":
+        data = get_square_row(
+            num_squares=10,
+            translation=(100000, 0),
+            square_side_len=100000,
+            origin=CHERNOBYL_COORDS_UTM35N,
+            crs=UTM35N,
+        )
     elif name == "squares_apart":
         data = get_square_row(
             num_squares=2, translation=(2, 0), square_side_len=1, origin=(0, 0)
