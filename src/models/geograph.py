@@ -13,7 +13,7 @@ import pathlib
 import pickle
 from copy import deepcopy
 from itertools import zip_longest
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
 
 import geopandas as gpd
 import networkx as nx
@@ -25,7 +25,7 @@ import shapely
 from shapely.prepared import prep
 from src.data_loading import rasterio_utils
 from src.models import binary_graph_operations, metrics
-from src.models.metrics import Metric
+from src.models.metrics import CLASS_METRICS_DICT, Metric
 from tqdm import tqdm
 
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -738,6 +738,82 @@ class GeoGraph:
                     self.class_metrics[name] = {class_value: result}
             return result
 
+    def get_class_metrics(
+        self,
+        names: Optional[Union[str, Sequence[str]]] = None,
+        classes: Optional[Union[str, Sequence[int]]] = None,
+        **metric_kwargs,
+    ) -> pd.DataFrame:
+        """
+        Return class-level metrics for the landcover classes in the given GeoGraph.
+
+        If arguments are omitted, all class level metrics are calculated.
+
+        Args:
+            names (Optional[Union[str, Sequence[str]]], optional): Names of the metrics
+                to calculate. If None, then all available class metrics are calculated
+                for the given classses. Defaults to None.
+            classes (Optional[Union[str, Sequence[int]]], optional): Class labels of
+                the classes to calculate. If None, then the given metrics are calculated
+                for all classes. Defaults to None.
+            **metric_kwargs: Any kwargs that should be passed on to the metrics.
+
+        Returns:
+            pd.DataFrame: [description]
+        """
+
+        # Convert to iterable if single values are given
+        if names is None:
+            names = CLASS_METRICS_DICT.keys()
+        elif isinstance(names, str):
+            names = [names]
+        if classes is None:
+            classes = self.classes
+        elif isinstance(classes, int):
+            classes = [classes]
+
+        # Create metrics id not yet present
+        result = {name: [] for name in names}
+        for name in names:
+            for class_value in classes:
+                result[name].append(
+                    self.get_metric(
+                        name, class_value=class_value, **metric_kwargs
+                    ).value
+                )
+
+        return pd.DataFrame(result, index=classes)
+
+    def get_patch_metrics(self) -> pd.DataFrame:
+        """
+        Return patch-level metrics and append them to `self.df`.
+
+        Calculates "area", "perimeter", "perimeter_area_ratio", "shape_index" and
+        "fractal_dimension" for each patch
+
+        Returns:
+            pd.DataFrame: Dataframe containing the patch level metrics.
+        """
+
+        self.df["area"] = self.df.area
+        self.df["perimeter"] = self.df.length
+        self.df["perimeter_area_ratio"] = self.df["perimeter"] / self.df["area"]
+        self.df["shape_index"] = 0.25 * self.df["perimeter"] / np.sqrt(self.df["area"])
+        self.df["fractal_dimension"] = (
+            2 * np.log(0.25 * self.df["perimeter"]) / np.log(self.df["area"])
+        )
+
+        return self.df[
+            [
+                "class_label",
+                "area",
+                "perimeter",
+                "perimeter_area_ratio",
+                "shape_index",
+                "fractal_dimension",
+            ]
+        ]
+
     def identify_node(
         self, node_id: int, other_graph: GeoGraph, mode: str
     ) -> List[int]:
@@ -755,7 +831,13 @@ class GeoGraph:
         # Remove data of node from df
         self.df = self.df.drop(index=node_ids)
 
-    def _add_node(self, node_id, adjacencies, **data):  # TODO: vectorize
+    def _add_node(
+        self,
+        node_id: int,
+        adjacencies: Iterable[int],
+        requires_sorting: bool = True,
+        **data,
+    ):
         """Add node to graph #TODO Docstring """
         # Collect all data on node in one dict
         node_data = dict(data.items())
@@ -774,8 +856,10 @@ class GeoGraph:
         missing_cols = {
             key: None for key in set(self.df.columns) - set(node_data.keys())
         }
+
         self.df.loc[node_id] = gpd.GeoSeries({**data, **missing_cols}, crs=self.df.crs)
-        self.df = self.df.sort_index()
+        if requires_sorting:
+            self.df = self.df.sort_index()
 
         # Add edges to adjacency list
         self.graph.add_edges_from(

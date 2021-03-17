@@ -475,6 +475,7 @@ COMPONENT_METRICS_DICT = {
     "avg_component_isolation": _avg_component_isolation,
 }
 
+
 ########################################################################################
 ###### 4. Define access interface for GeoGraph
 ########################################################################################
