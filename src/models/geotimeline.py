@@ -171,8 +171,7 @@ class GeoGraphTimeline:
     def get_metric(self, name: str, class_value: Optional[int] = None):
 
         metric_timeseries = [
-            graph.get_metric(name=name, class_value=class_value).value
-            for graph in self._graphs
+            graph.get_metric(name=name, class_value=class_value).value for graph in self
         ]
 
         return metric_timeseries
