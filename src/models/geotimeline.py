@@ -1,7 +1,7 @@
 """Module for analysing multiple GeoGraph objects."""
 from __future__ import annotations
 
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Optional
 import datetime
 
 from src.models.geograph import GeoGraph
@@ -60,6 +60,11 @@ class GeoGraphTimeline:
     def times(self) -> List[TimeStamp]:
         """Return list of valid time stamps for this GeoGraphTimeline"""
         return list(self._graphs.keys())
+
+    @property
+    def graphs(self) -> List[GeoGraph]:
+        """Return sorted list of GeoGraphs in this GeoGraphTimeline"""
+        return self._graphs
 
     def __getitem__(self, time: TimeStamp) -> GeoGraph:
         """Return the graph at this given time stamp in the GeoGraphTimeline"""
@@ -162,3 +167,12 @@ class GeoGraphTimeline:
 
     def node_diff_cache(self, time1: TimeStamp, time2: TimeStamp):
         raise NotImplementedError
+
+    def get_metric(self, name: str, class_value: Optional[int] = None):
+
+        metric_timeseries = [
+            graph.get_metric(name=name, class_value=class_value).value
+            for graph in self._graphs
+        ]
+
+        return metric_timeseries
