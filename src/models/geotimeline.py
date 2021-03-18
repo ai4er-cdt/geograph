@@ -49,6 +49,7 @@ class GeoGraphTimeline:
 
         # Initialize empty graphs dict
         self._graphs: Dict[TimeStamp, GeoGraph] = dict()
+        self.habitats: Dict[str, GeoGraphTimeline] = {}
         # Fill the graphs dict with graphs from `data`
         if isinstance(data, list):
             self._load_from_sequence(graph_list=data)
@@ -289,6 +290,62 @@ class GeoGraphTimeline:
             )
 
         return xr.concat(metrics_dfs, dim=pd.Index(self.times, name="time"))
+
+    def add_habitat(
+        self,
+        name: str,
+        valid_classes: List[Union[str, int]],
+        barrier_classes: Optional[List[Union[str, int]]] = None,
+        max_travel_distance: float = 0.0,
+        add_distance: bool = False,
+        add_component_edges: bool = False,
+    ) -> None:
+        """
+        Create HabitatGeoGraph for each graph in the timeline.
+
+        Creates a habitat subgraph for each of the main GeoGraph objects in the timeline
+        that only contains edges between nodes in `valid_classes` as long as they are
+        less than `max_travel_distance` apart.
+        All nodes which are not in `valid_classes` are not in the resulting habitat
+        graph. This graph is then stored as its own HabitatGeoGraph object with all
+        meta information.
+
+        Args:
+            name (str): The name of the habitat.
+            valid_classes (List): A list of class labels which make up the habitat.
+            barrier_classes (List): Defaults to None.
+            max_travel_distance (float): The maximum distance the animal(s) in
+            the habitat can travel through non-habitat areas. The habitat graph
+            will contain edges between any two nodes that have a class label in
+            `valid_classes`, as long as they are less than `max_travel_distance`
+            units apart. Defaults to 0, which will only create edges between
+            directly neighbouring areas.
+            add_distance (bool, optional): Whether or not to add the distance
+            between polygons as an edge attribute in the habitat graph. Defaults
+            to False.
+            add_component_edges (bool, optional): Whether to add edges between
+            nodes in the ComponentGeoGraph (which is automatically created as an
+            attribute of the resulting HabitatGeoGraph) with edge weights that
+            are the distance between neighbouring components. Can be
+            computationally expensive. Defaults to False.
+
+        Raises:
+            ValueError: If max_travel_distance < 0.
+        """
+
+        for graph in self:
+            graph.add_habitat(
+                name=name,
+                valid_classes=valid_classes,
+                barrier_classes=barrier_classes,
+                max_travel_distance=max_travel_distance,
+                add_distance=add_distance,
+                add_component_edges=add_component_edges,
+            )
+
+        self.habitats[name] = GeoGraphTimeline(
+            {year: graph.habitats[name] for year, graph in self.graphs.items()}
+        )
 
 
 def calculate_growth_rates(
