@@ -71,7 +71,10 @@ class GeoGraphTimeline:
 
     def __getitem__(self, time: TimeStamp) -> GeoGraph:
         """Return the graph at this given time stamp in the GeoGraphTimeline"""
-        return self._graphs[time]
+        try:
+            return self._graphs[time]
+        except KeyError as error:
+            raise KeyError(f"Graph for time index `{time}` does not exist.") from error
 
     def __len__(self) -> int:
         """Return the number of timestamps in the GeoGraphTimeline"""
