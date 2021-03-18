@@ -56,6 +56,7 @@ http://web.pdx.edu/~nauna/resources/10_BandCombinations.htm
 
 
 """
+from typing import Tuple
 import os
 import numpy as np
 import numpy.ma as ma
@@ -68,7 +69,7 @@ from src.constants import SAT_DIR
 
 
 @timeit
-def return_path_dataarray():
+def return_path_dataarray() -> xr.DataArray:
     """
     makes path to the google earth engine landsat data.
     if the file doesn't exist, it becomes 'None' in the netcdf.
@@ -80,14 +81,13 @@ def return_path_dataarray():
     im_type = ["hab", "chern"]
     month_groups = ["JFM", "AMJ", "JAS", "OND"]
     ir = [0, 1]
-    directory = SAT_DIR
-    # year, month_group, im_type
+    # year, month_group, im_type, ir
     path_array = np.empty(
         [len(years), len(month_groups), len(im_type), len(ir)], dtype=object
     )
     for year in years:
         if year not in incomplete_years:
-            path = os.path.join(directory, str(year))
+            path = os.path.join(SAT_DIR, str(year))
             for i in os.listdir(path):
                 full_name = os.path.join(path, i)
                 coord_list = [years, month_groups, im_type]
@@ -117,31 +117,47 @@ def return_path_dataarray():
 
 @timeit
 def return_normalized_array(
-    one,
-    two,
-    three,
-    filter_together=True,
-    high_limit=1.5e3,
-    low_limit=0,
-    high_filter=True,
-    low_filter=True,
-    common_norm=True,
-):
+    one: np.array,
+    two: np.array,
+    three: np.array,
+    filter_together: bool = True,
+    high_limit: float = 1.5e3,
+    low_limit: float = 0,
+    high_filter: bool = True,
+    low_filter: bool = True,
+    common_norm: bool = True,
+) -> np.array:
+    """Function takes numpy.array bands and converts it to a preprocessed numpy array.
+
+    Args:
+        one (np.array): First band
+        two (np.array): Second band
+        three (np.array): Third band
+        filter_together (bool, optional): if True will only display points where all 3 members of a band
+        are with the thresholds. Defaults to True.
+        high_limit (float, optional): The aforementioned threshold. Defaults to 1.5e3.
+        low_limit (float, optional): a lower threshold. Defaults to 0.
+        high_filter (bool, optional): whether to turn the high limit on. Defaults to True.
+        low_filter (bool, optional): [whether to turn the lower limit on. Defaults to True.
+        common_norm (bool, optional): [description]. Defaults to True.
+
+    Returns:
+        np.array: floats between 0 and 1
     """
-    Function takes numpy bands and converts it to a preprocessed numpy array.
-    TODO: Change names to make it more obvious what's going on.
-    :param filter_together: if True will only display points where all 3 members of a band
-    are below the threshold.
+    """
+    
+    :param filter_together: 
     :param high_limit: The aforementioned threshold.
-    :param low_limit: Adding a lower threshold.
+    :param low_limit: Adding 
     :param high_filter: Bool, whether to turn the high limit on.
     :param low_filter: Bool, whether to turn the lower limit on.
     :param common_norm: Bool, whether to norm between the upper and lower limit.
     :return: numpy float array
     """
+    print("high_limit \t", high_limit)
 
     # Normalize bands into 0.0 - 1.0 scale
-    def norm(array):
+    def norm(array: np.array) -> np.array:
         array_min, array_max = np.nanmin(array), np.nanmax(array)
         if common_norm:
             # This doesn't guarantee it's between 0 and 1 if the filter is off.
@@ -149,10 +165,17 @@ def return_normalized_array(
         else:
             return (array - array_min) / (array_max - array_min)
 
-    def filt(data_array, filter_array):
+    def filt(data_array: np.array, filter_array: np.array) -> np.array:
         return ma.masked_where(filter_array, data_array).filled(np.nan)
 
-    def comb_and_filt(red, green, blue, filter_red, filter_green, filter_blue):
+    def comb_and_filt(
+        red: np.array,
+        green: np.array,
+        blue: np.array,
+        filter_red: np.array,
+        filter_green: np.array,
+        filter_blue: np.array,
+    ) -> Tuple[np.array, np.array, np.array]:
         filter_array = np.logical_or(
             np.logical_or(filter_red, filter_green), filter_blue
         )
@@ -162,14 +185,16 @@ def return_normalized_array(
             filt(blue, filter_array),
         )
 
-    def filter_sep_and_norm(array):
+    def filter_sep_and_norm(array: np.array) -> np.array:
         if high_filter:
             array = filt(array, array >= high_limit).filled(np.nan)
         if low_filter:
             array = filt(array, array <= low_limit).filled(np.nan)
         return norm(array)
 
-    def filter_tog_and_norm(red, green, blue):
+    def filter_tog_and_norm(
+        red: np.array, green: np.array, blue: np.array
+    ) -> Tuple[np.array, np.array, np.array]:
         if high_filter:
             filter_red, filter_green, filter_blue = (
                 red >= high_limit,
@@ -204,10 +229,17 @@ def return_normalized_array(
 
 
 def load_rgb_data(
-    file_name=os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"), **kwargs
-):
-    """
-    :param file_name: full path to .tif image.
+    file_name: str = os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"),
+    high_limit: int = 1500,
+) -> Tuple[np.array, list]:
+    """Loads data from tif image and preprcesses it.
+
+    Args:
+        file_name (str, optional): full path to .tif image. Defaults to os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif").
+        high_limit (int, optional): high limit to filter bands to. Defaults to 1500.
+
+    Returns:
+        Tuple[np.array, list]: [floats between 0 and 1, description of bands]
     """
     # Open the file:
     raster = rasterio.open(file_name)
@@ -226,35 +258,27 @@ def load_rgb_data(
         raster.descriptions[ins[2] - 1],
     ]
 
-    """
-    if "IR" not in file_name:
-        # for color arrays the order needs to be rgb not bgr
-        descriptions.reverse()
-        return return_normalized_array(three, two, one, **kwargs), descriptions
-    else:
-        return return_normalized_array(one, two, three, **kwargs), descriptions
-    """
-    return return_normalized_array(one, two, three, **kwargs), descriptions
+    return return_normalized_array(one, two, three, high_limit=high_limit), descriptions
 
 
 @timeit
-def create_netcdfs():
-    """
-    Create the landsat preprocessed data and save it as netcdfs for the
-    different seasons.
-    """
+def create_netcdfs() -> None:
+    """Create the landsat preprocessed data and save it as netcdfs for the
+    different seasons."""
     tmp_path = os.path.join(SAT_DIR, "tmp_nc")
     if not os.path.exists(tmp_path):
         os.mkdir(tmp_path)
     print(tmp_path)
     ir_name = ["", "_IR"]
+    high_limits = [1500, 4000]
     path_da = return_path_dataarray()
     for ty, ty_v in [
         (1, "chern")
     ]:  # enumerate(path_da.coords["ty"].values.tolist()):  # [(1, "chern")]:
         for mn, mn_v in enumerate(path_da.coords["mn"].values.tolist()):
+            # [(0, "JFM"), #(1, "AMJ") #(2, "JAS"), #(3, "OND") #]:
             #  [(1, "AMJ"), (2, "JAS"), (3, "OND")]:  # enumerate(path_da.coords["mn"].values.tolist()):
-            for ir in [0, 1]:
+            for ir in [0]:  # [1]:  #[0, 1]
                 path_list = []
                 for year in tqdm(
                     range(len(path_da.coords["year"].values)),
@@ -264,6 +288,7 @@ def create_netcdfs():
                     file_name = path_da.isel(
                         year=year, mn=mn, ty=ty, ir=ir
                     ).values.tolist()
+                    print(file_name)
                     tmp_name = os.path.join(
                         tmp_path,
                         ty_v
@@ -276,7 +301,9 @@ def create_netcdfs():
                     )
                     if file_name != None and os.path.exists(file_name):
                         xr_da = xr.open_rasterio(file_name)
-                        data, descriptions = load_rgb_data(file_name)
+                        data, descriptions = load_rgb_data(
+                            file_name, high_limit=high_limits[ir]
+                        )
                     else:
                         if ty_v == "chern" and ir == 0:
                             file_name = os.path.join(
@@ -295,7 +322,9 @@ def create_netcdfs():
                                 SAT_DIR, "2012/L7_hab_2012_AMJ_IR.tif"
                             )
                         xr_da = xr.open_rasterio(file_name)
-                        data, descriptions = load_rgb_data(file_name)
+                        data, descriptions = load_rgb_data(
+                            file_name, high_limit=high_limits[ir]
+                        )
                         data[
                             :
                         ] = np.nan  # make everything nan if the file didn't exist.
@@ -335,12 +364,14 @@ def create_netcdfs():
 
                     @timeit
                     def _cat_ds():
-                        print(path_list)
+                        print("paths for concat da", path_list)
                         # return  xr.concat(da_list, "year")
                         return xr.open_mfdataset(
                             path_list,
                             concat_dim="year",
-                            chunks={"band": 1, "year": 1},  # parallel=True,
+                            chunks={
+                                "year": 1
+                            },  # {"band": 1, "year": 1},  # parallel=True,
                         )
 
                     cat_ds = _cat_ds()

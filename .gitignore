@@ -8,10 +8,14 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+dask-worker-space/
+runs/
 build/
 develop-eggs/
 dist/
 downloads/
+outputs/
+.vscode/
 eggs/
 .eggs/
 lib/
@@ -100,6 +104,10 @@ wandb/
 # History files
 .history
 
+# VSCode - custom
+workspace.code-workspace
+gtc-biodiversity.code-workspace
+
 # GDrive secrets
 secrets
 token.pickle
@@ -107,5 +115,7 @@ token.pickle
 # General pickle files
 *.pickle
 
-#test data file
-test.tif
+# Don't keep large files
+*.mp4
+*.nc
+*.model

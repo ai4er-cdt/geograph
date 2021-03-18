@@ -11,7 +11,7 @@ black               # automatic formatting provider
 pre-commit  	    # for git precommit hooks
 isort               # automatic import sorter
 python-dotenv       # environment variable manager
-pydocstyle
+pydocstyle          # set pydocstyle
 
 # linear algebra and general data analysis
 numpy               # arrays, linear algebra
@@ -23,9 +23,11 @@ pandas              # tabular data analysis
 matplotlib          # general python plotting
 seaborn             # fancier plotting styles
 descartes           # geospatial plotting of shapefiles
+folium              # plotting maps
 
 # interactive computing
 jupyter             # jupyter notebooks
+tqdm                # progress bars
 
 # geospatial analysis requirements
 rasterio            # opening and loading raster data
@@ -36,26 +38,28 @@ pycrs               # working with coordinate reference systems
 geopy               # convenient API requests to geocoders
 xarray              # useful data structures
 rioxarray           # adaptation of xarray for raterio.
-dask[array]     # allows to composite multiple satellite images stored in different shards
-dask[dataframe]   # allows more lazy operation for xarray.
+dask[array]         # allows to composite multiple satellite images stored in different shards
+dask[dataframe]     # allows more lazy operation for xarray.
+dask[dataframe]     # allows more lazy operation for xarray.
+dask[distributed]   # allows distributed computing
 netCDF4             # makes sure that the default driver is netCDF4.
 bottleneck          # needed for fill forward (xarray.DataArray.ffil)
 
 # additional
-networkx
+networkx            # manipulating graph data
 
 # gdrive functionality
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
 
-# make videos
+# make videos for animating timeseries etc.
 imageio
 imageio-ffmpeg
 
 # xgboost
-xgboost
-sklearn
+xgboost         # gradient boosted regression
+sklearn         # sklearn
 graphviz        # can plot the decission tree
 
 #
