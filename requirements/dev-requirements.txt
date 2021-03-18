@@ -38,8 +38,10 @@ pycrs               # working with coordinate reference systems
 geopy               # convenient API requests to geocoders
 xarray              # useful data structures
 rioxarray           # adaptation of xarray for raterio.
-"dask[dataframe]"   # allows more lazy operation for xarray.
-"dask[distributed]" # allows distributed computing
+dask[array]         # allows to composite multiple satellite images stored in different shards
+dask[dataframe]     # allows more lazy operation for xarray.
+dask[dataframe]     # allows more lazy operation for xarray.
+dask[distributed]   # allows distributed computing
 netCDF4             # makes sure that the default driver is netCDF4.
 bottleneck          # needed for fill forward (xarray.DataArray.ffil)
 
@@ -60,6 +62,11 @@ xgboost         # gradient boosted regression
 sklearn         # sklearn
 graphviz        # can plot the decission tree
 
-# Pytorch lighnning
+#
 pillow
+torch==1.8
+torchvision
+wandb
 pytorch-lightning
+git+https://github.com/qubvel/segmentation_models.pytorch
+hydra-core
