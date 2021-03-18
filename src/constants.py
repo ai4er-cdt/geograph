@@ -38,3 +38,6 @@ CHERNOBYL_COORDS_WGS84 = (
     30.099444,
 )  # coordinates of chernobyl power reactor
 CHERNOBYL_COORDS_UTM35N = (715639.1222290158, 5697662.734402668)
+
+# Report specific settings for plotting
+REPORT_TEXTWIDTH_PT = 398.3386
