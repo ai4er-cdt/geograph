@@ -1,9 +1,10 @@
 """Module for analysing multiple GeoGraph objects."""
 from __future__ import annotations
 
-from typing import Union, List, Dict, Optional, Iterable
+from typing import Union, List, Dict, Tuple, Optional, Iterable, Callable
 import datetime
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 
@@ -97,12 +98,14 @@ class GeoGraphTimeline:
         }
 
     def _load_from_sequence(self, graph_list: List[TimedGeoGraph]) -> None:
+        """Loads the sorted list of timed geographs into the timeline. """
 
         # Make sure list is sorted in ascending time order (earliest = left)
         by_time = lambda item: item.time
         self._graphs = {graph.time: graph for graph in sorted(graph_list, key=by_time)}
 
-    def _load_from_dict(self, graph_dict: Dict[TimeStamp, GeoGraph]):
+    def _load_from_dict(self, graph_dict: Dict[TimeStamp, GeoGraph]) -> None:
+        """Loads the dictionary of graphs into the timeline and sorts them by time"""
 
         self._graphs = graph_dict
         self._sort_by_time()
@@ -159,10 +162,22 @@ class GeoGraphTimeline:
         else:
             raise NotCachedError
 
-    def empty_node_map_cache(self) -> None:
+    def _empty_node_map_cache(self) -> None:
+        """ Empties the node map cache."""
         self._node_map_cache = dict()
 
     def timestack(self, use_cached: bool = True) -> List[NodeMap]:
+        """
+        Performs node identification between adjacent time-slices in the graph.
+
+        Args:
+            use_cached (bool, optional): If True, reuses prior node-identification
+                computations. Defaults to True.
+
+        Returns:
+            List[NodeMap]: An ordered list of the of the node maps between each two
+                adjacent time-slices in the GeoGraphTimeline
+        """
         node_maps = []
         for time1, time2 in zip(self.times, self.times[1:]):
             node_maps.append(self.identify_graphs(time1, time2, use_cached))
@@ -212,7 +227,7 @@ class GeoGraphTimeline:
     def get_class_metrics(
         self,
         names: Optional[Union[str, Iterable[str]]] = None,
-        classes: Optional[Union[int, Iterable[int]]] = None,
+        class_values: Optional[Union[int, Iterable[int]]] = None,
     ) -> xr.DataArray:
         """
         Return the time-series of the selected class metrics for the given `classes`.
@@ -222,8 +237,8 @@ class GeoGraphTimeline:
             names (Optional[Union[str, Iterable[str]]], optional): Names of the
                 class-level metrics to calculate. If None, all available class metrics
                 are calculated. Defaults to None.
-            classes (Optional[Union[int, Iterable[int]]], optional): Class values for
-                the classes for which the metrics should be calculated. If None, the
+            class_values (Optional[Union[int, Iterable[int]]], optional): Class values
+                for the classes for which the metrics should be calculated. If None, the
                 metrics are calcluated for all available classes in the
                 GeoGraphTimeline. Classes which do not exist a certain point in time
                 will have `np.nan` values. Defaults to None.
@@ -236,9 +251,71 @@ class GeoGraphTimeline:
 
         class_metric_dfs = [
             xr.DataArray(
-                graph.get_class_metrics(names, classes), dims=["class_label", "metric"]
+                graph.get_class_metrics(names, class_values),
+                dims=["class_label", "metric"],
             )
             for graph in self
         ]
 
         return xr.concat(class_metric_dfs, dim=pd.Index(self.times, name="time"))
+
+    def get_patch_metrics(
+        self, aggregator: Union[str, Callable] = "mean"
+    ) -> xr.DataArray:
+        """
+        Return aggregated patch distribution metrics for all classes.
+
+        Args:
+            aggregator (Union[str, Callable], optional): Aggregation function to use
+            on the patch-level statistics. Defaults to "mean".
+
+        Returns:
+            xr.DataArray: A three dimensional array containing the time-series of the
+                aggregated patch-level distributions for each class. Dimension are
+                (time, class_label, metric)
+        """
+
+        metrics_dfs = []
+        for graph in self:
+            patch_metrics = (
+                graph.get_patch_metrics().groupby("class_label").aggregate(aggregator)
+            )
+
+            metrics_dfs.append(
+                xr.DataArray(
+                    patch_metrics,
+                    dims=["class_label", "metric"],
+                )
+            )
+
+        return xr.concat(metrics_dfs, dim=pd.Index(self.times, name="time"))
+
+
+def calculate_growth_rates(
+    mapping: NodeMap,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Return relative and absolute node growth rates for the nodes in `target_graph` of
+    the given NodeMap
+
+    Args:
+        mapping (NodeMap): The maping of nodes between the the past (source) and future
+        (target) graph
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: The relative and absolute node growth rates in
+            units of the CRS system that the graphs are in.
+    """
+    # TODO: numba for slight performance inmprovements
+
+    backward_map = ~mapping
+    relative_growth_rates = np.zeros(len(backward_map.mapping))
+    absolute_growth_rates = np.zeros(len(backward_map.mapping))
+    for i, (future, past) in enumerate(backward_map.mapping.items()):
+        past_area = np.sum(backward_map.trg_graph.df.geometry.loc[past].area)
+        future_area = np.sum(backward_map.src_graph.df.geometry.loc[future].area)
+
+        relative_growth_rates[i] = (future_area - past_area) / (future_area + past_area)
+        absolute_growth_rates[i] = future_area - past_area
+
+    return relative_growth_rates, absolute_growth_rates
