@@ -759,7 +759,7 @@ class GeoGraph:
             **metric_kwargs: Any kwargs that should be passed on to the metrics.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: A dataframe containing the metrics for the selected classes
         """
 
         # Convert to iterable if single values are given

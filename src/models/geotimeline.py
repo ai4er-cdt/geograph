@@ -1,8 +1,11 @@
 """Module for analysing multiple GeoGraph objects."""
 from __future__ import annotations
 
-from typing import Union, List, Dict, Optional
+from typing import Union, List, Dict, Optional, Iterable
 import datetime
+
+import pandas as pd
+import xarray as xr
 
 from src.models.geograph import GeoGraph
 from src.models.binary_graph_operations import identify_graphs, NodeMap
@@ -168,10 +171,71 @@ class GeoGraphTimeline:
     def node_diff_cache(self, time1: TimeStamp, time2: TimeStamp):
         raise NotImplementedError
 
-    def get_metric(self, name: str, class_value: Optional[int] = None):
+    def get_metric(self, name: str, class_value: Optional[int] = None) -> xr.DataArray:
+        """
+        Return the time-series for the given metric.
 
-        metric_timeseries = [
-            graph.get_metric(name=name, class_value=class_value).value for graph in self
+        Args:
+            name (str): Name of the metric to compute
+            class_value (Optional[int], optional): Provide a class value if you wish
+            to calculate a class-level metric. Leave as None for calculating
+            landscape/habitat level metrics. Defaults to None.
+
+        Returns:
+            xr.DataArray: A DataArray containing the metric time series for the graphs
+                in the given GeoGraphTimeline
+        """
+
+        # Calculate metrics
+        metrics = [
+            graph.get_metric(name=name, class_value=class_value) for graph in self
         ]
 
+        # Set up metadata
+        attrs = {"description": metrics[0].description, "unit": metrics[0].unit}
+        if class_value:
+            attrs["class_label"] = class_value
+
+        metric_timeseries = xr.DataArray(
+            [metric.value for metric in metrics],
+            dims=["time"],
+            coords=[self.times],
+            name=name,
+            attrs=attrs,
+        )
+
         return metric_timeseries
+
+    def get_class_metrics(
+        self,
+        names: Optional[Union[str, Iterable[str]]] = None,
+        classes: Optional[Union[int, Iterable[int]]] = None,
+    ) -> xr.DataArray:
+        """
+        Return the time-series of the selected class metrics for the given `classes`.
+
+
+        Args:
+            names (Optional[Union[str, Iterable[str]]], optional): Names of the
+                class-level metrics to calculate. If None, all available class metrics
+                are calculated. Defaults to None.
+            classes (Optional[Union[int, Iterable[int]]], optional): Class values for
+                the classes for which the metrics should be calculated. If None, the
+                metrics are calcluated for all available classes in the
+                GeoGraphTimeline. Classes which do not exist a certain point in time
+                will have `np.nan` values. Defaults to None.
+
+        Returns:
+            xr.DataArray: A three dimensional data array containing the time-series
+                class level metrics for the selected classes with dimensions
+                (time, class_label, metric).
+        """
+
+        class_metric_dfs = [
+            xr.DataArray(
+                graph.get_class_metrics(names, classes), dims=["class_label", "metric"]
+            )
+            for graph in self
+        ]
+
+        return xr.concat(class_metric_dfs, dim=pd.Index(self.times, name="time"))
