@@ -1,3 +1,0 @@
-- run_name=100-ep-deep-40band-seasonal-composite
-- decoder_channels=[256, 128, 64, 32, 15]
-- encoder_depth=5
