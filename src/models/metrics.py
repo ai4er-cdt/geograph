@@ -465,7 +465,7 @@ def _avg_component_isolation(geo_graph: geograph.GeoGraph) -> Metric:
         name="avg_component_isolation",
         description="The average distance to the next-nearest component",
         variant="component",
-        unit="dimensionless",
+        unit="CRS.unit",
     )
 
 
@@ -506,12 +506,15 @@ def _get_metric(
     # Landscape level metrics
     if class_value is None:
         try:
-            return LANDSCAPE_METRICS_DICT[name](geo_graph, **metric_kwargs)
+            try:
+                return LANDSCAPE_METRICS_DICT[name](geo_graph, **metric_kwargs)
+            except KeyError as key_error:
+                return COMPONENT_METRICS_DICT[name](geo_graph, **metric_kwargs)
         except KeyError as key_error:
             raise ValueError(
-                "Argument `name` is not a valid landscape/component metric."
+                f"Argument `{name}` is not a valid landscape/component metric.\n"
                 "Available landscape metrics are: "
-                f"\n{list(LANDSCAPE_METRICS_DICT.keys())}."
+                f"\n{list(LANDSCAPE_METRICS_DICT.keys())}.\n"
                 "Available landscape metrics are: "
                 f"\n{list(COMPONENT_METRICS_DICT.keys())}."
             ) from key_error
