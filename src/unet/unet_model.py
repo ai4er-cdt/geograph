@@ -274,10 +274,10 @@ class UNetModel(pl.LightningModule):
     def get_lossses(self, names: Union[str, List[str]]):
         """Return the loss function based on the config."""
         self.unet_logger.info("Selecting loss function: %s", names)
-        
+
         if isinstance(names, str):
             names = [names]
-        
+
         losses_list = []
         for name in names:
             if name == "Jaccard":
