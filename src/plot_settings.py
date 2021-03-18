@@ -181,6 +181,7 @@ def get_dim(
 
 def set_dim(
     fig: matplotlib.pyplot.figure,
+    width: float = REPORT_TEXTWIDTH_PT,
     fraction_of_line_width: float = 1,
     ratio: float = (5 ** 0.5 - 1) / 2,
 ) -> None:
@@ -188,6 +189,7 @@ def set_dim(
 
     Args:
         fig (matplotlib.pyplot.figure): Figure object to resize.
+        width (float): Textwidth of the report to make fontsizes match.
         fraction_of_line_width (float, optional): Fraction of the document width
             which you wish the figure to occupy.  Defaults to 1.
         ratio (float, optional): Fraction of figure width that the figure height
@@ -197,7 +199,7 @@ def set_dim(
         void; alters current figure to have the desired dimensions
     """
     fig.set_size_inches(
-        get_dim(fraction_of_line_width=fraction_of_line_width, ratio=ratio)
+        get_dim(width=width, fraction_of_line_width=fraction_of_line_width, ratio=ratio)
     )
 
 
