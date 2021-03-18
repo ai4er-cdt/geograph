@@ -193,7 +193,7 @@ class GeoGraph:
     @property
     def bounds(self):
         """Return bounds of entire graph"""
-        return self.df.total_bounds
+        return self.df.sindex.bounds
 
     @property
     def class_label(self):
