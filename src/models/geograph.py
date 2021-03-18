@@ -945,6 +945,9 @@ class HabitatGeoGraph(GeoGraph):
                 self.barrier_classes: List[Union[str, int]] = barrier_classes
                 self.max_travel_distance: float = max_travel_distance
                 self.add_distance: bool = add_distance
+                self.metrics: Dict[str, Metric] = {}
+                self.class_metrics: Dict[str, Dict[str, Metric]] = {}
+
         elif isinstance(data, (str, os.PathLike)):
             load_path = pathlib.Path(data)
             assert load_path.exists()
