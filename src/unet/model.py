@@ -1,7 +1,7 @@
 """Module for the Pytorch Lightning Unet model."""
 import logging
 import multiprocessing as mp
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import dask
 import pytorch_lightning as pl
@@ -271,9 +271,13 @@ class UNetModel(pl.LightningModule):
             )
         return dataloader
 
-    def get_lossses(self, names: List[str]):
+    def get_lossses(self, names: Union[str, List[str]]):
         """Return the loss function based on the config."""
         self.unet_logger.info("Selecting loss function: %s", names)
+        
+        if isinstance(names, str):
+            names = [names]
+        
         losses_list = []
         for name in names:
             if name == "Jaccard":
