@@ -203,7 +203,7 @@ if __name__ == "__main__":
         "start_year_i": 8,  # python3 src/models/xgb.py
         "mid_year_i": 19,
         "end_year_i": 24,
-        "take_esa_coords": False,  # True,  # False,
+        "take_esa_coords": True, # False,  # True,  # False,
         "use_ffil": True,
         "use_mfd": False,
         "use_ir": False,
@@ -211,8 +211,8 @@ if __name__ == "__main__":
         "eta": 0.3,
         "max_depth": 12,
         "nthread": 16,
-        "num_round": 20,
-        "use_dask": True,
+        "num_round": 2,
+        "use_dask": False,
         "prefer_remake": False,
     }
     print("cfd:\n", cfd)
