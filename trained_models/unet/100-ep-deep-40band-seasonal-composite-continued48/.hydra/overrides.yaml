@@ -1,0 +1,2 @@
+- run_name=100-ep-deep-40band-seasonal-composite-continued48
+- load_from_checkpoint=../100-ep-deep-40band-seasonal-composite/checkpoints/epoch-48.ckpt

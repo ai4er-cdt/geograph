@@ -1,0 +1,6 @@
+- run_name=50-ep-normal-40band-seasonal-composite
+- epochs=50
+- decoder_channels=[256, 128, 64, 32]
+- encoder_depth=4
+- loss=Jaccard
+- eval_metric=Jaccard
