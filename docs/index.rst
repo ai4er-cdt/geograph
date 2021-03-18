@@ -1,16 +1,16 @@
-.. Group Team Challenge: Biodiversity documentation master file, created by
-   sphinx-quickstart on Fri Dec 11 11:15:27 2020.
+.. GeoGraph documentation master file, created by
+   sphinx-quickstart on Thu Mar 18 17:37:46 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Group Team Challenge: Biodiversity's documentation!
-==============================================================
+Welcome to GeoGraph's documentation!
+====================================
 
 .. toctree::
    :maxdepth: 2
-   
-   the-team
    :caption: Contents:
+
+   modules
 
 
 
