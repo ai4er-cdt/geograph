@@ -2,7 +2,7 @@ gtc-biodiversity
 ================
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 6
 
    setup
    src

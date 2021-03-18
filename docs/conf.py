@@ -19,15 +19,12 @@ sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
 
-project = "GeoGraph"
+project = "GeoGraph - Package Documentation"
 copyright = (  # pylint: disable=redefined-builtin
     "2021, Herbie Bradley, Arduin Findeis, Katherine Green,"
     " Yilin Li, Simon Mathis, Simon Thomas"
 )
-author = (
-    "Herbie Bradley, Arduin Findeis, Katherine Green, Yilin Li,"
-    " Simon Mathis, Simon Thomas"
-)
+author = ""
 
 
 # -- General configuration ---------------------------------------------------
@@ -36,7 +33,11 @@ author = (
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon"]
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    'sphinx_autodoc_typehints'
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -58,3 +59,10 @@ html_theme = "sphinx_rtd_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+# Latex options
+latex_logo = "./images/geograph_logo.png"
+latex_elements = {
+  'extraclassoptions': 'openany,oneside',
+  'papersize': 'a4paper'
+}
