@@ -515,7 +515,7 @@ def _get_metric(
                 f"Argument `{name}` is not a valid landscape/component metric.\n"
                 "Available landscape metrics are: "
                 f"\n{list(LANDSCAPE_METRICS_DICT.keys())}.\n"
-                "Available landscape metrics are: "
+                "Available component metrics are: "
                 f"\n{list(COMPONENT_METRICS_DICT.keys())}."
             ) from key_error
 
