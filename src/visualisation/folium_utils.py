@@ -1,17 +1,17 @@
-"""
-This module contains visualisation functions for vector, raster and graph data.
-"""
+"""Module with utility functions to plot graphs in folium."""
 
+from __future__ import annotations
 from typing import Optional, List, Tuple, Callable
 
 import folium
 import geopandas as gpd
 import networkx as nx
-import shapely.geometry
+
 from src.constants import CHERNOBYL_COORDS_WGS84, UTM35N, CEZ_DATA_PATH
+from src.visualisation import graph_utils
 
 
-def create_graph_visualisation(
+def add_graph_to_folium_map(
     folium_map: folium.Map = None,
     polygon_gdf: gpd.GeoDataFrame = None,
     color_column: str = "index",
@@ -22,7 +22,7 @@ def create_graph_visualisation(
     crs: str = UTM35N,
     add_layer_control: bool = False,
 ) -> folium.Map:
-    """Create a visualisation map of the given polygons and  `graph` in folium.
+    """Create a visualisation map of the given polygons and `graph` in folium.
 
     The polygons in `polygon_gdf` and `graph` are displayed on a folum map.
     It is intended that the graph was build from `polygon_gdf`, but it is not required.
@@ -93,6 +93,7 @@ def create_graph_visualisation(
             fill_color="YlOrBr",
             name=name + "_polygons",
         )
+        choropleth = remove_choropleth_color_legend(choropleth)
         choropleth.add_to(folium_map)
 
         # adding popup markers with class name
@@ -102,7 +103,7 @@ def create_graph_visualisation(
 
     # Adding graph data
     if graph is not None:
-        node_gdf, edge_gdf = create_node_edge_geometries(graph, crs=crs)
+        node_gdf, edge_gdf = graph_utils.create_node_edge_geometries(graph, crs=crs)
 
         # add graph edges to map
         if not edge_gdf.empty:
@@ -124,42 +125,6 @@ def create_graph_visualisation(
         folium.LayerControl().add_to(folium_map)
 
     return folium_map
-
-
-def create_node_edge_geometries(
-    graph: nx.Graph, crs: str = UTM35N
-) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
-    """Create node and edge geometries for the networkx graph G.
-
-    Returns node and edge geometries in two GeoDataFrames. The output can be used for
-    plotting a graph.
-
-    Args:
-        graph (nx.Graph): graph with nodes and edges
-        crs (str, optional): coordinate reference system. Defaults to UTM35N.
-
-    Returns:
-        Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]: dataframes of nodes and edges
-            respectively.
-    """
-
-    node_gdf = gpd.GeoDataFrame(columns=["id", "geometry"])
-    rep_points = graph.nodes(data="representative_point")
-    for idx, rep_point in rep_points:
-        node_gdf.loc[idx] = [idx, rep_point]
-
-    edge_gdf = gpd.GeoDataFrame(columns=["id", "geometry"])
-    for idx, (node_a, node_b) in enumerate(graph.edges()):
-        point_a = rep_points[node_a]
-        point_b = rep_points[node_b]
-        line = shapely.geometry.LineString([point_a, point_b])
-
-        edge_gdf.loc[idx] = [idx, line]
-
-    node_gdf = node_gdf.set_crs(crs)
-    edge_gdf = edge_gdf.set_crs(crs)
-
-    return node_gdf, edge_gdf
 
 
 def get_style_function(color: str = "#ff0000") -> Callable[[], dict]:
@@ -212,3 +177,24 @@ def add_cez_to_map(
         folium.LayerControl().add_to(folium_map)
 
     return folium_map
+
+
+def remove_choropleth_color_legend(
+    choropleth_map: folium.features.Choropleth,
+) -> folium.features.Choropleth:
+    """Remove color legend from Choropleth folium map.
+
+    Solution proposed by `nhpackard` in the following GitHub issue in the folium repo:
+    https://github.com/python-visualization/folium/issues/956
+
+    Args:
+        choropleth_map (folium.features.Choropleth): a Choropleth map
+
+    Returns:
+        folium.features.Choropleth: the same map without color legend
+    """
+    for key in choropleth_map._children:  # pylint: disable=protected-access
+        if key.startswith("color_map"):
+            del choropleth_map._children[key]  # pylint: disable=protected-access
+
+    return choropleth_map

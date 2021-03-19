@@ -24,9 +24,10 @@ matplotlib          # general python plotting
 seaborn             # fancier plotting styles
 descartes           # geospatial plotting of shapefiles
 folium              # plotting maps
+ipyleaflet          # plotting ipywidget maps
 
 # interactive computing
-jupyter             # jupyter notebooks
+jupyterlab          # jupyter notebooks
 tqdm                # progress bars
 
 # geospatial analysis requirements
@@ -39,6 +40,7 @@ geopy               # convenient API requests to geocoders
 
 # additional
 networkx            # manipulating graph data
+rtree               # rtree library
 
 # gdrive functionality
 google-api-python-client
