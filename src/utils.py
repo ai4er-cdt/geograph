@@ -5,6 +5,9 @@ from functools import wraps
 from sys import getsizeof
 
 import requests
+import inspect
+import time
+from functools import wraps
 
 
 def timeit(method):

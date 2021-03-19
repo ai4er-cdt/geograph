@@ -36,7 +36,7 @@ axs[1, 1].plot(x, np.abs(x), color=STD_CLR_LIST[3])
 set_dim(fig, fraction_of_line_width=1, ratio=(5 ** 0.5 - 1) / 2)
 
 # label subplots
-label_subplots(axs, start_from=0, x_pos=-0.07, y_pos=1.1, fontsize=10)
+label_subplots(axs, start_from=0, fontsize=10)
 
 """
 import itertools
@@ -116,9 +116,7 @@ def label_subplots(
         start_from (int, optional): skips first ${start_from} labels. Defaults to 0.
         fontsize (int, optional): Font size for labels. Defaults to 10.
         x_pos (float, optional): Relative x position of labels. Defaults to 0.02.
-            0.0 is left boundary of panel, 1.0 is right boundary of panel.
         y_pos (float, optional): Relative y position of labels. Defaults to 0.95.
-            0.0 is bottom of panel, 1.0 is top of panel.
 
     Returns:
         void; alters the `matplotlib.pyplot.axes` objects

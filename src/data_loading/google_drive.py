@@ -1,11 +1,13 @@
 """Wrapper around Google Drive API (v3) to download files from GDrive"""
 
 import io
+from os import PathLike
 import os.path
+import pathlib
 import pickle
 import shutil
 from mimetypes import MimeTypes
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -33,12 +35,15 @@ class DriveAPI:
     # Define GDrive types
     GDRIVE_FOLDER = "application/vnd.google-apps.folder"
 
-    def __init__(self, credentials_path: str = SECRETS_PATH / "credentials.json"):
+    def __init__(
+        self,
+        credentials_path: Union[str, PathLike] = SECRETS_PATH / "credentials.json",
+    ):
 
         # Variable self.creds will store the user access token.
         # If no valid token found we will create one.
         self.creds = None
-        self.credentials_path = credentials_path
+        self.credentials_path = pathlib.Path(credentials_path)
         self._user_data = None
 
         # Authenticate
@@ -108,7 +113,11 @@ class DriveAPI:
         return self.user_data["displayName"]
 
     def file_download(
-        self, file_id: str, save_path: str, chunksize: int = 200 * 1024 * 1024
+        self,
+        file_id: str,
+        save_path: str,
+        chunksize: int = 200 * 1024 * 1024,
+        verbose: bool = False,
     ) -> bool:
         """
         Download file with given `file_id` and save in `save_path`.
@@ -122,6 +131,8 @@ class DriveAPI:
                 each http request. If the download is slow, try increasing the chunksize
                 as google limits the number of http requests we can pose per second.
                 Defaults to 200*1024*1024 (= 200 MB).
+            verbose (bool): Iff true, show download progress for each file. Defaults to
+                False.
 
         Returns:
             bool: True, iff the file was downloaded successfully.
@@ -133,11 +144,12 @@ class DriveAPI:
         downloader = MediaIoBaseDownload(file_handle, request, chunksize=chunksize)
         done = False
 
-        print("Starting file download")
-        progress_bar = tqdm(total=100)
+        if verbose:
+            print("Starting file download")
+        progress_bar = tqdm(total=100, disable=not verbose)
         while not done:
             status, done = downloader.next_chunk()
-            if status:
+            if status and verbose:
                 progress_bar.update(n=status.progress() * 100)
         progress_bar.close()
 
@@ -147,7 +159,8 @@ class DriveAPI:
         with open(save_path, "wb") as f:
             shutil.copyfileobj(file_handle, f)
 
-        print("File Downloaded")
+        if verbose:
+            print("File Downloaded")
         # Return True if file Downloaded successfully
         return True
 
