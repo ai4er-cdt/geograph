@@ -89,7 +89,7 @@ class GeoGraphTimeline:
         return list(self._graphs.keys())
 
     @property
-    def graphs(self) -> List[GeoGraph]:
+    def graphs(self) -> Dict[TimeStamp, GeoGraph]:
         """Return sorted list of GeoGraphs in this GeoGraphTimeline"""
         return self._graphs
 
