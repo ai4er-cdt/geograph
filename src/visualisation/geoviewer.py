@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import folium
 import ipyleaflet
 import ipywidgets as widgets
 import pandas as pd
 import traitlets
-
 from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
 from src.models import geograph, metrics
 from src.visualisation import (
@@ -24,7 +23,7 @@ from src.visualisation import (
 if TYPE_CHECKING:
     import geopandas as gpd
 
-# pylint: disable=dangerous-default-value
+
 class GeoGraphViewer(ipyleaflet.Map):
     """Class for interactively viewing a GeoGraph."""
 
@@ -33,7 +32,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         center: List[int, int] = CHERNOBYL_COORDS_WGS84,
         zoom: int = 7,
         layout: Union[widgets.Layout, None] = None,
-        metric_list: List[str] = metrics.STANDARD_METRICS,
+        metric_list: Optional[List[str]] = None,
         logging_level=logging.DEBUG,
         **kwargs
     ) -> None:
@@ -60,7 +59,10 @@ class GeoGraphViewer(ipyleaflet.Map):
         )
         # There seems to be no easy way to add UTM35N to ipyleaflet.Map(), hence WGS84.
         self.gpd_crs_code = WGS84
-        self.metrics = metric_list
+        if metric_list is None:
+            self.metrics = metrics.STANDARD_METRICS
+        else:
+            self.metrics = metric_list
         if layout is None:
             self.layout = widgets.Layout(height="700px")
 
