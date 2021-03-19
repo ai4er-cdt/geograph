@@ -4,6 +4,14 @@ src.models package
 Submodules
 ----------
 
+src.models.binary\_graph\_operations module
+-------------------------------------------
+
+.. automodule:: src.models.binary_graph_operations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 src.models.fragmentation\_baseline module
 -----------------------------------------
 
@@ -12,18 +20,34 @@ src.models.fragmentation\_baseline module
    :undoc-members:
    :show-inheritance:
 
-src.models.graph\_tools module
-------------------------------
+src.models.geograph module
+--------------------------
 
-.. automodule:: src.models.graph_tools
+.. automodule:: src.models.geograph
    :members:
    :undoc-members:
    :show-inheritance:
 
-src.models.visualisation module
--------------------------------
+src.models.geotimeline module
+-----------------------------
 
-.. automodule:: src.models.visualisation
+.. automodule:: src.models.geotimeline
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+src.models.metrics module
+-------------------------
+
+.. automodule:: src.models.metrics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+src.models.polygon\_utils module
+--------------------------------
+
+.. automodule:: src.models.polygon_utils
    :members:
    :undoc-members:
    :show-inheritance:

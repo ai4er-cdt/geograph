@@ -11,6 +11,7 @@ Subpackages
    src.data_loading
    src.models
    src.preprocessing
+   src.visualisation
 
 Submodules
 ----------
