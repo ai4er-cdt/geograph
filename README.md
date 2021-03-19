@@ -34,7 +34,7 @@ make env
 Done, you're ready to go!
 
 ## 3. Requirements
-GeoGrap is written in Python 3.8 and builds on [NetworkX](https://github.com/NetworkX/NetworkX), [ipyleaflet](https://github.com/jupyter-widgets/ipyleaflet) and many more packages. See the [requirements directory](./requirements) for a full list of dependencies.
+GeoGraph is written in Python 3.8 and builds on [NetworkX](https://github.com/NetworkX/NetworkX), [ipyleaflet](https://github.com/jupyter-widgets/ipyleaflet) and many more packages. See the [requirements directory](./requirements) for a full list of dependencies.
 
 ## 4. Project Organization
 ```
