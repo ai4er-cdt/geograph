@@ -23,11 +23,10 @@ import pyproj
 import rasterio
 import shapely
 from shapely.prepared import prep
-from tqdm import tqdm
-
 from src.data_loading import rasterio_utils
 from src.models import binary_graph_operations, metrics
 from src.models.metrics import CLASS_METRICS_DICT, Metric
+from tqdm import tqdm
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -119,7 +118,7 @@ class GeoGraph:
         self._columns_to_rename: Optional[Dict[str, str]] = columns_to_rename
         self._tolerance: float = tolerance
         self.metrics: Dict[str, Metric] = {}
-        self.class_metrics: Dict[str, Dict[int, Metric]] = {}
+        self.class_metrics: Dict[str, Dict[Union[str, int], Metric]] = {}
 
         if raster_save_path is not None:
             raster_save_path = pathlib.Path(raster_save_path)
@@ -713,7 +712,6 @@ class GeoGraph:
             metrics.Metric: The Metric object, containing the value as well as
             other information about the metric.
         """
-
         # Case 1: Landscape/component level metrics
         if class_value is None:
             try:
@@ -742,7 +740,7 @@ class GeoGraph:
     def get_class_metrics(
         self,
         names: Optional[Union[str, Sequence[str]]] = None,
-        classes: Optional[Union[str, Sequence[int]]] = None,
+        classes: Optional[Union[str, Sequence[int], np.ndarray]] = None,
         **metric_kwargs,
     ) -> pd.DataFrame:
         """
@@ -762,10 +760,9 @@ class GeoGraph:
         Returns:
             pd.DataFrame: A dataframe containing the metrics for the selected classes
         """
-
         # Convert to iterable if single values are given
         if names is None:
-            names = CLASS_METRICS_DICT.keys()
+            names = list(CLASS_METRICS_DICT.keys())
         elif isinstance(names, str):
             names = [names]
         if classes is None:
@@ -774,7 +771,7 @@ class GeoGraph:
             classes = [classes]
 
         # Create metrics id not yet present
-        result = {name: [] for name in names}
+        result: Dict[str, List] = {name: [] for name in names}
         for name in names:
             for class_value in classes:
                 result[name].append(
@@ -795,7 +792,6 @@ class GeoGraph:
         Returns:
             pd.DataFrame: Dataframe containing the patch level metrics.
         """
-
         self.df["area"] = self.df.area
         self.df["perimeter"] = self.df.length
         self.df["perimeter_area_ratio"] = self.df["perimeter"] / self.df["area"]
@@ -839,7 +835,16 @@ class GeoGraph:
         requires_sorting: bool = True,
         **data,
     ):
-        """Add node to graph #TODO Docstring """
+        """
+        Add node to graph.
+
+        Args:
+            node_id (int): The id of the node to add.
+            adjacencies (Iterable[int]): Iterable of node ids which are adjacent
+            to the new node.
+            requires_sorting (bool, optional): Whether or not to sort the dataframe
+            index after adding the node. Defaults to True.
+        """
         # Collect all data on node in one dict
         node_data = dict(data.items())
 
@@ -946,8 +951,6 @@ class HabitatGeoGraph(GeoGraph):
                 self.barrier_classes: List[Union[str, int]] = barrier_classes
                 self.max_travel_distance: float = max_travel_distance
                 self.add_distance: bool = add_distance
-                self.metrics: Dict[str, Metric] = {}
-                self.class_metrics: Dict[str, Dict[str, Metric]] = {}
 
         elif isinstance(data, (str, os.PathLike)):
             load_path = pathlib.Path(data)
@@ -964,6 +967,8 @@ class HabitatGeoGraph(GeoGraph):
             raise ValueError(
                 """Type of `data` unknown. Must be a dataframe or file path."""
             )
+        self.metrics: Dict[str, Metric] = {}
+        self.class_metrics: Dict[str, Dict[Union[str, int], Metric]] = {}
         print("Calculating components...")
         self.components = self.get_graph_components(
             calc_polygons=True, add_distance_edges=add_component_edges
