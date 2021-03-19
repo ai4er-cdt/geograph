@@ -1,29 +1,30 @@
 """This module contains the GeoGraphViewer to visualise GeoGraphs"""
 
 from __future__ import annotations
+
+import logging
 from typing import TYPE_CHECKING, List, Union
 
 import folium
-import pandas as pd
-import ipywidgets as widgets
 import ipyleaflet
+import ipywidgets as widgets
+import pandas as pd
 import traitlets
-import logging
 
-from src.models import metrics, geograph
+from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
+from src.models import geograph, metrics
 from src.visualisation import (
+    control_widgets,
     folium_utils,
     graph_utils,
-    widget_utils,
-    control_widgets,
     style,
+    widget_utils,
 )
-from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
 
 if TYPE_CHECKING:
     import geopandas as gpd
 
-
+# pylint: disable=dangerous-default-value
 class GeoGraphViewer(ipyleaflet.Map):
     """Class for interactively viewing a GeoGraph."""
 

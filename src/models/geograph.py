@@ -23,10 +23,11 @@ import pyproj
 import rasterio
 import shapely
 from shapely.prepared import prep
+from tqdm import tqdm
+
 from src.data_loading import rasterio_utils
 from src.models import binary_graph_operations, metrics
 from src.models.metrics import CLASS_METRICS_DICT, Metric
-from tqdm import tqdm
 
 pd.options.mode.chained_assignment = None  # default='warn'
 

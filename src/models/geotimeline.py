@@ -1,16 +1,16 @@
 """Module for analysing multiple GeoGraph objects."""
 from __future__ import annotations
 
-from typing import Union, List, Dict, Tuple, Optional, Iterable, Callable
 import datetime
 from bisect import bisect_left
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 
+from src.models.binary_graph_operations import NodeMap, identify_graphs
 from src.models.geograph import GeoGraph
-from src.models.binary_graph_operations import identify_graphs, NodeMap
 
 # type alias
 TimeStamp = Union[int, datetime.datetime]

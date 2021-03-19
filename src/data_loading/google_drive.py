@@ -11,8 +11,9 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
-from src.constants import PROJECT_PATH
 from tqdm import tqdm
+
+from src.constants import PROJECT_PATH
 
 SECRETS_PATH = PROJECT_PATH / "secrets"
 

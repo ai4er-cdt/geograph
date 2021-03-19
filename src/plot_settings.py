@@ -39,12 +39,13 @@ set_dim(fig, fraction_of_line_width=1, ratio=(5 ** 0.5 - 1) / 2)
 label_subplots(axs, start_from=0, x_pos=-0.07, y_pos=1.1, fontsize=10)
 
 """
-from typing import Sequence, Tuple
-import numpy as np
 import itertools
 from distutils.spawn import find_executable
+from typing import Sequence, Tuple
+
 import matplotlib
 import matplotlib.style
+import numpy as np
 import seaborn as sns
 
 from src.constants import REPORT_TEXTWIDTH_PT

@@ -5,7 +5,6 @@ import geopandas as gpd
 import networkx as nx
 from shapely.geometry import MultiPolygon
 
-
 from src.utils.polygon_utils import (
     connect_with_interior_bulk,
     connect_with_interior_or_edge_bulk,

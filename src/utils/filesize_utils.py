@@ -1,7 +1,8 @@
 """General project util functions"""
-from sys import getsizeof
-import requests
 import inspect
+from sys import getsizeof
+
+import requests
 
 
 def human_readable_size(num: int, suffix: str = "B") -> str:
