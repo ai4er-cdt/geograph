@@ -14,6 +14,9 @@ EDGE_ONLY_PATTERN = "FF*F1****"
 #  with their interiors
 OVERLAP_PATTERN = "T********"
 
+# Create empty polygon
+EMPTY_POLYGON = Polygon()
+
 
 def de9im_match(pattern: str, target_pattern: str) -> bool:
     """
@@ -146,3 +149,19 @@ def connect_with_interior_bulk(
     """
     patterns = polygon_array.relate(polygon)
     return [de9im_match(pattern, OVERLAP_PATTERN) for pattern in patterns]
+
+
+def collapse_empty_polygon(polygon: Polygon) -> Polygon:
+    """
+    Collapse `polygon` to an `EMPTY_POLYGON` if it is empty.
+
+    Args:
+        polygon (Polygon): The polygon to collapse if empty
+
+    Returns:
+        Polygon: Either the original, unchanges polygon or an empty polygon
+    """
+    if polygon.is_empty:
+        return EMPTY_POLYGON
+    else:
+        return polygon

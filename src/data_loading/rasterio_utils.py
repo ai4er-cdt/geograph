@@ -9,6 +9,8 @@ from rasterio.crs import CRS
 from rasterio.features import shapes
 from rasterio.io import DatasetReader
 
+import src.utils.geopandas_utils as gpd_utils
+
 
 class CoordinateSystemError(Exception):
     """Basic exception for coordinate system errors."""
@@ -140,7 +142,7 @@ def polygonise(
         crs (str, optional): Coordinate reference system to set on the
         resulting dataframe. Defaults to None.
         connectivity (int, optional): Use 4 or 8 pixel connectivity for
-        grouping pixels into features. 8 can cause issues, Defaults to 4.
+        grouping pixels into features. Defaults to 4.
         apply_buffer (bool, optional): Apply shapely buffer function to the
         polygons after polygonising. This can fix issues with the
         polygonisation creating invalid geometries.
@@ -149,16 +151,25 @@ def polygonise(
     Returns:
         gpd.GeoDataFrame: GeoDataFrame containing polygon objects.
     """
+    assert connectivity in (4, 8)
+    # Note: we handle connectivity=8 differently due to issues with self intersecting
+    #  polygons returned from shapely. Instead of using connectivity=8 we use
+    #  the stable connectivity=4 and post-process the polygons to achieve connectivity=8
+    #  with valid geometries.
     polygon_generator = shapes(
-        data_array, mask=mask, connectivity=connectivity, transform=transform
+        data_array, mask=mask, connectivity=4, transform=transform
     )
     results = list(
         {"properties": {"class_label": int(val)}, "geometry": shape}
         for shape, val in polygon_generator
     )
     df = gpd.GeoDataFrame.from_features(results, crs=crs)
+
     if apply_buffer:
         # Redraw geometries to ensure polygons are valid.
         df.geometry = df.geometry.buffer(0)
+
+    if connectivity == 8:
+        df = gpd_utils.merge_diagonally_connected_polygons(df)
 
     return df
