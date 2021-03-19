@@ -5,5 +5,5 @@
 #SBATCH --time=12:00:00 # Set a runtime for the job in HH:MM:SS
 #SBATCH --mem=128000 # Set the amount of memory for the job in MB.
 
-conda activate gtc-bio2 # Replace with your conda environment
+conda activate gtc-bio # Replace with your conda environment
 srun python src/train.py run_name=${1}
