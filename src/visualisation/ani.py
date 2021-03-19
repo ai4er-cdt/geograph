@@ -8,14 +8,14 @@ animate_prediction - specifically designed to plot inputs and results
 
 TODO: Add animation functions for more general cases
 """
-import numpy as np
-from tqdm import tqdm
-import xarray as xr
 import imageio
 import matplotlib.pyplot as plt
+import numpy as np
+import xarray as xr
 from src.data_loading.landcover_plot_utils import classes_to_rgb
+from src.plot_settings import label_subplots, ps_defaults
 from src.utils import timeit
-from src.plot_settings import ps_defaults, label_subplots
+from tqdm import tqdm
 
 ps_defaults(use_tex=False)
 
@@ -92,7 +92,9 @@ def animate_prediction(
                 x_da.isel(year=index, mn=3, band=slice(3, 6)).plot.imshow(ax=ax4b)
                 for ax in [ax1b, ax2b, ax3b, ax4b]:
                     ax.set_xlabel("")
-                label_subplots([ax1, ax2, ax1b, ax2b, ax3, ax4, ax3b, ax4b, ax5, ax6], y_pos=1.07)
+                label_subplots(
+                    [ax1, ax2, ax1b, ax2b, ax3, ax4, ax3b, ax4b, ax5, ax6], y_pos=1.07
+                )
             else:
                 label_subplots([ax1, ax2, ax3, ax4, ax5, ax6], y_pos=1.07)
 
