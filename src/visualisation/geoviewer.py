@@ -1,24 +1,24 @@
 """This module contains the GeoGraphViewer to visualise GeoGraphs"""
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, List, Union
+
+import logging
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import folium
-import pandas as pd
-import ipywidgets as widgets
 import ipyleaflet
+import ipywidgets as widgets
+import pandas as pd
 import traitlets
-import logging
-
-from src.models import metrics, geograph
+from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
+from src.models import geograph, metrics
 from src.visualisation import (
+    control_widgets,
     folium_utils,
     graph_utils,
-    widget_utils,
-    control_widgets,
     style,
+    widget_utils,
 )
-from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
 
 if TYPE_CHECKING:
     import geopandas as gpd
@@ -32,7 +32,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         center: List[int, int] = CHERNOBYL_COORDS_WGS84,
         zoom: int = 7,
         layout: Union[widgets.Layout, None] = None,
-        metric_list: List[str] = metrics.STANDARD_METRICS,
+        metric_list: Optional[List[str]] = None,
         logging_level=logging.DEBUG,
         **kwargs
     ) -> None:
@@ -59,7 +59,10 @@ class GeoGraphViewer(ipyleaflet.Map):
         )
         # There seems to be no easy way to add UTM35N to ipyleaflet.Map(), hence WGS84.
         self.gpd_crs_code = WGS84
-        self.metrics = metric_list
+        if metric_list is None:
+            self.metrics = metrics.STANDARD_METRICS
+        else:
+            self.metrics = metric_list
         if layout is None:
             self.layout = widgets.Layout(height="700px")
 
