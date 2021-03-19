@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Union, List, Dict, Tuple, Optional, Iterable, Callable
 import datetime
+from bisect import bisect_left
 
 import numpy as np
 import pandas as pd
@@ -41,11 +42,32 @@ class TimedGeoGraph(GeoGraph):
 
 
 class GeoGraphTimeline:
-    """Timeline of multiple GeoGraphs #TODO"""
+    """Timeline of multiple GeoGraphs."""
 
     def __init__(
         self, data: Union[List[TimedGeoGraph], Dict[TimeStamp, GeoGraph]]
     ) -> None:
+        """
+        Creates a timeline of multiple GeoGraphs, for time-series and change-detection
+        analyses.
+
+        The `data` must be a list of TimedGeoGraph objects or a dictionary where the
+        keys correspond to the respective time-stamps of each GeoGraph. The GeoGraphs
+        in `data` will be sorted from earliest to latest timestamp and added to the
+        GeoGraphTimeline.
+
+        Landscape, Habitat-component, Class-value and patch level time-series analyses
+        are supported.
+
+        Args:
+            data (Union[List[TimedGeoGraph], Dict[TimeStamp, GeoGraph]]): A list of
+                TimedGeoGraphs or a dictionary where keys correspond to times and values
+                to GeoGraph objects of the ecosystem at the specified time.
+
+        Raises:
+            NotImplementedError: For any other `data` argument. (In the future we will
+                add funcitonality to save timelines and load from disk.)
+        """
 
         # Initialize empty graphs dict
         self._graphs: Dict[TimeStamp, GeoGraph] = dict()
@@ -193,6 +215,9 @@ class GeoGraphTimeline:
     def get_metric(self, name: str, class_value: Optional[int] = None) -> xr.DataArray:
         """
         Return the time-series for the given metric.
+
+        For class-level metrics pass a class_value argument. For landscape/component
+        level metrics omit the class_value argument.
 
         Args:
             name (str): Name of the metric to compute
@@ -347,32 +372,151 @@ class GeoGraphTimeline:
             {year: graph.habitats[name] for year, graph in self.graphs.items()}
         )
 
+    def calculate_node_dynamics(self, time: TimeStamp) -> pd.Series:
+        """
+        Classify the dynamic behavior of each node of the graph at the given `time`.
 
-def calculate_growth_rates(
-    mapping: NodeMap,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Return relative and absolute node growth rates for the nodes in `target_graph` of
-    the given NodeMap
+        The node dynamics reflects the type of change that a node has undergone between
+        two adjacent time-slices of a GeoGraphTimeline.
+        For each node at the selected `time` the classified node dynamics is one of:
+            `birth`: The child node has no ancestors in `nodemap` and newly appeared.
+            `split`: The child node was created as a split off of an ancestral node.
+            `unchanged`: The child node has one ancestor with the same characteristics.
+            `grew`: The child node has one ancestor and has increased in area.
+            `shrank`: The child node has one ancestor and has decreased in area.
+            `complex`: The child node has numerous ancestors and siblings
+            `merged`: The child node has several ancestors and no siblings. It was
+                created from a merge of several ancestral nodes.
 
-    Args:
-        mapping (NodeMap): The maping of nodes between the the past (source) and future
-        (target) graph
+        Args:
+            time (TimeStamp): The time in GeoGraphTimeline for which the node dynamics
+                should be classified. Must be one of the times in `self.times`.
 
-    Returns:
-        Tuple[np.ndarray, np.ndarray]: The relative and absolute node growth rates in
-            units of the CRS system that the graphs are in.
-    """
-    # TODO: numba for slight performance inmprovements
+        Raises:
+            UserWarning: If an inexistent timeslice is accessed.
 
-    backward_map = ~mapping
-    relative_growth_rates = np.zeros(len(backward_map.mapping))
-    absolute_growth_rates = np.zeros(len(backward_map.mapping))
-    for i, (future, past) in enumerate(backward_map.mapping.items()):
-        past_area = np.sum(backward_map.trg_graph.df.geometry.loc[past].area)
-        future_area = np.sum(backward_map.src_graph.df.geometry.loc[future].area)
+        Returns:
+            pd.Series: A pandas series with the node dynamics for each node
+                the graph at the given time (self[time]).
+        """
 
-        relative_growth_rates[i] = (future_area - past_area) / (future_area + past_area)
-        absolute_growth_rates[i] = future_area - past_area
+        if "node_dynamic" in self[time].df.columns:
+            return self[time].df["node_dynamic"]
+        else:
+            # Determine index of the selected time in self.times
+            time_index = bisect_left(self.times, time)
 
-    return relative_growth_rates, absolute_growth_rates
+            if time_index == 0:
+                raise UserWarning(
+                    "Cannot calculate node dyamics for first graph in timeline."
+                )
+
+            prior_time = self.times[time_index - 1]
+            node_map = self.node_map_cache(prior_time, time)
+
+            # Helper function to calculate dynamics type via a single map call
+            dynamics_oracle = (
+                lambda child_index: GeoGraphTimeline._calculate_node_dynamics(
+                    child_index, node_map
+                )
+            )
+
+            dynamics_type = self[time].df.index.map(dynamics_oracle)
+            rel_growth, abs_growth = GeoGraphTimeline._calculate_growth_rates(node_map)
+
+            self[time].df["relative_growth"] = rel_growth
+            self[time].df["absolute_growth"] = abs_growth
+            self[time].df["node_dynamic"] = dynamics_type
+
+            # Detect dynamics type of unchanged/morphed by comparing to the
+            # relative growth
+            grew = (dynamics_type == "morphed/unchanged") & (rel_growth > 0)
+            shrank = (dynamics_type == "morphed/unchanged") & (rel_growth < 0)
+            unchanged = (dynamics_type == "morphed/unchanged") & (rel_growth == 0)
+            # Update node dynamics for nodes in morphed/unchanged class
+            self[time].df["node_dynamic"][grew] = "grew"
+            self[time].df["node_dynamic"][shrank] = "shrank"
+            self[time].df["node_dynamic"][unchanged] = "unchanged"
+
+            return self[time].df["node_dynamic"]
+
+    @staticmethod
+    def _calculate_node_dynamics(child_index: int, nodemap: NodeMap) -> str:
+        """
+        Classify the node dynamics of the child node at `child_index` from the nodemap.
+
+        The classified node dynamics is one of:
+            `birth`: The child node has no ancestors in `nodemap`
+            `split`: The child node was created as a split off of an ancestral node
+            `unchanged/morphed`: The child node has exactly one ancestor
+            `complex`: The child node has numerous ancestors and siblings
+            `merged`: The child node has several ancestors and no siblings.
+
+        Args:
+            child_index (int): The index of the child node to calculate the dynamics
+                for.
+
+            nodemap (NodeMap): A node mapping between two GeoGraphs. Nodes in the source
+                graph of the mapping are referred to as `ancestors`, nodes in the target
+                graph are referred to as `children`.
+
+        Returns:
+            str: The identified node dynamics. One of `birth`, `split`,
+                `morphed/unchanged`, `complex`, `merged`.
+        """
+        # TODO: numba typed dict for speedup
+        ancestors = (~nodemap).mapping[child_index]
+
+        if len(ancestors) == 0:
+            # No ancestor means node birth in given timestep
+            return "birth"
+        elif len(ancestors) == 1:
+            # check if split
+            children = nodemap.mapping[ancestors[0]]
+            if len(children) > 1:
+                # One ancestor with several children means split
+                return "split"
+            else:
+                # One ancestor with one child means morphed/unchanged
+                return "morphed/unchanged"
+        else:
+            # Check if merged
+            for ancestor in ancestors:
+                children = nodemap.mapping[ancestor]
+                if len(children) > 1:
+                    # Several ancestors with several children means complex dynamics
+                    return "complex"
+            # Several ancestors with one children means merged
+            return "merged"
+
+    @staticmethod
+    def _calculate_growth_rates(
+        mapping: NodeMap,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Return relative and absolute node growth rates for the nodes in `target_graph`
+        of the given NodeMap
+
+        Args:
+            mapping (NodeMap): The maping of nodes between the the past (source) and
+            future (target) graph
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: The relative and absolute node growth rates
+            in units of the CRS system that the graphs are in.
+        """
+        # TODO: numba for slight performance inmprovements
+
+        backward_map = ~mapping
+        relative_growth_rates = np.zeros(len(backward_map.mapping))
+        absolute_growth_rates = np.zeros(len(backward_map.mapping))
+        for i, (future, past) in enumerate(backward_map.mapping.items()):
+            past_area = np.sum(backward_map.trg_graph.df.geometry.loc[past].area)
+            future_area = np.sum(backward_map.src_graph.df.geometry.loc[future].area)
+
+            relative_growth_rates[i] = (future_area - past_area) / (
+                future_area + past_area
+            )
+            absolute_growth_rates[i] = future_area - past_area
+
+        return relative_growth_rates, absolute_growth_rates
