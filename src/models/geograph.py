@@ -13,7 +13,7 @@ import pathlib
 import pickle
 from copy import deepcopy
 from itertools import zip_longest
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
 
 import geopandas as gpd
 import networkx as nx
@@ -25,7 +25,7 @@ import shapely
 from shapely.prepared import prep
 from src.data_loading import rasterio_utils
 from src.models import binary_graph_operations, metrics
-from src.models.metrics import Metric
+from src.models.metrics import CLASS_METRICS_DICT, Metric
 from tqdm import tqdm
 
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -106,7 +106,7 @@ class GeoGraph:
             **transform (affine.Affine, optional): Affine transformation to
             apply when polygonising. Defaults to the identity transform.
             **connectivity (int, optional): Use 4 or 8 pixel connectivity for
-            grouping pixels into features. 8 can cause issues, Defaults to 4.
+            grouping pixels into features. Defaults to 4.
             **apply_buffer (bool, optional): Apply shapely buffer function to
             the polygons after polygonising. This can fix issues with the
             polygonisation creating invalid geometries.
@@ -118,6 +118,7 @@ class GeoGraph:
         self._columns_to_rename: Optional[Dict[str, str]] = columns_to_rename
         self._tolerance: float = tolerance
         self.metrics: Dict[str, Metric] = {}
+        self.class_metrics: Dict[str, Dict[Union[str, int], Metric]] = {}
 
         if raster_save_path is not None:
             raster_save_path = pathlib.Path(raster_save_path)
@@ -190,12 +191,22 @@ class GeoGraph:
         return self.df.crs
 
     @property
+    def bounds(self):
+        """Return bounds of entire graph"""
+        return self.df.sindex.bounds
+
+    @property
     def class_label(self):
         """Return class label of nodes directly from underlying numpy array.
 
         Note: Uses `iloc` type indexing.
         """
         return self.df["class_label"].values
+
+    @property
+    def classes(self) -> np.ndarray:
+        """Return a list of the sorted, unique class labels in the graph"""
+        return np.unique(self.df["class_label"].values)
 
     @property
     def geometry(self):
@@ -246,10 +257,10 @@ class GeoGraph:
 
         Args:
             raster_path (pathlib.Path): A path to a file of raster data in
-            GeoTiff format.
+                GeoTiff format.
             save_path (pathlib.Path, optional): A path to a file to save the
-            polygonised raster data in. A path to a GPKG file is recommended,
-            but Shapefiles also work.
+                polygonised raster data in. A path to a GPKG file is recommended,
+                but Shapefiles also work.
 
         Returns:
             gpd.GeoDataFrame: The dataframe containing polygon objects.
@@ -275,8 +286,8 @@ class GeoGraph:
         Args:
             data_array (np.ndarray): 2D numpy array with the raster data.
             save_path (pathlib.Path, optional): A path to a file to save the
-            polygonised raster data in. A path to a GPKG file is recommended,
-            but Shapefiles also work.
+                polygonised raster data in. A path to a GPKG file is recommended,
+                but Shapefiles also work.
 
         Returns:
             gpd.GeoDataFrame: The dataframe containing polygon objects.
@@ -377,7 +388,7 @@ class GeoGraph:
         # Assign crs
         if df.crs is None:
             df.crs = self._crs
-        else:
+        if self._crs is not None:
             df = df.to_crs(self._crs)
 
         # Reset index to ensure consistent indices
@@ -468,28 +479,15 @@ class GeoGraph:
         for node in node_list:
             adjacency_set.update(list(self.graph.neighbors(node)))
         adjacency_set -= adjacency_set.intersection(node_list)
+
         # Build union polygon.
         polygon = self.df["geometry"].loc[node_list].unary_union
+
         # Remove nodes from graph and rows from df
-        self.graph.remove_nodes_from(node_list)
-        self.df = self.df.drop(node_list)
+        self._remove_nodes(node_list)
         # Add final node to graph and df
-        self.graph.add_node(
-            final_index,
-            rep_point=polygon.representative_point(),
-            area=polygon.area,
-            perimeter=polygon.length,
-            bounds=polygon.bounds,
-        )
-        data = {"class_label": class_label, "geometry": polygon}
-        missing_cols = {key: None for key in set(self.df.columns) - set(data.keys())}
-        self.df.loc[final_index] = gpd.GeoSeries(
-            {**data, **missing_cols}, crs=self.df.crs
-        )
-        self.df = self.df.sort_index()
-        # Add edges from final node to all neighbours of the original
-        self.graph.add_edges_from(
-            zip_longest([final_index], adjacency_set, fillvalue=final_index)
+        self._add_node(
+            final_index, adjacency_set, geometry=polygon, class_label=class_label
         )
 
     def merge_classes(
@@ -698,26 +696,120 @@ class GeoGraph:
             self.components = comp_geograph
         return comp_geograph
 
-    def get_metric(self, name: str) -> metrics.Metric:
+    def get_metric(
+        self, name: str, class_value: Optional[int] = None, **metric_kwargs
+    ) -> metrics.Metric:
         """
         Calculate and save the metric with name `name` for the current GeoGraph.
 
         Args:
             name (str): The name of a valid metric for a GeoGraph.
+            class_value(int): The landcover class label if a class level metric is
+                desired. None if a landscape/component level metric is desired.
+                Defaults to None.
 
         Returns:
             metrics.Metric: The Metric object, containing the value as well as
             other information about the metric.
         """
-        if name not in metrics.METRICS_DICT:
-            raise ValueError("`name` must be the name of a valid metric.")
-        try:
-            result = self.metrics[name]
-        except KeyError:
-            # pylint: disable=protected-access
-            result = metrics._get_metric(name=name, geo_graph=self)
-            self.metrics[name] = result
-        return result
+        # Case 1: Landscape/component level metrics
+        if class_value is None:
+            try:
+                result = self.metrics[name]
+            except KeyError:
+                # pylint: disable=protected-access
+                result = metrics._get_metric(name=name, geo_graph=self, **metric_kwargs)
+                self.metrics[name] = result
+            return result
+
+        # Case 2: Class level metrics
+        else:
+            try:
+                result = self.class_metrics[name][class_value]
+            except KeyError:
+                # pylint: disable=protected-access
+                result = metrics._get_metric(
+                    name=name, geo_graph=self, class_value=class_value, **metric_kwargs
+                )
+                if name in self.class_metrics.keys():
+                    self.class_metrics[name][class_value] = result
+                else:
+                    self.class_metrics[name] = {class_value: result}
+            return result
+
+    def get_class_metrics(
+        self,
+        names: Optional[Union[str, Sequence[str]]] = None,
+        classes: Optional[Union[str, Sequence[int], np.ndarray]] = None,
+        **metric_kwargs,
+    ) -> pd.DataFrame:
+        """
+        Return class-level metrics for the landcover classes in the given GeoGraph.
+
+        If arguments are omitted, all class level metrics are calculated.
+
+        Args:
+            names (Optional[Union[str, Sequence[str]]], optional): Names of the metrics
+                to calculate. If None, then all available class metrics are calculated
+                for the given classses. Defaults to None.
+            classes (Optional[Union[str, Sequence[int]]], optional): Class labels of
+                the classes to calculate. If None, then the given metrics are calculated
+                for all classes. Defaults to None.
+            **metric_kwargs: Any kwargs that should be passed on to the metrics.
+
+        Returns:
+            pd.DataFrame: A dataframe containing the metrics for the selected classes
+        """
+        # Convert to iterable if single values are given
+        if names is None:
+            names = list(CLASS_METRICS_DICT.keys())
+        elif isinstance(names, str):
+            names = [names]
+        if classes is None:
+            classes = self.classes
+        elif isinstance(classes, int):
+            classes = [classes]
+
+        # Create metrics id not yet present
+        result: Dict[str, List] = {name: [] for name in names}
+        for name in names:
+            for class_value in classes:
+                result[name].append(
+                    self.get_metric(
+                        name, class_value=class_value, **metric_kwargs
+                    ).value
+                )
+
+        return pd.DataFrame(result, index=classes)
+
+    def get_patch_metrics(self) -> pd.DataFrame:
+        """
+        Return patch-level metrics and append them to `self.df`.
+
+        Calculates "area", "perimeter", "perimeter_area_ratio", "shape_index" and
+        "fractal_dimension" for each patch
+
+        Returns:
+            pd.DataFrame: Dataframe containing the patch level metrics.
+        """
+        self.df["area"] = self.df.area
+        self.df["perimeter"] = self.df.length
+        self.df["perimeter_area_ratio"] = self.df["perimeter"] / self.df["area"]
+        self.df["shape_index"] = 0.25 * self.df["perimeter"] / np.sqrt(self.df["area"])
+        self.df["fractal_dimension"] = (
+            2 * np.log(0.25 * self.df["perimeter"]) / np.log(self.df["area"])
+        )
+
+        return self.df[
+            [
+                "class_label",
+                "area",
+                "perimeter",
+                "perimeter_area_ratio",
+                "shape_index",
+                "fractal_dimension",
+            ]
+        ]
 
     def identify_node(
         self, node_id: int, other_graph: GeoGraph, mode: str
@@ -725,7 +817,71 @@ class GeoGraph:
         """Return all node ids in `other_graph` which identify with `node_id`."""
         return binary_graph_operations.identify_node(
             self.df.loc[node_id], other_graph=other_graph, mode=mode
-        ).tolist()
+        )
+
+    def _remove_node(self, node_id: int):
+        self._remove_nodes([node_id])
+
+    def _remove_nodes(self, node_ids: Iterable[int]):
+        # Remove node from graph (automatically removes edges)
+        self.graph.remove_nodes_from(node_ids)
+        # Remove data of node from df
+        self.df = self.df.drop(index=node_ids)
+
+    def _add_node(
+        self,
+        node_id: int,
+        adjacencies: Iterable[int],
+        requires_sorting: bool = True,
+        **data,
+    ):
+        """
+        Add node to graph.
+
+        Args:
+            node_id (int): The id of the node to add.
+            adjacencies (Iterable[int]): Iterable of node ids which are adjacent
+            to the new node.
+            requires_sorting (bool, optional): Whether or not to sort the dataframe
+            index after adding the node. Defaults to True.
+        """
+        # Collect all data on node in one dict
+        node_data = dict(data.items())
+
+        # Add node to graph
+        self.graph.add_node(
+            node_id,
+            rep_point=node_data["geometry"].representative_point(),
+            area=node_data["geometry"].area,
+            perimeter=node_data["geometry"].length,
+            class_label=node_data["class_label"],
+            bounds=node_data["geometry"].bounds,
+        )
+
+        # Add node data to dataframe
+        missing_cols = {
+            key: None for key in set(self.df.columns) - set(node_data.keys())
+        }
+
+        self.df.loc[node_id] = gpd.GeoSeries({**data, **missing_cols}, crs=self.df.crs)
+        if requires_sorting:
+            self.df = self.df.sort_index()
+
+        # Add edges to adjacency list
+        self.graph.add_edges_from(
+            zip_longest([node_id], adjacencies, fillvalue=node_id)
+        )
+
+    # pylint: disable=dangerous-default-value
+    def _add_nodes(self, node_ids, adjacencies, node_data={}, **data):
+        raise NotImplementedError
+
+    def _merge_graph(self, other: GeoGraph) -> GeoGraph:
+
+        for node_id in self.rtree.intersection(other.bounds):
+            print(self.identify_node(node_id, other, mode="edge"))
+
+        raise NotImplementedError
 
 
 class HabitatGeoGraph(GeoGraph):
@@ -795,6 +951,7 @@ class HabitatGeoGraph(GeoGraph):
                 self.barrier_classes: List[Union[str, int]] = barrier_classes
                 self.max_travel_distance: float = max_travel_distance
                 self.add_distance: bool = add_distance
+
         elif isinstance(data, (str, os.PathLike)):
             load_path = pathlib.Path(data)
             assert load_path.exists()
@@ -810,11 +967,13 @@ class HabitatGeoGraph(GeoGraph):
             raise ValueError(
                 """Type of `data` unknown. Must be a dataframe or file path."""
             )
+        self.metrics: Dict[str, Metric] = {}
+        self.class_metrics: Dict[str, Dict[Union[str, int], Metric]] = {}
         print("Calculating components...")
         self.components = self.get_graph_components(
             calc_polygons=True, add_distance_edges=add_component_edges
         )
-        self.metrics: Dict[str, Metric] = {}
+
         print(
             f"Habitat successfully loaded with {self.graph.number_of_nodes()} nodes",
             f"and {self.graph.number_of_edges()} edges.",

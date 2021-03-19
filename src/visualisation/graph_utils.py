@@ -1,6 +1,7 @@
 """This module contains utility function for generally plotting graphs."""
 
 from __future__ import annotations
+
 from typing import Tuple
 
 import geopandas as gpd

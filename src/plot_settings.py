@@ -36,16 +36,19 @@ axs[1, 1].plot(x, np.abs(x), color=STD_CLR_LIST[3])
 set_dim(fig, fraction_of_line_width=1, ratio=(5 ** 0.5 - 1) / 2)
 
 # label subplots
-label_subplots(axs, start_from=0, x_pos=-0.07, y_pos=1.1, fontsize=10)
+label_subplots(axs, start_from=0, fontsize=10)
 
 """
-from typing import Sequence, Tuple
-import numpy as np
 import itertools
 from distutils.spawn import find_executable
+from typing import Sequence, Tuple
+
 import matplotlib
 import matplotlib.style
+import numpy as np
 import seaborn as sns
+
+from src.constants import REPORT_TEXTWIDTH_PT
 
 
 def ps_defaults(use_tex: bool = True) -> None:
@@ -66,14 +69,14 @@ def ps_defaults(use_tex: bool = True) -> None:
         "axes.labelsize": 10,
         "font.size": 10,
         # Make the legend/label fonts a little smaller
-        "legend.fontsize": 8,
-        "xtick.labelsize": 8,
-        "ytick.labelsize": 8,
+        "legend.fontsize": 10,
+        "xtick.labelsize": 9,
+        "ytick.labelsize": 9,
         # Set the font for maths
         "mathtext.fontset": "cm",
         # "font.sans-serif": ["DejaVu Sans"],  # gets rid of error messages
         # "font.monospace": [],
-        "lines.linewidth": 0.75,
+        "lines.linewidth": 1.0,
         "scatter.marker": "+",
         "image.cmap": "RdYlBu_r",
     }
@@ -113,9 +116,7 @@ def label_subplots(
         start_from (int, optional): skips first ${start_from} labels. Defaults to 0.
         fontsize (int, optional): Font size for labels. Defaults to 10.
         x_pos (float, optional): Relative x position of labels. Defaults to 0.02.
-            0.0 is left boundary of panel, 1.0 is right boundary of panel.
         y_pos (float, optional): Relative y position of labels. Defaults to 0.95.
-            0.0 is bottom of panel, 1.0 is top of panel.
 
     Returns:
         void; alters the `matplotlib.pyplot.axes` objects
@@ -141,13 +142,16 @@ def label_subplots(
 
 
 def get_dim(
-    fraction_of_line_width: float = 1, ratio: float = (5 ** 0.5 - 1) / 2
+    width: float = REPORT_TEXTWIDTH_PT,
+    fraction_of_line_width: float = 1,
+    ratio: float = (5 ** 0.5 - 1) / 2,
 ) -> Tuple[float, float]:
     """Return figure height, width in inches to avoid scaling in latex.
+
        Default is golden ratio, with figur occupying full page width.
 
     Args:
-        fig (matplotlib.pyplot.figure): Figure object to resize.
+        width (float): Textwidth of the report to make fontsizes match.
         fraction_of_line_width (float, optional): Fraction of the document width
             which you wish the figure to occupy.  Defaults to 1.
         ratio (float, optional): Fraction of figure width that the figure height
@@ -157,10 +161,9 @@ def get_dim(
         fig_dim (tuple):
             Dimensions of figure in inches
     """
-    thesis_width = 697.3  # roughly 6.5 inches
 
     # Width of figure
-    fig_width_pt = thesis_width * fraction_of_line_width
+    fig_width_pt = width * fraction_of_line_width
 
     # Convert from pt to inches
     inches_per_pt = 1 / 72.27
@@ -177,6 +180,7 @@ def get_dim(
 
 def set_dim(
     fig: matplotlib.pyplot.figure,
+    width: float = REPORT_TEXTWIDTH_PT,
     fraction_of_line_width: float = 1,
     ratio: float = (5 ** 0.5 - 1) / 2,
 ) -> None:
@@ -184,6 +188,7 @@ def set_dim(
 
     Args:
         fig (matplotlib.pyplot.figure): Figure object to resize.
+        width (float): Textwidth of the report to make fontsizes match.
         fraction_of_line_width (float, optional): Fraction of the document width
             which you wish the figure to occupy.  Defaults to 1.
         ratio (float, optional): Fraction of figure width that the figure height
@@ -193,7 +198,7 @@ def set_dim(
         void; alters current figure to have the desired dimensions
     """
     fig.set_size_inches(
-        get_dim(fraction_of_line_width=fraction_of_line_width, ratio=ratio)
+        get_dim(width=width, fraction_of_line_width=fraction_of_line_width, ratio=ratio)
     )
 
 
