@@ -14,7 +14,7 @@ import numpy as np
 import xarray as xr
 from src.data_loading.landcover_plot_utils import classes_to_rgb
 from src.plot_settings import label_subplots, ps_defaults
-from src.utils import timeit
+from src.utils.general_utils import timeit
 from tqdm import tqdm
 
 ps_defaults(use_tex=False)

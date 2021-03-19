@@ -74,7 +74,7 @@ import numpy.ma as ma
 import rasterio
 import xarray as xr
 from src.constants import SAT_DIR
-from src.utils import timeit
+from src.utils.general_utils import timeit
 from tqdm import tqdm
 
 

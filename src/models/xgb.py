@@ -36,7 +36,7 @@ from src.preprocessing.load_landsat_esa import (
     return_xy_npa,
     y_npa_to_xr,
 )
-from src.utils import timeit
+from src.utils.general_utils import timeit
 from src.visualisation.ani import animate_prediction
 
 

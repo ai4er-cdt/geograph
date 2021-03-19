@@ -17,7 +17,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 from src.constants import GWS_DATA_DIR, SAT_DIR  # ESA_LANDCOVER_DIR,
-from src.utils import timeit
+from src.utils.general_utils import timeit
 
 # import dask
 # from dask.distributed import Client
