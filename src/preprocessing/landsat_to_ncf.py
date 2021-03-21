@@ -1,32 +1,41 @@
+# pylint: disable-all
 """
 src/preprocessing/landsat.py
 ================================================================
 from src.preprocessing.landsat import return_path_dataarray
 
-https://www.usgs.gov/faqs/what-are-best-landsat-spectral-bands-use-my-research?qt-news_science_products=0#qt-news_science_products
+https://www.usgs.gov/faqs/what-are-best-landsat-spectral-bands-use-my-research
 
 ================================================================
 Landsat 8 Operational Land Image (OLI) and Thermal Infrared Sensor (TIRS)
 
 Band |	Wavelength | Useful for mapping
 Band 1 - coastal aerosol |	0.43-0.45 |	Coastal and aerosol studies
-Band 2 - blue	| 0.45-0.51 |	Bathymetric mapping, distinguishing soil from vegetation and deciduous from coniferous vegetation
-Band 3 - green |	0.53-0.59 |	Emphasizes peak vegetation, which is useful for assessing plant vigor
+Band 2 - blue	| 0.45-0.51 |	Bathymetric mapping, distinguishing soil from
+vegetation and deciduous from coniferous vegetation
+Band 3 - green |	0.53-0.59 |	Emphasizes peak vegetation, which is useful for
+assessing plant vigor
 Band 4 - red | 	0.64-0.67  | Discriminates vegetation slopes
 Band 5 - Near Infrared (NIR) |	0.85-0.88 | Emphasizes biomass content and shorelines
-Band 6 - Short-wave Infrared (SWIR) 1	| 1.57-1.65 | 	Discriminates moisture content of soil and vegetation; penetrates thin clouds
-Band 7 - Short-wave Infrared (SWIR) 2  |  2.11-2.29	| Improved moisture content of soil and vegetation; penetrates thin clouds
+Band 6 - Short-wave Infrared (SWIR) 1	| 1.57-1.65 | 	Discriminates moisture
+content of soil and vegetation; penetrates thin clouds
+Band 7 - Short-wave Infrared (SWIR) 2  |  2.11-2.29	| Improved moisture content
+of soil and vegetation; penetrates thin clouds
 
 ================================================================
 Landsat 4-5 Thematic Mapper (TM) and Landsat 7 Enhanced Thematic Mapper Plus (ETM+)
 Band	Wavelength	Useful for mapping
-Band 1 - blue	0.45-0.52	Bathymetric mapping, distinguishing soil from vegetation and deciduous from coniferous vegetation
-Band 2 - green	0.52-0.60	Emphasizes peak vegetation, which is useful for assessing plant vigor
+Band 1 - blue	0.45-0.52	Bathymetric mapping, distinguishing soil from
+vegetation and deciduous from coniferous vegetation
+Band 2 - green	0.52-0.60	Emphasizes peak vegetation, which is useful for
+assessing plant vigor
 Band 3 - red	0.63-0.69	Discriminates vegetation slopes
 Band 4 - Near Infrared	0.77-0.90	Emphasizes biomass content and shorelines
-Band 5 - Short-wave Infrared	1.55-1.75	Discriminates moisture content of soil and vegetation; penetrates thin clouds
+Band 5 - Short-wave Infrared	1.55-1.75	Discriminates moisture content of
+soil and vegetation; penetrates thin clouds
 Band 6 - Thermal Infrared	10.40-12.50	Thermal mapping and estimated soil moisture
-Band 7 - Short-wave Infrared	2.09-2.35	Hydrothermally altered rocks associated with mineral deposits
+Band 7 - Short-wave Infrared	2.09-2.35	Hydrothermally altered rocks
+associated with mineral deposits
 
 
 ==================================
@@ -44,9 +53,9 @@ yr 39
 'B4', 'B3', 'B2', 'B5', 'B6', 'B7'
 
 IR Bands:
-chern  AMJ  20/37 
+chern  AMJ  20/37
 ('B4', 'B5', 'B7') - near ir, short ir A, short ir B
-chern  AMJ 30/37 
+chern  AMJ 30/37
 ('B5', 'B6', 'B7') - near ir, SWIR 1, SWIR 2
 
 
@@ -56,16 +65,17 @@ http://web.pdx.edu/~nauna/resources/10_BandCombinations.htm
 
 
 """
-from typing import Tuple
 import os
+from typing import Tuple
+
+import dask
 import numpy as np
 import numpy.ma as ma
-from tqdm import tqdm
-import dask
-import xarray as xr
 import rasterio
-from src.utils import timeit
+import xarray as xr
 from src.constants import SAT_DIR
+from src.utils import timeit
+from tqdm import tqdm
 
 
 @timeit
@@ -92,7 +102,7 @@ def return_path_dataarray() -> xr.DataArray:
                 full_name = os.path.join(path, i)
                 coord_list = [years, month_groups, im_type]
                 indices = []
-                for coord_no, coord in enumerate(coord_list):
+                for _, coord in enumerate(coord_list):
                     for counter, value in enumerate(coord):
                         if str(value) in full_name:
                             indices.append(counter)
@@ -117,38 +127,40 @@ def return_path_dataarray() -> xr.DataArray:
 
 @timeit
 def return_normalized_array(
-    one: np.array,
-    two: np.array,
-    three: np.array,
+    one: np.ndarray,
+    two: np.ndarray,
+    three: np.ndarray,
     filter_together: bool = True,
     high_limit: float = 1.5e3,
     low_limit: float = 0,
     high_filter: bool = True,
     low_filter: bool = True,
     common_norm: bool = True,
-) -> np.array:
-    """Function takes numpy.array bands and converts it to a preprocessed numpy array.
+) -> np.ndarray:
+    """
+
+    Take numpy.array bands and convert to a preprocessed numpy array.
 
     Args:
-        one (np.array): First band
-        two (np.array): Second band
-        three (np.array): Third band
-        filter_together (bool, optional): if True will only display points where all 3 members of a band
-        are with the thresholds. Defaults to True.
+        one (np.ndarray): First band
+        two (np.ndarray): Second band
+        three (np.ndarray): Third band
+        filter_together (bool, optional): if True will only display points
+        where all 3 members of a band are with the thresholds. Defaults to True.
         high_limit (float, optional): The aforementioned threshold. Defaults to 1.5e3.
         low_limit (float, optional): a lower threshold. Defaults to 0.
-        high_filter (bool, optional): whether to turn the high limit on. Defaults to True.
-        low_filter (bool, optional): [whether to turn the lower limit on. Defaults to True.
+        high_filter (bool, optional): whether to turn the high limit on.
+        Defaults to True.
+        low_filter (bool, optional): [whether to turn the lower limit on.
+        Defaults to True.
         common_norm (bool, optional): [description]. Defaults to True.
 
     Returns:
-        np.array: floats between 0 and 1
-    """
-    """
-    
-    :param filter_together: 
+        np.ndarray: floats between 0 and 1
+
+    :param filter_together:
     :param high_limit: The aforementioned threshold.
-    :param low_limit: Adding 
+    :param low_limit: Adding
     :param high_filter: Bool, whether to turn the high limit on.
     :param low_filter: Bool, whether to turn the lower limit on.
     :param common_norm: Bool, whether to norm between the upper and lower limit.
@@ -157,7 +169,7 @@ def return_normalized_array(
     print("high_limit \t", high_limit)
 
     # Normalize bands into 0.0 - 1.0 scale
-    def norm(array: np.array) -> np.array:
+    def norm(array: np.ndarray) -> np.ndarray:
         array_min, array_max = np.nanmin(array), np.nanmax(array)
         if common_norm:
             # This doesn't guarantee it's between 0 and 1 if the filter is off.
@@ -165,17 +177,17 @@ def return_normalized_array(
         else:
             return (array - array_min) / (array_max - array_min)
 
-    def filt(data_array: np.array, filter_array: np.array) -> np.array:
+    def filt(data_array: np.ndarray, filter_array: np.ndarray) -> np.ndarray:
         return ma.masked_where(filter_array, data_array).filled(np.nan)
 
     def comb_and_filt(
-        red: np.array,
-        green: np.array,
-        blue: np.array,
-        filter_red: np.array,
-        filter_green: np.array,
-        filter_blue: np.array,
-    ) -> Tuple[np.array, np.array, np.array]:
+        red: np.ndarray,
+        green: np.ndarray,
+        blue: np.ndarray,
+        filter_red: np.ndarray,
+        filter_green: np.ndarray,
+        filter_blue: np.ndarray,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         filter_array = np.logical_or(
             np.logical_or(filter_red, filter_green), filter_blue
         )
@@ -185,7 +197,7 @@ def return_normalized_array(
             filt(blue, filter_array),
         )
 
-    def filter_sep_and_norm(array: np.array) -> np.array:
+    def filter_sep_and_norm(array: np.ndarray) -> np.ndarray:
         if high_filter:
             array = filt(array, array >= high_limit).filled(np.nan)
         if low_filter:
@@ -193,8 +205,8 @@ def return_normalized_array(
         return norm(array)
 
     def filter_tog_and_norm(
-        red: np.array, green: np.array, blue: np.array
-    ) -> Tuple[np.array, np.array, np.array]:
+        red: np.ndarray, green: np.ndarray, blue: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         if high_filter:
             filter_red, filter_green, filter_blue = (
                 red >= high_limit,
@@ -231,15 +243,16 @@ def return_normalized_array(
 def load_rgb_data(
     file_name: str = os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif"),
     high_limit: int = 1500,
-) -> Tuple[np.array, list]:
+) -> Tuple[np.ndarray, list]:
     """Loads data from tif image and preprcesses it.
 
     Args:
-        file_name (str, optional): full path to .tif image. Defaults to os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif").
+        file_name (str, optional): full path to .tif image.
+        Defaults to os.path.join(SAT_DIR, "2012/L7_chern_2012_AMJ.tif").
         high_limit (int, optional): high limit to filter bands to. Defaults to 1500.
 
     Returns:
-        Tuple[np.array, list]: [floats between 0 and 1, description of bands]
+        Tuple[np.ndarray, list]: [floats between 0 and 1, description of bands]
     """
     # Open the file:
     raster = rasterio.open(file_name)
@@ -277,7 +290,8 @@ def create_netcdfs() -> None:
     ]:  # enumerate(path_da.coords["ty"].values.tolist()):  # [(1, "chern")]:
         for mn, mn_v in enumerate(path_da.coords["mn"].values.tolist()):
             # [(0, "JFM"), #(1, "AMJ") #(2, "JAS"), #(3, "OND") #]:
-            #  [(1, "AMJ"), (2, "JAS"), (3, "OND")]:  # enumerate(path_da.coords["mn"].values.tolist()):
+            #  [(1, "AMJ"), (2, "JAS"), (3, "OND")]:
+            # enumerate(path_da.coords["mn"].values.tolist()):
             for ir in [0]:  # [1]:  #[0, 1]
                 path_list = []
                 for year in tqdm(
@@ -358,7 +372,8 @@ def create_netcdfs() -> None:
                     del data
                     del xr_da
                     path_list.append(tmp_name)
-                # this option should override chunk size to prevent chunks from being too large.
+                # this option should override chunk size to prevent chunks from
+                # being too large.
                 with dask.config.set(**{"array.slicing.split_large_chunks": True}):
                     # https://github.com/pydata/xarray/issues/3961
 

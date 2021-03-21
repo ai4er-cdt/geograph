@@ -119,6 +119,8 @@ token.pickle
 *.mp4
 *.nc
 *.model
+# .*.ncdf
 
 #test data file
 test.tif
+

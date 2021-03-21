@@ -1,3 +1,4 @@
+# pylint: disable-all
 """
 xgb.py
 ======
@@ -18,27 +19,24 @@ TODO: Look at trends in landsat bands to see if preprocessing can be improved.
 TODO: As above, focussing especially on the IR bands.
 """
 import os
+
+import dask.array as da
 import numpy as np
 import wandb
-import xgboost as xgb
-from sklearn import metrics
 import xarray as xr
-import dask
-import dask.array as da
-import dask.distributed
+import xgboost as xgb
 from dask.distributed import Client
-from src.constants import ESA_LANDCOVER_DIR, GWS_DATA_DIR, SAT_DIR
-from src.preprocessing.esa_compress import compress_esa, decompress_esa, FORW_D, REV_D
+from sklearn import metrics
+from src.constants import SAT_DIR
+from src.preprocessing.esa_compress import compress_esa, decompress_esa
 from src.preprocessing.load_landsat_esa import (
+    clip,
+    return_x_y_da,
+    return_xy_dask,
     return_xy_npa,
     y_npa_to_xr,
-    x_npa_to_xr,
-    return_x_y_da,
-    clip,
-    return_xy_dask,
 )
 from src.utils import timeit
-from src.preprocessing.landsat_to_ncf import create_netcdfs
 from src.visualisation.ani import animate_prediction
 
 

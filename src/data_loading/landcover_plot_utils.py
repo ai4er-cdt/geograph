@@ -1,7 +1,12 @@
-"""A collection of utility functions for plotting landcover datasets"""
+"""A collection of utility functions for plotting landcover datasets."""
+from typing import Optional
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.patches import Patch
 from numba import njit
+
 from src.constants import ESA_LANDCOVER_DIR
 
 # from src.data_loading.landcover_plot_utils import classes_to_rgb, ESA_SUPER_RGB_ARRAY
@@ -136,3 +141,73 @@ def classes_to_rgb(
             rgb_data[i, j, ...] = class_to_rgb[data[i, j]]
 
     return rgb_data
+
+
+def plot_landcover(
+    data: np.ndarray,
+    ax: Optional[plt.Axes] = None,
+    landcover_class_df: pd.DataFrame = ESA_CCI_CLASSES,
+    with_legend: bool = True,
+) -> None:
+    """
+    Plot array with landcover data with colors and legend.
+
+    Convenience function to plot landcover data with labels and RGB values in the
+    data`lddatar_class_df`. The format of that dataframe should be:
+        - Rows indexed by landcover class (int)
+        - Cdatacontaining the substring `label` must exist for plotting with legend
+        - Columns with names `R`, `G`, `B` must exist with integers corresponding to RGB
+          values for the landcover classes.
+
+    Args:
+        data (np.ndarray): The landcover data to plot. Values should be the landcover
+            classes.
+        ax (Optional[pldatas], optional): matplotlib.Axes object to add the plot to an
+            existing canvas. Defaults to None.
+        landcover_class_df (Optional[pd.DataFrame], optional): A dataframe containing
+            the RGB values to color each class with and a class label for each class.
+            Defaults to ESA_CCI_CLASSES.
+        with_legend (bool, optional): whether to add legend with class labels.
+            Defaults to True.
+    """
+
+    # Remove unused dimensions
+    data = data.squeeze()
+    # Check right format
+    assert data.ndim == 2, "`image` must be 2 dimensional"
+
+    # Create canvas to plot onto, if needed
+    if not ax:
+        _, ax = plt.subplots(figsize=(15, 15))
+
+    # Plot image
+    ax.imshow(
+        classes_to_rgb(data, class_to_rgb=_class_rgb_array_from_df(landcover_class_df))
+    )
+
+    # Remove axes
+    ax.set_yticks([])
+    ax.set_xticks([])
+
+    # Create legend
+    if with_legend:
+        # Automatically identify label column name
+        label_colname = landcover_class_df.columns[
+            landcover_class_df.columns.str.contains("label", case=False)
+        ][0]
+
+        # Filter only the landcover classes that appear in the image
+        present_classes = np.unique(data)
+
+        # Generate legend
+        legend_elements = []
+        for _, row in landcover_class_df.loc[present_classes].iterrows():
+            class_name = row[label_colname]
+            class_rgba = row[["R", "G", "B"]].values / 255.0  # plt wants values in 0-1
+            legend_elements.append(Patch(label=class_name, facecolor=class_rgba))
+        ax.legend(
+            handles=legend_elements,
+            bbox_to_anchor=(1.01, 1),  # places legend to the right of the image
+            loc="upper left",  # anchor for the bbox_to_anchor statement
+            prop={"size": 18},  # fontsize in legend
+        )

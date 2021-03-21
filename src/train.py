@@ -11,7 +11,7 @@ from pytorch_lightning.loggers import WandbLogger
 
 from src import constants
 from src.configs import config
-from src.unet import model
+from src.unet import unet_model
 
 
 def train_model(cfg, logger: logging.Logger = logging.getLogger()):
@@ -22,11 +22,11 @@ def train_model(cfg, logger: logging.Logger = logging.getLogger()):
     # If continuing a previous run:
     if cfg.load_from_checkpoint is not None:
         logger.info("Loading model from checkpoint %s", cfg.load_from_checkpoint)
-        unet = model.UNetModel.load_from_checkpoint(cfg.load_from_checkpoint)
+        unet = unet_model.UNetModel.load_from_checkpoint(cfg.load_from_checkpoint)
         unet.config = cfg
     else:
         logger.info("Initialising new model")
-        unet = model.UNetModel(cfg)
+        unet = unet_model.UNetModel(cfg)
 
     # Setup logging and checkpointing.
     run_dir = pathlib.Path(constants.PROJECT_PATH / "logs" / cfg.run_name)
@@ -72,7 +72,7 @@ def train_model(cfg, logger: logging.Logger = logging.getLogger()):
 
     # Test the model at the best checkoint:
     logger.info("Testing the model at checkpoint %s", ckpt.best_model_path)
-    unet = model.UNetModel.load_from_checkpoint(ckpt.best_model_path)
+    unet = unet_model.UNetModel.load_from_checkpoint(ckpt.best_model_path)
     trainer.test(unet)
     # Save weights from checkpoint
     statedict_path: pathlib.Path = run_dir / "saved_models" / "unet.pt"

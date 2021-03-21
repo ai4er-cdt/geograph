@@ -1,24 +1,28 @@
+# pylint: disable-all
 """
 load_landsat_esa.py
 ================================================================
 
 usage:
 
-from src.preprocessing.load_landsat_esa import return_xy_npa, y_npa_to_xarray, x_npa_to_xarray
+from src.preprocessing.load_landsat_esa import return_xy_npa, y_npa_to_xarray,
+x_npa_to_xarray
 
 """
-from typing import Sequence, Tuple
 import os
 import time
-import numpy as np
+from typing import Sequence, Tuple
+
 import dask.array as da
+import numpy as np
 import xarray as xr
 from src.constants import GWS_DATA_DIR, SAT_DIR  # ESA_LANDCOVER_DIR,
 from src.utils import timeit
 
 # import dask
 # from dask.distributed import Client
-# from src.preprocessing.esa_compress import compress_esa, decompress_esa, FORW_D, REV_D
+# from src.preprocessing.esa_compress import compress_esa, decompress_esa,
+# FORW_D, REV_D
 
 
 @timeit
@@ -35,12 +39,15 @@ def return_x_y_da(
         be remade if it already exists with the same parameters.
 
     Args:
-        take_esa_coords (bool, optional): If true maps onto 300m ESA CCI grid. Defaults to False.
-        use_mfd (bool, optional): Use open_mfdataset etc. for ultra-lazy loading. Defaults to True.
-        use_ffil (bool, optional): Fill forward Landsat to remove nans. Defaults to False.
+        take_esa_coords (bool, optional): If true maps onto 300m ESA CCI grid.
+        Defaults to False.
+        use_mfd (bool, optional): Use open_mfdataset etc. for ultra-lazy loading.
+        Defaults to True.
+        use_ffil (bool, optional): Fill forward Landsat to remove nans.
+        Defaults to False.
         use_ir (bool, optional): Take Landsat IR bands. Defaults to False.
-        prefer_remake (bool, optional): Will ignore existing files, and remake them instead.
-            Defaults to False.
+        prefer_remake (bool, optional): Will ignore existing files, and remake
+        them instead. Defaults to False.
 
     Returns:
         Tuple[xr.DataArray, xr.DataArray]: X and Y xarray.DataArray's
@@ -116,10 +123,11 @@ def _return_x_y_da(
        been run with the same inputs, it won't run again.
 
     Args:
-        take_esa_coords (bool, optional): if true use the lower resolution grid from esa ccis.
-            Defaults to False.
+        take_esa_coords (bool, optional): if true use the lower resolution grid
+        from esa ccis. Defaults to False.
         use_mfd (bool, optional): lazy loading / computation. Defaults to True.
-        use_ffil (bool, optional): forward fill nan values along dim year. Defaults to True.
+        use_ffil (bool, optional): forward fill nan values along dim year.
+        Defaults to True.
         use_ir (bool, optional): use Landsat IR bands. Defaults to False.
 
     Returns:
@@ -257,7 +265,8 @@ def clip(da_1: xr.DataArray, da_2: xr.DataArray) -> Tuple[xr.DataArray, xr.DataA
         da_2 (xr.DataArray): y and x coords comparible to da_2.
 
     Returns:
-        Tuple[xr.DataArray, xr.DataArray]: y and x coords compatible between da_1 and da_2.
+        Tuple[xr.DataArray, xr.DataArray]: y and x coords compatible between
+        da_1 and da_2.
     """
     y_lim = [
         max([da_1.y.min(), da_2.y.min()]).values.tolist(),
@@ -314,7 +323,7 @@ def clip(da_1: xr.DataArray, da_2: xr.DataArray) -> Tuple[xr.DataArray, xr.DataA
 @timeit
 def return_xy_npa(
     x_da: xr.DataArray, y_da: xr.DataArray, year=5
-) -> Tuple[np.array, np.array]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """return the x and y numpy arrays for a given number of years.
     Currently this function just returns (N, D) for x and (N,) for Y
 
@@ -324,12 +333,12 @@ def return_xy_npa(
         year (int, optional): single or list. Defaults to 5.
 
     Returns:
-        Tuple[np.array, np.array]: x_val, y_val
+        Tuple[np.ndarray, np.ndarray]: x_val, y_val
     """
 
     def combine_first_two_indices(
-        x_val: np.array, y_val: np.array
-    ) -> Tuple[np.array, np.array]:
+        x_val: np.ndarray, y_val: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         return (
             np.swapaxes(
                 np.array([x_val[:, :, i].ravel() for i in range(x_val.shape[2])]), 0, 1
@@ -339,7 +348,7 @@ def return_xy_npa(
 
     def _return_xy_npa(
         x_da: xr.DataArray, y_da: xr.DataArray, yr: int = 5
-    ) -> Tuple[np.array, np.array]:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         assert isinstance(yr, int)
         x_val = np.asarray(
             [
@@ -415,7 +424,9 @@ def return_xy_dask(
 
 
 @timeit
-def y_npa_to_xr(npa: np.array, xda: xr.DataArray, reshape: bool = True) -> xr.DataArray:
+def y_npa_to_xr(
+    npa: np.ndarray, xda: xr.DataArray, reshape: bool = True
+) -> xr.DataArray:
     """Reformat numpy array to be like a given xarray.dataarray.
        Inverse of return_xy for the y values at least.
 
@@ -446,7 +457,7 @@ def y_npa_to_xr(npa: np.array, xda: xr.DataArray, reshape: bool = True) -> xr.Da
 
 
 @timeit
-def x_npa_to_xr(npa: np.array, da: xr.DataArray) -> xr.DataArray:
+def x_npa_to_xr(npa: np.ndarray, da: xr.DataArray) -> xr.DataArray:
     """Reformat numpy array to be like a given xarray.dataarray.
 
     Args:
@@ -486,7 +497,7 @@ def x_npa_to_xr(npa: np.array, da: xr.DataArray) -> xr.DataArray:
 @timeit
 def return_xy_np_grid(
     x_da: xr.DataArray, y_da: xr.DataArray, year: int = 5
-) -> Tuple[np.array, np.array]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """return the x and y numpy arrays for a given number of years.
        for UNET we want a function that returns (yr, y, xr, D) for x
        and (yr, y, x, D) for y
@@ -497,7 +508,7 @@ def return_xy_np_grid(
         year (int, optional): single or list. Defaults to 5.
 
     Returns:
-        Tuple[np.array, np.array]: x_val, y_val
+        Tuple[np.ndarray, np.ndarray]: x_val, y_val
     """
 
     def _return_xy_npa(x_da, y_da, yr=5):

@@ -1,10 +1,24 @@
-# How to run the docs
+# How to create Sphinx docs
 
 
-On MacOS
+With the dev environment activated, and Sphinx installed you can create the html version by running the following command from this directory:
 
 ```
 make html
 ```
 
-will make them and launch them in your browser.
+And for the pdf version use
+
+```
+make latexpdf
+```
+
+Note: this last command requires a latex installation, which Jasmin servers don't seem to have.
+
+## Other important commands
+
+To update the module references in the rst files
+
+```
+sphinx-apidoc -f -o . ..
+```

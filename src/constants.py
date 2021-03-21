@@ -7,7 +7,6 @@ source folder, the project path, etc.
 import os
 import pathlib
 
-
 # Note: constants should be UPPER_CASE
 constants_path = pathlib.Path(os.path.realpath(__file__))
 SRC_PATH = pathlib.Path(os.path.dirname(constants_path))
@@ -46,3 +45,6 @@ CHERNOBYL_COORDS_WGS84 = (
     30.099444,
 )  # coordinates of chernobyl power reactor
 CHERNOBYL_COORDS_UTM35N = (715639.1222290158, 5697662.734402668)
+
+# Report specific settings for plotting
+REPORT_TEXTWIDTH_PT = 398.3386

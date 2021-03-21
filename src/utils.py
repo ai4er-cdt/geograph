@@ -1,9 +1,10 @@
 """General project util functions"""
-from sys import getsizeof
-import requests
 import inspect
 import time
 from functools import wraps
+from sys import getsizeof
+
+import requests
 
 
 def timeit(method):
@@ -40,13 +41,10 @@ def timeit(method):
 def human_readable_size(num: int, suffix: str = "B") -> str:
     """
     Convert a number of bytes into human readable format.
-
     This function is meant as a helper function for `get_byte_size`.
-
     Args:
         num (int): The number of bytes to convert
         suffix (str, optional): The suffix to use for bytes. Defaults to 'B'.
-
     Returns:
         str: A human readable version of the number of bytes.
     """
@@ -61,16 +59,13 @@ def human_readable_size(num: int, suffix: str = "B") -> str:
 def calculate_byte_size_recursively(obj: object, seen: set = None) -> int:
     """
     Recursively calculate size of objects in memory in bytes.
-
     From: https://github.com/bosswissam/pysize. Meant as a helper function for
     `get_byte_size`.
-
     Args:
         obj (object): The python object to get the size of
         seen (set, optional): This variable is needed to for the recusrive
             function evaluations, to ensure each object only gets counted once.
             Leave it at "None" to get the full byte size of an object. Defaults to None.
-
     Returns:
         int: The size of the object in bytes
     """
@@ -121,10 +116,8 @@ def calculate_byte_size_recursively(obj: object, seen: set = None) -> int:
 def get_byte_size(obj: object) -> str:
     """
     Return human readable size of a python object in bytes.
-
     Args:
         obj (object): The python object to analyse
-
     Returns:
         str: Human readable string with the size of the object
     """
@@ -135,14 +128,11 @@ def get_byte_size(obj: object) -> str:
 def get_osm_polygon(polygon_id: int, out_format: str = "geojson") -> str:
     """
     Return URL Query string for Open Street Map Polygon query
-
     Queries via api: http://polygons.openstreetmap.fr/
-
     Args:
         polygon_id (int): ID of object to be queried
         out_format (str, optional): Data format to request. Must be one of
             ["geojson", "wkt", "poly"]. Defaults to "geojson".
-
     Returns:
         str: The completed url query string for use via geopandas or requests
     """
