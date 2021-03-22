@@ -35,10 +35,7 @@ class DriveAPI:
     # Define GDrive types
     GDRIVE_FOLDER = "application/vnd.google-apps.folder"
 
-    def __init__(
-        self,
-        credentials_path: Union[str, PathLike] = SECRETS_PATH / "credentials.json",
-    ):
+    def __init__(self, credentials_path: str = None):
 
         # Variable self.creds will store the user access token.
         # If no valid token found we will create one.
