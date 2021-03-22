@@ -4,6 +4,15 @@ src.visualisation package
 Submodules
 ----------
 
+src.visualisation.ani module
+----------------------------
+
+.. automodule:: src.visualisation.ani
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :special-members: __init__
+
 src.visualisation.control\_widgets module
 -----------------------------------------
 
@@ -11,6 +20,7 @@ src.visualisation.control\_widgets module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 src.visualisation.folium\_utils module
 --------------------------------------
@@ -19,6 +29,7 @@ src.visualisation.folium\_utils module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 src.visualisation.geoviewer module
 ----------------------------------
@@ -27,6 +38,7 @@ src.visualisation.geoviewer module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 src.visualisation.graph\_utils module
 -------------------------------------
@@ -35,6 +47,7 @@ src.visualisation.graph\_utils module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 src.visualisation.style module
 ------------------------------
@@ -43,6 +56,7 @@ src.visualisation.style module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 src.visualisation.widget\_utils module
 --------------------------------------
@@ -51,6 +65,7 @@ src.visualisation.widget\_utils module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 Module contents
 ---------------
@@ -59,3 +74,4 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__

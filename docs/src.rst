@@ -7,9 +7,12 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   src.configs
    src.data_loading
    src.models
    src.preprocessing
+   src.unet
+   src.utils
    src.visualisation
 
 Submodules
@@ -31,10 +34,10 @@ src.plot\_settings module
    :undoc-members:
    :show-inheritance:
 
-src.utils module
+src.train module
 ----------------
 
-.. automodule:: src.utils
+.. automodule:: src.train
    :members:
    :undoc-members:
    :show-inheritance:

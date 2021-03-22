@@ -4,6 +4,14 @@ src.data\_loading package
 Submodules
 ----------
 
+src.data\_loading.gee\_data\_download module
+--------------------------------------------
+
+.. automodule:: src.data_loading.gee_data_download
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 src.data\_loading.google\_drive module
 --------------------------------------
 

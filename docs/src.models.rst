@@ -11,6 +11,7 @@ src.models.binary\_graph\_operations module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 src.models.fragmentation\_baseline module
 -----------------------------------------
@@ -19,6 +20,7 @@ src.models.fragmentation\_baseline module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 src.models.geograph module
 --------------------------
@@ -27,6 +29,7 @@ src.models.geograph module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 src.models.geotimeline module
 -----------------------------
@@ -35,6 +38,7 @@ src.models.geotimeline module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 src.models.metrics module
 -------------------------
@@ -43,14 +47,16 @@ src.models.metrics module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
-src.models.polygon\_utils module
---------------------------------
+src.models.xgb module
+---------------------
 
-.. automodule:: src.models.polygon_utils
+.. automodule:: src.models.xgb
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 Module contents
 ---------------
@@ -59,3 +65,4 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
