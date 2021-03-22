@@ -325,17 +325,28 @@ class GeoGraph:
         self.graph = data["graph"]
         return data["dataframe"]
 
-    def save_graph(self, save_path: pathlib.Path) -> None:
+    def save_graph(
+        self, save_path: Union[str, pathlib.Path], overwrite: bool = False
+    ) -> None:
         """
         Save graph with attributes and dataframe as pickle file. Can be compressed.
 
         Args:
-            save_path (pathlib.Path): Path to a pickle file. Can be compressed
-            with gzip or bz2 by passing filenames ending in `gz` or `bz2`.
+            save_path (Union[pathlib.Path, str]): Path to a pickle file. Can be
+            compressed with gzip or bz2 by passing filenames ending in `gz` or `bz2`.
+            overwrite (bool, optional): If True, an existing file at `save_path`
+            will be overwritten. Else throws an error. Defaults to False.
 
         Raises:
             ValueError: If `save_path` is not a pickle, gz, or bz2 file.
         """
+        save_path = pathlib.Path(save_path)
+        if not overwrite and save_path.exists():
+            raise UserWarning(
+                f"A file already exists at {save_path}. To overwrite, ",
+                "set the `overwrite` flag to True.",
+            )
+
         if save_path.suffix not in (".pickle", ".pkl", ".gz", ".bz2"):
             raise ValueError(
                 """Argument `save_path` should be a pickle file or
