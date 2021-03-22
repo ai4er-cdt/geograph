@@ -11,7 +11,7 @@ import ipywidgets as widgets
 import pandas as pd
 import traitlets
 from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
-from src.models import geograph, metrics
+from src.geograph import geograph, metrics
 from src.visualisation import (
     control_widgets,
     folium_utils,

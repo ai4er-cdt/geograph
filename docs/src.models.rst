@@ -1,53 +1,53 @@
-src.models package
+src.geograph package
 ==================
 
 Submodules
 ----------
 
-src.models.binary\_graph\_operations module
+src.geograph.binary\_graph\_operations module
 -------------------------------------------
 
-.. automodule:: src.models.binary_graph_operations
+.. automodule:: src.geograph.binary_graph_operations
    :members:
    :undoc-members:
    :show-inheritance:
 
-src.models.fragmentation\_baseline module
+src.geograph.fragmentation\_baseline module
 -----------------------------------------
 
-.. automodule:: src.models.fragmentation_baseline
+.. automodule:: src.geograph.fragmentation_baseline
    :members:
    :undoc-members:
    :show-inheritance:
 
-src.models.geograph module
+src.geograph.geograph module
 --------------------------
 
-.. automodule:: src.models.geograph
+.. automodule:: src.geograph.geograph
    :members:
    :undoc-members:
    :show-inheritance:
 
-src.models.geotimeline module
+src.geograph.geotimeline module
 -----------------------------
 
-.. automodule:: src.models.geotimeline
+.. automodule:: src.geograph.geotimeline
    :members:
    :undoc-members:
    :show-inheritance:
 
-src.models.metrics module
+src.geograph.metrics module
 -------------------------
 
-.. automodule:: src.models.metrics
+.. automodule:: src.geograph.metrics
    :members:
    :undoc-members:
    :show-inheritance:
 
-src.models.polygon\_utils module
+src.geograph.polygon\_utils module
 --------------------------------
 
-.. automodule:: src.models.polygon_utils
+.. automodule:: src.geograph.polygon_utils
    :members:
    :undoc-members:
    :show-inheritance:
@@ -55,7 +55,7 @@ src.models.polygon\_utils module
 Module contents
 ---------------
 
-.. automodule:: src.models
+.. automodule:: src.geograph
    :members:
    :undoc-members:
    :show-inheritance:

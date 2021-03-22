@@ -11,7 +11,7 @@ import src.utils.geopandas_utils as gpd_utils
 from src.utils.polygon_utils import EMPTY_POLYGON, collapse_empty_polygon
 
 if TYPE_CHECKING:
-    from src.models import geograph
+    from src.geograph import geograph
 
 
 class NodeMap:

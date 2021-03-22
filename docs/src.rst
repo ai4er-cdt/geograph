@@ -8,7 +8,7 @@ Subpackages
    :maxdepth: 4
 
    src.data_loading
-   src.models
+   src.geograph
    src.preprocessing
    src.visualisation
 
