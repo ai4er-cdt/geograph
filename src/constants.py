@@ -8,7 +8,7 @@ import os
 import pathlib
 
 # Note: constants should be UPPER_CASE
-constants_path = pathlib.Path(os.path.realpath(__file__))  
+constants_path = pathlib.Path(os.path.realpath(__file__))
 SRC_PATH = pathlib.Path(os.path.dirname(constants_path))
 PROJECT_PATH = pathlib.Path(os.path.dirname(SRC_PATH))
 

@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-from src.utils.rasterio_utils import polygonise
 from src.geograph import GeoGraph
+from src.utils.rasterio_utils import polygonise
 
 # Mirror the x axis
 AFFINE_MIRROR_X = affine.Affine(-1, 0, 0, 0, 1, 0)
