@@ -72,3 +72,7 @@ wandb
 pytorch-lightning
 git+https://github.com/qubvel/segmentation_models.pytorch
 hydra-core
+
+#docs
+sphinx
+sphinx-autodoc-typehints
