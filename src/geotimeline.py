@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from src.geograph.binary_graph_operations import NodeMap, identify_graphs
-from src.geograph.geograph import GeoGraph
+from src.binary_graph_operations import NodeMap, identify_graphs
+from src.geograph import GeoGraph
 
 # type alias
 TimeStamp = Union[int, datetime.datetime]
