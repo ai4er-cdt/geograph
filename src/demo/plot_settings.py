@@ -48,8 +48,6 @@ import matplotlib.style
 import numpy as np
 import seaborn as sns
 
-from src.constants import REPORT_TEXTWIDTH_PT
-
 
 def ps_defaults(use_tex: bool = True) -> None:
     """Apply plotting style to produce nice looking figures.
@@ -142,7 +140,7 @@ def label_subplots(
 
 
 def get_dim(
-    width: float = REPORT_TEXTWIDTH_PT,
+    width: float = 600,
     fraction_of_line_width: float = 1,
     ratio: float = (5 ** 0.5 - 1) / 2,
 ) -> Tuple[float, float]:
