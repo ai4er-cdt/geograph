@@ -4,8 +4,7 @@ echo "Running postBuild from" $(pwd)
 echo "Downloading data for binder:"
 wget -q -O binder_data.zip "https://docs.google.com/uc?export=download&id=1duTBmOPkj1fUK1H9TtG1j3VsSRovO0JR"
 
-echo "Unzipping data for demonstration into `data` directory" 
-#sudo apt install unzip
+echo "Unzipping data for demonstration into data directory" 
 unzip -d data binder_data.zip
 
 echo "Removing data zip-file"
