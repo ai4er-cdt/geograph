@@ -2,7 +2,7 @@
 # As a standard they include certain formatters and linters.
 
 # local package
--e ../.
+# -e ../.
 
 # external requirements (mostly linters and formatters)
 pylint              # pylint linter
