@@ -7,18 +7,25 @@
 numpy               # arrays, linear algebra
 pandas              # tabular data analysis
 
+# interactive computing
+jupyter             # for opening jupyter notebooks in binder
+tqdm                # progress bars 
+
 # plotting
+matplotlib          # general python plotting
+seaborn             # fancier plotting styles  # TODO: Check for removal
 folium              # plotting maps
 ipyleaflet          # plotting ipywidget maps
-
-# interactive computing
-tqdm                # progress bars 
 
 # geospatial analysis requirements
 rasterio            # opening and loading raster data
 geopandas           # manipulating geospatial vector data
 shapely             # working with vector shapes
 xarray              # useful data structures
+rioxarray           # adaptation of xarray for raterio. # TODO: Check for removal
 
 # graph requirements
 networkx            # manipulating graph data
+
+# comparison to fragmentation metrics in binder
+pylandstats
