@@ -1,7 +1,7 @@
 # NOTE: Your final requirements for production/publishing the repo go here.
 
 # local package
--e .
+-e ./..
 
 # linear algebra and general data analysis
 numpy               # arrays, linear algebra
