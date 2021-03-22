@@ -79,37 +79,36 @@ class GeoGraph:
 
         Args:
             data: Can be a path to a pickle file or compressed pickle file to load
-            the graph from, a path to vector data in GPKG or Shapefile format,
-            a path to raster data in GeoTiff format, a numpy array containing raster
-            data, or a dataframe containing polygons.
+                the graph from, a path to vector data in GPKG or Shapefile format,
+                a path to raster data in GeoTiff format, a numpy array containing raster
+                data, or a dataframe containing polygons.
             crs (str): Coordinate reference system to set on the resulting
-            dataframe. Warning: whatever units of distance the CRS uses will be
-            the units of distance for all polygon calculations, including for
-            the `tolerance` argument. Using a lat-long CRS can therefore result
-            in incoherent output.
+                dataframe. Warning: whatever units of distance the CRS uses will be
+                the units of distance for all polygon calculations, including for
+                the `tolerance` argument. Using a lat-long CRS can therefore result
+                in incoherent output.
             graph_save_path (str or pathlib.Path, optional): A path to a pickle
-            file to save the graph to, can be `.gz` or `.bz2`. Defaults to None,
-            which will not save the graph.
+                file to save the graph to, can be `.gz` or `.bz2`. Defaults to None,
+                which will not save the graph.
             raster_save_path (str or pathlib.Path, optional): A path to a file
-            to save the polygonised raster data in. A path to a GPKG file is
-            recommended, but Shapefiles also work. Defaults to None, which will
-            not save the polygonised data.
+                to save the polygonised raster data in. A path to a GPKG file is
+                recommended, but Shapefiles also work. Defaults to None, which will
+                not save the polygonised data.
             columns_to_rename (Dict[str, str], optional): A dictionary mapping
-            column names in the loaded dataframe with the new names of these
-            columns. Use this to ensure that the dataframe has "class_label" and
-            "geometry" columns. Defaults to None.
+                column names in the loaded dataframe with the new names of these
+                columns. Use this to ensure that the dataframe has "class_label" and
+                "geometry" columns. Defaults to None.
             tolerance (float, optional): Adds edges between neighbours that are
-            at most `tolerance` units apart. Defaults to 0.
-
+                at most `tolerance` units apart. Defaults to 0.
             **mask (np.ndarray, optional): Boolean mask that can be applied over
-            the polygonisation. Defaults to None.
+                the polygonisation. Defaults to None.
             **transform (affine.Affine, optional): Affine transformation to
-            apply when polygonising. Defaults to the identity transform.
+                apply when polygonising. Defaults to the identity transform.
             **connectivity (int, optional): Use 4 or 8 pixel connectivity for
-            grouping pixels into features. Defaults to 4.
+                grouping pixels into features. Defaults to 4.
             **apply_buffer (bool, optional): Apply shapely buffer function to
-            the polygons after polygonising. This can fix issues with the
-            polygonisation creating invalid geometries.
+                the polygons after polygonising. This can fix issues with the
+                polygonisation creating invalid geometries.
         """
         super().__init__()
         self.graph = nx.Graph()
