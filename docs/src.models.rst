@@ -20,10 +20,10 @@ src.geograph.fragmentation\_baseline module
    :undoc-members:
    :show-inheritance:
 
-src.geograph.geograph module
+src.geograph module
 --------------------------
 
-.. automodule:: src.geograph.geograph
+.. automodule:: src.geograph
    :members:
    :undoc-members:
    :show-inheritance:
