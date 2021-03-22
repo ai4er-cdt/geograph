@@ -178,7 +178,7 @@ def get_dim(
 
 def set_dim(
     fig: matplotlib.pyplot.figure,
-    width: float = REPORT_TEXTWIDTH_PT,
+    width: float = 600,
     fraction_of_line_width: float = 1,
     ratio: float = (5 ** 0.5 - 1) / 2,
 ) -> None:
