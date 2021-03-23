@@ -60,6 +60,14 @@ html_theme = "sphinx_rtd_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+html_logo = "images/geograph_logo.png"
+
+html_theme_options = {
+    'style_nav_header_background': '#a0a0a0',
+    'logo_only': True,
+    'display_version': True,
+}
+
 # Latex options
 latex_logo = "./images/geograph_logo.png"
 latex_elements = {
