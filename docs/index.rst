@@ -3,6 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. image:: ./images/geograph_logo.png
+   :width: 300
+   :alt: Logo
+   :align: center
+
+
 Welcome to GeoGraph's documentation!
 ====================================
 
@@ -10,6 +16,7 @@ Welcome to GeoGraph's documentation!
    :maxdepth: 6
    :caption: Contents:
 
+   getting_started
    modules
 
 
