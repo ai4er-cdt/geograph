@@ -68,6 +68,8 @@ html_theme_options = {
     'display_version': True,
 }
 
+html_favicon = 'images/geograph_logo_small.png'
+
 # Latex options
 latex_logo = "./images/geograph_logo.png"
 latex_elements = {
