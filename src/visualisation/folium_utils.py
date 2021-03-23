@@ -8,7 +8,7 @@ import folium
 import geopandas as gpd
 import networkx as nx
 
-from src.constants import CEZ_DATA_PATH, CHERNOBYL_COORDS_WGS84, UTM35N
+from src.constants import CHERNOBYL_COORDS_WGS84, UTM35N
 from src.visualisation import graph_utils
 
 
@@ -145,7 +145,7 @@ def get_style_function(color: str = "#ff0000") -> Callable[[], dict]:
 
 def add_cez_to_map(
     folium_map: folium.Map,
-    exclusion_json_path: Optional[str] = CEZ_DATA_PATH,
+    exclusion_json_path: Optional[str] = None,
     add_layer_control: bool = False,
 ) -> folium.Map:
     """Add polygons of the Chernobyl Exclusion Zone (CEZ) to a folium map.
@@ -153,8 +153,7 @@ def add_cez_to_map(
     Args:
         folium_map (folium.Map): [description]
         exclusion_json_path (Optional[str], optional): path to the json file containing
-            the CEZ polygons. Defaults to CEZ_DATA_PATH which requires access to
-            the Jasmin servers and relevant shared workspaces.
+            the CEZ polygons. Defaults to None.
         add_layer_control (bool, optional): whether to add layer controls to map.
             Warning: only use this when you don't intend to add any additional data
             after calling this function to the map. May cause bugs otherwise.
