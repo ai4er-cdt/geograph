@@ -33,6 +33,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         zoom: int = 7,
         layout: Union[widgets.Layout, None] = None,
         metric_list: List[str] = metrics.STANDARD_METRICS,
+        small_screen: bool = False,
         logging_level=logging.DEBUG,
         **kwargs
     ) -> None:
@@ -46,6 +47,8 @@ class GeoGraphViewer(ipyleaflet.Map):
                 ipyleaflet.Map. Defaults to None.
             metric_list (List[str], optional): list of GeoGraph metrics to be shown.
                 Defaults to metrics.STANDARD_METRICS.
+            small_screen (bool, optional): whether to reduce the control widget height
+                for better usability on smaller screens.
             logging_level ([type], optional): python logging level. Defaults to
                 logging.DEBUG.
         """
@@ -60,6 +63,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         # There seems to be no easy way to add UTM35N to ipyleaflet.Map(), hence WGS84.
         self.gpd_crs_code = WGS84
         self.metrics = metric_list
+        self.small_screen = small_screen
         if layout is None:
             self.layout = widgets.Layout(height="700px")
 

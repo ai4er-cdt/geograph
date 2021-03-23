@@ -55,19 +55,18 @@ class GraphControlWidget(BaseControlWidget):
         viewer_height = int(viewer.layout.height.replace("px", ""))
         metrics_widget.layout.height = "{}px".format(viewer_height * 0.3)
 
+        if self.viewer.small_screen:
+            view_tab = [visibility_widget]
+        else:
+            view_tab = [visibility_widget, widget_utils.HRULE, metrics_widget]
+
         # Create combined widget, each key corresponds to a tab
-        combined_widget_dict = dict(
-            View=widgets.VBox(
-                [
-                    visibility_widget,
-                    widget_utils.HRULE,
-                    metrics_widget,
-                ]
-            ),
-            # Timeline=TimelineWidget(viewer=self.viewer), # currently only placeholder
-            Settings=settings_widget,
-            Log=self.log_handler.out,
-        )
+        combined_widget_dict = dict()
+        combined_widget_dict["View"] = widgets.VBox(view_tab)
+        if self.viewer.small_screen:
+            combined_widget_dict["Metrics"] = metrics_widget
+        combined_widget_dict["Settings"] = settings_widget
+        combined_widget_dict["Log"] = self.log_handler.out
 
         combined_widget = widgets.Tab()
         combined_widget.children = list(combined_widget_dict.values())
