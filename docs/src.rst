@@ -1,4 +1,4 @@
-src package
+GeoGraph Package
 ===========
 
 Subpackages
