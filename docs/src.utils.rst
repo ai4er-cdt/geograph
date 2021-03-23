@@ -4,22 +4,6 @@ src.utils package
 Submodules
 ----------
 
-src.utils.filesize\_utils module
---------------------------------
-
-.. automodule:: src.utils.filesize_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-src.utils.general\_utils module
--------------------------------
-
-.. automodule:: src.utils.general_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 src.utils.geopandas\_utils module
 ---------------------------------
 
@@ -27,6 +11,7 @@ src.utils.geopandas\_utils module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
 src.utils.polygon\_utils module
 -------------------------------
@@ -35,6 +20,16 @@ src.utils.polygon\_utils module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
+
+src.utils.rasterio\_utils module
+--------------------------------
+
+.. automodule:: src.utils.rasterio_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :special-members: __init__
 
 Module contents
 ---------------
@@ -43,3 +38,4 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__

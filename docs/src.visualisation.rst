@@ -4,15 +4,6 @@ src.visualisation package
 Submodules
 ----------
 
-src.visualisation.ani module
-----------------------------
-
-.. automodule:: src.visualisation.ani
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :special-members: __init__
-
 src.visualisation.control\_widgets module
 -----------------------------------------
 
