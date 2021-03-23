@@ -12,7 +12,7 @@ First clone the repo in your project directory
 
     git clone https://github.com/ai4er-cdt/gtc-biodiversity.git
 
-Then go into the clone directory and make the environment required for GeoGraph
+Then enter the cloned directory and create the environment required for using GeoGraph
 
 .. code-block:: shell
 
