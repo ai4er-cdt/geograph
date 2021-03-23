@@ -2,18 +2,19 @@
 <img src="docs/images/geograph_logo.png" alt="GeoGraph" width="300px">
 
 
-Created as part of the AI4ER Group Team Challenge 2021 by the Biodiversity Team.
-
-![GeoGraphViewer demo gif](docs/images/viewer_demo.gif)
-</p>
+_Created as part of the AI4ER Group Team Challenge 2021 by the Biodiversity Team._
 
  [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
  <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+
+ ![GeoGraphViewer demo gif](docs/images/viewer_demo.gif)
+</p>
 
 __Table of contents:__
 1. Features
 1. Getting started
 1. Requirements
+1. Documentation
 1. Project structure
 
 ## 1. Features
@@ -36,7 +37,11 @@ Done, you're ready to go!
 ## 3. Requirements
 GeoGraph is written in Python 3.8 and builds on [NetworkX](https://github.com/NetworkX/NetworkX), [ipyleaflet](https://github.com/jupyter-widgets/ipyleaflet) and many more packages. See the [requirements directory](./requirements) for a full list of dependencies.
 
-## 4. Project Organization
+## 4. Documentation
+
+Our documentation is available at [geograph.readthedocs.io](https://geograph.readthedocs.io/).
+
+## 5. Project Organization
 ```
 ├── LICENSE
 ├── Makefile           <- Makefile with commands like `make init` or `make lint-requirements`

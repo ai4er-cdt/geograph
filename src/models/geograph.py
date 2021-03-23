@@ -626,9 +626,9 @@ class GeoGraph:
 
         Args:
             func (Callable): A function that is a method of GeoGraph or
-            HabitatGeoGraph. This must not be a method of an instance of
+                HabitatGeoGraph. This must not be a method of an instance of
             GeoGraph; it can only be an actual method definition, such as
-            `GeoGraph.merge_nodes`.
+                `GeoGraph.merge_nodes`.
 
         Raises:
             ValueError: If `func` is not a method of GeoGraph or HabitatGeoGraph.
@@ -667,18 +667,18 @@ class GeoGraph:
 
         Args:
             calc_polygons (bool, optional): This determines whether to calculate
-            the polygons which are the union of all the polygons that make up
-            each component, and load a `ComponentGeoGraph` with a corresponding
-            dataframe containing these components. This can be time consuming
-            if there is a very large component. Defaults to True.
+                the polygons which are the union of all the polygons that make up
+                each component, and load a `ComponentGeoGraph` with a corresponding
+                dataframe containing these components. This can be time consuming
+                if there is a very large component. Defaults to True.
             add_distance_edges (bool, optional): This determines whether to add
-            edges between every pair of nodes, with the distance between their
-            corresponding polygons as an edge attribute. Defaults to False.
+                edges between every pair of nodes, with the distance between their
+                corresponding polygons as an edge attribute. Defaults to False.
 
         Returns:
             ComponentGeoGraph: A ComponentGeoGraph containing the resulting
-            GeoDataFrame (if `calc_polygons=True`) and the list of graph
-            components.
+                GeoDataFrame (if `calc_polygons=True`) and the list of graph
+                components.
         """
         components: List[set] = list(nx.connected_components(self.graph))
         if calc_polygons:
@@ -709,7 +709,7 @@ class GeoGraph:
 
         Returns:
             metrics.Metric: The Metric object, containing the value as well as
-            other information about the metric.
+                other information about the metric.
         """
         # Case 1: Landscape/component level metrics
         if class_value is None:
@@ -839,10 +839,10 @@ class GeoGraph:
 
         Args:
             node_id (int): The id of the node to add.
-            adjacencies (Iterable[int]): Iterable of node ids which are adjacent
-            to the new node.
+                adjacencies (Iterable[int]): Iterable of node ids which are adjacent
+                to the new node.
             requires_sorting (bool, optional): Whether or not to sort the dataframe
-            index after adding the node. Defaults to True.
+                index after adding the node. Defaults to True.
         """
         # Collect all data on node in one dict
         node_data = dict(data.items())
