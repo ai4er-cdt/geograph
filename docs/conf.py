@@ -60,15 +60,19 @@ html_theme = "sphinx_rtd_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+html_logo = "images/geograph_logo.png"
+
+html_theme_options = {
+    'style_nav_header_background': '#a0a0a0',
+    'logo_only': True,
+    'display_version': True,
+}
+
+html_favicon = 'images/geograph_logo_small.png'
+
 # Latex options
 latex_logo = "./images/geograph_logo.png"
 latex_elements = {
   'extraclassoptions': 'openany,oneside',
   'papersize': 'a4paper',
-  #'fncychap': '\\usepackage[Conny]{fncychap}'
 }
-#latex_documents = [
-#  ('index', 'geograph_docs.tex', u'Package Documentation',
-#   u'',
-#   'manual'), #'manual'), #'howto'),
-#]
