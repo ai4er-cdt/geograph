@@ -33,12 +33,13 @@ def identify_node(
         mode (str, optional): Must be one of `corner`, `edge` or `interior`. Defaults
             to "corner".
             The different modes correspond to different rules for identification:
+
             - corner: Polygons of the same `class_label` which overlap, touch in their
-                edges or corners will be identified with each other. (fastest)
+              edges or corners will be identified with each other. (fastest)
             - edge: Polygons of the same `class_label` which overlap or touch in their
-                edges will be identified with each other.
+              edges will be identified with each other.
             - interior: Polygons of the same `class_label` which overlap will be
-                identified with each other. Touching corners or edges are not counted.
+              identified with each other. Touching corners or edges are not counted.
 
     Returns:
         np.ndarray: List of node `loc` in `other_df` which identify with `node`.
@@ -74,12 +75,13 @@ def identify_dfs(
         mode (str): The mode to use for node identification. Must be one of `corner`,
             `edge` or `interior`.
             The different modes correspond to different rules for identification:
+
             - corner: Polygons of the same `class_label` which overlap, touch in their
-                edges or corners will be identified with each other. (fastest)
+              edges or corners will be identified with each other. (fastest)
             - edge: Polygons of the same `class_label` which overlap or touch in their
-                edges will be identified with each other.
+              edges will be identified with each other.
             - interior: Polygons of the same `class_label` which overlap will be
-                identified with each other. Touching corners or edges are not counted.
+              identified with each other. Touching corners or edges are not counted.
 
     Returns:
         mapping (Dict[int, np.ndarray]): A dictionary that represents the map from
