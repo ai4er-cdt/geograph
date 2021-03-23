@@ -8,12 +8,12 @@ import geopandas as gpd
 import networkx as nx
 import shapely.geometry
 
-from src.constants import PREFERRED_CRS
+from src.constants import UTM35N
 
 
 def create_node_edge_geometries(
     graph: nx.Graph,
-    crs: str = PREFERRED_CRS,
+    crs: str = UTM35N,
     include_edges: bool = True,
 ) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Create node and edge geometries for the networkx graph G.

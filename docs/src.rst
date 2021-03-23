@@ -9,7 +9,7 @@ Subpackages
 
    src.configs
    src.data_loading
-   src.models
+   src.geograph
    src.preprocessing
    src.unet
    src.utils

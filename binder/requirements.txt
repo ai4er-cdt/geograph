@@ -1,0 +1,35 @@
+# NOTE: Your final requirements for production/publishing the repo go here.
+
+# local package
+-e ./..
+
+# linear algebra and general data analysis
+numpy==1.20.1               # arrays, linear algebra
+pandas==1.2.3              # tabular data analysis
+
+# interactive computing
+jupyter==1.0.0             # for opening jupyter notebooks in binder
+tqdm==4.59.0                # progress bars 
+
+# plotting
+matplotlib==3.3.4          # general python plotting
+seaborn==0.11.1             # fancier plotting styles  # TODO: Check for removal
+folium==0.12.1              # plotting maps
+ipyleaflet==0.13.6          # plotting ipywidget maps
+
+# geospatial analysis requirements
+#  vector data
+geopandas==0.9.0           # manipulating geospatial vector data
+shapely==1.7.1             # working with vector shapes
+rtree==0.9.7               # efficiently querying polygon data
+descartes==1.1.0           # plotting geopandas vector data
+#  raster data
+rasterio==1.1.8     # opening and loading raster data (Note: version >= 1.2 requires unsetting PROJ_LIB environment variable which is set by fiona
+xarray==0.17.0              # useful data structures
+rioxarray==0.3.1           # adaptation of xarray for raterio. # TODO: Check for removal
+
+# graph requirements
+networkx==2.5            # manipulating graph data
+
+# comparison to fragmentation metrics in binder
+pylandstats==2.2.1

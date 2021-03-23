@@ -84,12 +84,11 @@ target/
 
 # exclude data from source control by default
 io/
-data
-data/
 logs
 logs
 wandb
 wandb/
+data
 
 # Mac OS-specific storage files
 .DS_Store

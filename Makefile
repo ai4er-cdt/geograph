@@ -55,28 +55,6 @@ else
 	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
 endif
 
-## Install and set up handy jupyter notebook extensions
-jupyter_pro:
-	sh ./.setup_scripts/jupyter_tools.sh
-
-
-## Install and set up handy jupyter notebook extensions
-jupyter_dark:
-	sh ./.setup_scripts/jupyter-dark.sh
-
-
-## Set up sweet vscode settings
-vscode_pro:
-	mkdir .vscode
-	cp ./.setup_scripts/vscode_settings.jsonc .vscode/settings.json
-
-#################################################################################
-# PROJECT RULES                                                                 #
-#################################################################################
-
-# TODO: VSCode setup
-
-
 #################################################################################
 # Self Documenting Commands                                                     #
 #################################################################################

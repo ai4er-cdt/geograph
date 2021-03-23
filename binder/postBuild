@@ -1,0 +1,14 @@
+#!/bin/bash
+echo "Running postBuild from" $(pwd)
+
+echo "Downloading data for binder:"
+wget -q -O binder_data.zip "https://www.dropbox.com/s/ghcf4q447nxddy5/binder_data.zip?dl=1"
+
+echo "Unzipping data for demonstration into data directory" 
+unzip -d data binder_data.zip
+
+echo "Removing data zip-file"
+rm binder_data.zip
+
+echo "unset PROJ_LIB environment variable for rasterio > 1.2.0"
+unset PROJ_LIB
