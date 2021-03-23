@@ -8,8 +8,8 @@ import geopandas as gpd
 import numpy as np
 
 from src.constants import SRC_PATH
-from src.data_loading.rasterio_utils import polygonise
 from src.tests.utils import get_array_transform, polygonise_sub_array
+from src.utils.rasterio_utils import polygonise
 
 
 def _polygonise_splits(

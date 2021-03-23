@@ -8,10 +8,14 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+dask-worker-space/
+runs/
 build/
 develop-eggs/
 dist/
 downloads/
+outputs/
+.vscode/
 eggs/
 .eggs/
 lib/
@@ -22,6 +26,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+wandb/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -79,12 +84,11 @@ target/
 
 # exclude data from source control by default
 io/
-data
-data/
 logs
 logs
 wandb
 wandb/
+data
 
 # Mac OS-specific storage files
 .DS_Store
@@ -109,3 +113,8 @@ token.pickle
 
 # General pickle files
 *.pickle
+
+# Don't keep large files
+*.mp4
+*.nc
+*.model

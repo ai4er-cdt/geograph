@@ -1,1 +1,28 @@
 # NOTE: Your final requirements for production/publishing the repo go here.
+
+# local package
+-e .
+
+# linear algebra and general data analysis
+numpy               # arrays, linear algebra
+pandas              # tabular data analysis
+
+# plotting
+folium              # plotting maps
+ipyleaflet          # plotting ipywidget maps
+
+# interactive computing
+tqdm                # progress bars 
+
+# geospatial analysis requirements
+#  vector data
+geopandas           # manipulating geospatial vector data
+shapely             # working with vector shapes
+rtree               # efficiently querying polygon data
+#  raster data
+rasterio            # opening and loading raster data
+xarray              # useful data structures
+
+
+# graph requirements
+networkx            # manipulating graph data
