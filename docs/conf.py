@@ -75,10 +75,4 @@ latex_logo = "./images/geograph_logo.png"
 latex_elements = {
   'extraclassoptions': 'openany,oneside',
   'papersize': 'a4paper',
-  #'fncychap': '\\usepackage[Conny]{fncychap}'
 }
-#latex_documents = [
-#  ('index', 'geograph_docs.tex', u'Package Documentation',
-#   u'',
-#   'manual'), #'manual'), #'howto'),
-#]
