@@ -22,6 +22,7 @@ ipyleaflet==0.13.6          # plotting ipywidget maps
 geopandas==0.9.0           # manipulating geospatial vector data
 shapely==1.7.1             # working with vector shapes
 rtree==0.9.7               # efficiently querying polygon data
+descartes==1.1.0           # plotting geopandas vector data
 #  raster data
 rasterio==1.1.8     # opening and loading raster data (Note: version >= 1.2 requires unsetting PROJ_LIB environment variable which is set by fiona
 xarray==0.17.0              # useful data structures
