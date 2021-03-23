@@ -80,37 +80,36 @@ class GeoGraph:
 
         Args:
             data: Can be a path to a pickle file or compressed pickle file to load
-            the graph from, a path to vector data in GPKG or Shapefile format,
-            a path to raster data in GeoTiff format, a numpy array containing raster
-            data, or a dataframe containing polygons.
+                the graph from, a path to vector data in GPKG or Shapefile format,
+                a path to raster data in GeoTiff format, a numpy array containing raster
+                data, or a dataframe containing polygons.
             crs (str): Coordinate reference system to set on the resulting
-            dataframe. Warning: whatever units of distance the CRS uses will be
-            the units of distance for all polygon calculations, including for
-            the `tolerance` argument. Using a lat-long CRS can therefore result
-            in incoherent output.
+                dataframe. Warning: whatever units of distance the CRS uses will be
+                the units of distance for all polygon calculations, including for
+                the `tolerance` argument. Using a lat-long CRS can therefore result
+                in incoherent output.
             graph_save_path (str or pathlib.Path, optional): A path to a pickle
-            file to save the graph to, can be `.gz` or `.bz2`. Defaults to None,
-            which will not save the graph.
+                file to save the graph to, can be `.gz` or `.bz2`. Defaults to None,
+                which will not save the graph.
             raster_save_path (str or pathlib.Path, optional): A path to a file
-            to save the polygonised raster data in. A path to a GPKG file is
-            recommended, but Shapefiles also work. Defaults to None, which will
-            not save the polygonised data.
+                to save the polygonised raster data in. A path to a GPKG file is
+                recommended, but Shapefiles also work. Defaults to None, which will
+                not save the polygonised data.
             columns_to_rename (Dict[str, str], optional): A dictionary mapping
-            column names in the loaded dataframe with the new names of these
-            columns. Use this to ensure that the dataframe has "class_label" and
-            "geometry" columns. Defaults to None.
+                column names in the loaded dataframe with the new names of these
+                columns. Use this to ensure that the dataframe has "class_label" and
+                "geometry" columns. Defaults to None.
             tolerance (float, optional): Adds edges between neighbours that are
-            at most `tolerance` units apart. Defaults to 0.
-
+                at most `tolerance` units apart. Defaults to 0.
             **mask (np.ndarray, optional): Boolean mask that can be applied over
-            the polygonisation. Defaults to None.
+                the polygonisation. Defaults to None.
             **transform (affine.Affine, optional): Affine transformation to
-            apply when polygonising. Defaults to the identity transform.
+                apply when polygonising. Defaults to the identity transform.
             **connectivity (int, optional): Use 4 or 8 pixel connectivity for
-            grouping pixels into features. Defaults to 4.
+                grouping pixels into features. Defaults to 4.
             **apply_buffer (bool, optional): Apply shapely buffer function to
-            the polygons after polygonising. This can fix issues with the
-            polygonisation creating invalid geometries.
+                the polygons after polygonising. This can fix issues with the
+                polygonisation creating invalid geometries.
         """
         super().__init__()
         self.graph = nx.Graph()
@@ -228,7 +227,7 @@ class GeoGraph:
         Args:
             vector_path (pathlib.Path): Path to a gpkg or shp file.
             load_slice: A slice object denoting the rows of the dataframe to
-            load. Defaults to None, meaning load all rows.
+                load. Defaults to None, meaning load all rows.
 
         Returns:
             gpd.GeoDataFrame: The dataframe containing polygon objects.
@@ -308,7 +307,7 @@ class GeoGraph:
 
         Args:
             graph_path (pathlib.Path): Path to a pickle file. Can be compressed
-            with gzip or bz2.
+                with gzip or bz2.
 
         Returns:
             gpd.GeoDataFrame: The dataframe containing polygon objects.
@@ -334,9 +333,9 @@ class GeoGraph:
 
         Args:
             save_path (Union[pathlib.Path, str]): Path to a pickle file. Can be
-            compressed with gzip or bz2 by passing filenames ending in `gz` or `bz2`.
+                compressed with gzip or bz2 by passing filenames ending in `gz` or `bz2`.
             overwrite (bool, optional): If True, an existing file at `save_path`
-            will be overwritten. Else throws an error. Defaults to False.
+                will be overwritten. Else throws an error. Defaults to False.
 
         Raises:
             ValueError: If `save_path` is not a pickle, gz, or bz2 file.
@@ -378,13 +377,13 @@ class GeoGraph:
 
         Args:
             df (gpd.GeoDataFrame): GeoDataFrame containing polygon objects from
-            a shape file.
+                a shape file.
             tolerance (float, optional): Adds edges between neighbours that are
-            at most `tolerance` units apart. Defaults to 0.
+                at most `tolerance` units apart. Defaults to 0.
 
         Raises:
             ValueError: If `tolerance` < 0, if `class_label` or `geometry` are
-            not columns in the dataframe.
+                not columns in the dataframe.
 
         Returns:
             gpd.GeoDataFrame: The dataframe containing polygon objects.
@@ -468,8 +467,8 @@ class GeoGraph:
             node_list (List[int]): List of integer node indexes in the graph.
             class_label (int or str): Class label for the resulting node.
             final_index (int, optional): Index to assign to the resulting node.
-            Defaults to None, in which case it becomes the highest valid index
-            in the dataframe + 1.
+                Defaults to None, in which case it becomes the highest valid index
+                in the dataframe + 1.
 
         Raises:
             ValueError: If `final_index` is an existing node not in `node_list`,
@@ -510,13 +509,13 @@ class GeoGraph:
 
         Args:
             new_name (Union[str, int]): The new name for the combined class,
-            either a string or an int.
+                either a string or an int.
             class_list (List): The list of names of class labels to combine.
-            Every name in the list must be in the GeoGraph.
+                Every name in the list must be in the GeoGraph.
 
         Raises:
             ValueError: If `class_list` contains a class name not already in
-            the GeoGraph.
+                the GeoGraph.
         """
         if not set(class_list).issubset(self.df["class_label"].unique()):
             raise ValueError("`class_list` must only contain valid class names.")
@@ -545,19 +544,19 @@ class GeoGraph:
             valid_classes (List): A list of class labels which make up the habitat.
             barrier_classes (List): Defaults to None.
             max_travel_distance (float): The maximum distance the animal(s) in
-            the habitat can travel through non-habitat areas. The habitat graph
-            will contain edges between any two nodes that have a class label in
-            `valid_classes`, as long as they are less than `max_travel_distance`
-            units apart. Defaults to 0, which will only create edges between
-            directly neighbouring areas.
+                the habitat can travel through non-habitat areas. The habitat graph
+                will contain edges between any two nodes that have a class label in
+                `valid_classes`, as long as they are less than `max_travel_distance`
+                units apart. Defaults to 0, which will only create edges between
+                directly neighbouring areas.
             add_distance (bool, optional): Whether or not to add the distance
-            between polygons as an edge attribute in the habitat graph. Defaults
-            to False.
+                between polygons as an edge attribute in the habitat graph. Defaults
+                to False.
             add_component_edges (bool, optional): Whether to add edges between
-            nodes in the ComponentGeoGraph (which is automatically created as an
-            attribute of the resulting HabitatGeoGraph) with edge weights that
-            are the distance between neighbouring components. Can be
-            computationally expensive. Defaults to False.
+                nodes in the ComponentGeoGraph (which is automatically created as an
+                attribute of the resulting HabitatGeoGraph) with edge weights that
+                are the distance between neighbouring components. Can be
+                computationally expensive. Defaults to False.
 
         Raises:
             ValueError: If max_travel_distance < 0.
@@ -639,9 +638,9 @@ class GeoGraph:
 
         Args:
             func (Callable): A function that is a method of GeoGraph or
-            HabitatGeoGraph. This must not be a method of an instance of
+                HabitatGeoGraph. This must not be a method of an instance of
             GeoGraph; it can only be an actual method definition, such as
-            `GeoGraph.merge_nodes`.
+                `GeoGraph.merge_nodes`.
 
         Raises:
             ValueError: If `func` is not a method of GeoGraph or HabitatGeoGraph.
@@ -680,18 +679,18 @@ class GeoGraph:
 
         Args:
             calc_polygons (bool, optional): This determines whether to calculate
-            the polygons which are the union of all the polygons that make up
-            each component, and load a `ComponentGeoGraph` with a corresponding
-            dataframe containing these components. This can be time consuming
-            if there is a very large component. Defaults to True.
+                the polygons which are the union of all the polygons that make up
+                each component, and load a `ComponentGeoGraph` with a corresponding
+                dataframe containing these components. This can be time consuming
+                if there is a very large component. Defaults to True.
             add_distance_edges (bool, optional): This determines whether to add
-            edges between every pair of nodes, with the distance between their
-            corresponding polygons as an edge attribute. Defaults to False.
+                edges between every pair of nodes, with the distance between their
+                corresponding polygons as an edge attribute. Defaults to False.
 
         Returns:
             ComponentGeoGraph: A ComponentGeoGraph containing the resulting
-            GeoDataFrame (if `calc_polygons=True`) and the list of graph
-            components.
+                GeoDataFrame (if `calc_polygons=True`) and the list of graph
+                components.
         """
         components: List[set] = list(nx.connected_components(self.graph))
         if calc_polygons:
@@ -722,7 +721,7 @@ class GeoGraph:
 
         Returns:
             metrics.Metric: The Metric object, containing the value as well as
-            other information about the metric.
+                other information about the metric.
         """
         # Case 1: Landscape/component level metrics
         if class_value is None:
@@ -852,10 +851,10 @@ class GeoGraph:
 
         Args:
             node_id (int): The id of the node to add.
-            adjacencies (Iterable[int]): Iterable of node ids which are adjacent
-            to the new node.
+                adjacencies (Iterable[int]): Iterable of node ids which are adjacent
+                to the new node.
             requires_sorting (bool, optional): Whether or not to sort the dataframe
-            index after adding the node. Defaults to True.
+                index after adding the node. Defaults to True.
         """
         # Collect all data on node in one dict
         node_data = dict(data.items())
@@ -920,26 +919,26 @@ class HabitatGeoGraph(GeoGraph):
 
         Args:
             data: (GeoDataFrame or Path): Either a dataframe with the polygon
-            data for the habitat graph nodes, or a path to a saved habitat. If
-            it is a GeoDataFrame, then the other arguments in this init are
-            mandatory (except for `add_distance` and `add_component_edges`)
+                data for the habitat graph nodes, or a path to a saved habitat. If
+                it is a GeoDataFrame, then the other arguments in this init are
+                mandatory (except for `add_distance` and `add_component_edges`)
             name (str, optional): The name of the habitat.
             graph (nx.Graph, optional): A networkx graph representing the habitat.
-            Defaults to None.
+                Defaults to None.
             valid_classes (List, optional): A list of class labels which make up
-            the habitat.
+                the habitat.
             barrier_classes (List, optional): A list of barrier class labels.
             max_travel_distance (float, optional): The maximum distance the
-            animal(s) in the habitat can travel through non-habitat areas. The
-            habitat graph will contain edges between any two nodes that have a
-            class label in `valid_classes`, as long as they are less than
-            `max_travel_distance` units apart.
+                animal(s) in the habitat can travel through non-habitat areas. The
+                habitat graph will contain edges between any two nodes that have a
+                class label in `valid_classes`, as long as they are less than
+                `max_travel_distance` units apart.
             add_distance (bool, optional): Whether or not to add the distance
-            between polygons has been added as an edge attribute in `graph`.
+                between polygons has been added as an edge attribute in `graph`.
             add_component_edges (bool, optional): Whether to add edges between
-            nodes in the ComponentGeoGraph created automatically for this
-            habitatwith edge weights that are the distance between neighbouring
-            components. Can be computationally expensive. Defaults to False.
+                nodes in the ComponentGeoGraph created automatically for this
+                habitat with edge weights that are the distance between neighbouring
+                components. Can be computationally expensive. Defaults to False.
 
         Raises:
             ValueError: If `data` is of an unknown type, or if `data` is a file
@@ -1079,14 +1078,14 @@ class ComponentGeoGraph(GeoGraph):
 
         Args:
             components_list (List[set]): A list of sets, where each set contains
-            the node indices making up a component from the original graph.
+                the node indices making up a component from the original graph.
             df (Optional[gpd.GeoDataFrame], optional): A GeoDataFrame in which
-            each row contains a polygon that represents a component from a
-            GeoGraph. This is optional, and if not passed the graph will be
-            created with no edges. Defaults to None.
+                each row contains a polygon that represents a component from a
+                GeoGraph. This is optional, and if not passed the graph will be
+                created with no edges. Defaults to None.
             add_distance_edges (bool, optional): Boolean that determines whether
-            to add edges between every pair of nodes, with the distance between
-            their corresponding polygons as an edge attribute. Defaults to False.
+                to add edges between every pair of nodes, with the distance between
+                their corresponding polygons as an edge attribute. Defaults to False.
         """
         # pylint: disable=super-init-not-called
         self.has_df: bool = True
@@ -1119,7 +1118,7 @@ class ComponentGeoGraph(GeoGraph):
         Args:
             df (gpd.GeoDataFrame): GeoDataFrame containing polygon objects.
             tolerance (float, optional): Redundant argument to ensure interface
-            is consistent with parent class. Defaults to 0.0.
+                is consistent with parent class. Defaults to 0.0.
 
         Returns:
             gpd.GeoDataFrame: A processed GeoDataFrame containing polygon objects.

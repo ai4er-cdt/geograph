@@ -1,4 +1,4 @@
-src package
+GeoGraph Package
 ===========
 
 Subpackages
@@ -7,13 +7,20 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   src.data_loading
-   src.geograph
-   src.preprocessing
+   src.utils
    src.visualisation
 
 Submodules
 ----------
+
+src.binary\_graph\_operations module
+------------------------------------
+
+.. automodule:: src.binary_graph_operations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :special-members: __init__
 
 src.constants module
 --------------------
@@ -22,22 +29,34 @@ src.constants module
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
-src.plot\_settings module
--------------------------
+src.geograph module
+-------------------
 
-.. automodule:: src.plot_settings
+.. automodule:: src.geograph
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
 
-src.utils module
-----------------
+src.geotimeline module
+----------------------
 
-.. automodule:: src.utils
+.. automodule:: src.geotimeline
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
+
+src.metrics module
+------------------
+
+.. automodule:: src.metrics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :special-members: __init__
 
 Module contents
 ---------------
@@ -46,3 +65,4 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __init__
