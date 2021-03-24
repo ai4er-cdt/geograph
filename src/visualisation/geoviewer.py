@@ -181,6 +181,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                 calculated. Warning, this can make the loading of the viewer slow.
                 Defaults to True.
         """
+        self.logger.info("Started adding GeoGraph.")
         if name in graph.habitats.keys():
             raise ValueError(
                 "Name given cannot be same as habitat name in given GeoGraph."
@@ -192,7 +193,10 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         graphs = {name: graph, **graph.habitats}
 
-        for current_name, current_graph in graphs.items():
+        for idx, (current_name, current_graph) in enumerate(graphs.items()):
+            self.logger.info(
+                "Started adding graph %s of %s: %s", idx + 1, len(graphs), current_name
+            )
 
             # Calculate patch metrics for current graph
             current_graph.get_patch_metrics()
@@ -200,6 +204,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             is_habitat = not current_name == name
 
             # Creating layer with geometries representing graph on map
+            self.logger.debug("Creating graph geometries layer (graph_geo_data).")
             nodes, edges = graph_utils.create_node_edge_geometries(
                 nx_graph, crs=current_graph.crs
             )
@@ -211,6 +216,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             )
 
             # Creating choropleth layer for patch polygons
+            self.logger.debug("Creating patch polygons layer (pgon_choropleth).")
             pgon_df = current_graph.df.loc[list(nx_graph)]
             pgon_choropleth = self._get_choropleth_from_df(
                 pgon_df, colname="class_label", **self.layer_style["pgons"]
@@ -218,6 +224,7 @@ class GeoGraphViewer(ipyleaflet.Map):
 
             # Creating layer for graph components
             if with_components:
+                self.logger.debug("Creating components layer (component_choropleth).")
                 component_df = current_graph.get_graph_components(
                     calc_polygons=True
                 ).df.copy()
@@ -234,6 +241,9 @@ class GeoGraphViewer(ipyleaflet.Map):
                 component_choropleth = None
 
             # Creating layer for disconnected (no-edge) nodes
+            self.logger.debug(
+                "Creating disconnected node layer (discon_nodes_geo_data)."
+            )
             disconnected_nx_graph = nx_graph.subgraph(
                 [node for node in nx_graph.nodes() if nx_graph.degree[node] == 0]
             )
@@ -249,6 +259,9 @@ class GeoGraphViewer(ipyleaflet.Map):
             )
 
             # Creating layer for poorly connected (one-edge) nodes
+            self.logger.debug(
+                "Creating poorly connected node layer (poorly_con_nodes_geo_data)."
+            )
             poorly_connected_nx_graph = nx_graph.subgraph(
                 [node for node in nx_graph.nodes() if nx_graph.degree[node] == 1]
             )
@@ -262,6 +275,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             )
 
             # Getting graph metrics
+            self.logger.debug("Add graph metrics.")
             graph_metrics = []
             for metric in self.metrics:
                 graph_metrics.append(
@@ -269,6 +283,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                 )  # pylint: disable=protected-access
 
             # Combining all layers and adding them to layer_dict
+            self.logger.debug("Assembling layer dict (layer).")
             layer = dict(
                 is_habitat=is_habitat,
                 graph=dict(layer=graph_geo_data, active=True),
@@ -285,6 +300,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                 layer["parent"] = name
 
             self.layer_dict["graphs"][current_name] = layer
+            self.logger.info("Finished adding graph: %s.", current_name)
 
         self.current_graph = name
         self.layer_update()
@@ -429,5 +445,5 @@ class FoliumGeoGraphViewer:
             graph (geograph.GeoGraph): GeoGraph to be added
         """
         self.widget = folium_utils.add_graph_to_folium_map(
-            folium_map=self.widget, graph=graph.graph
+            folium_map=self.widget, graph=graph
         )
