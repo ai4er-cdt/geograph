@@ -194,6 +194,8 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         for current_name, current_graph in graphs.items():
 
+            # Calculate patch metrics for current graph
+            current_graph.get_patch_metrics()
             nx_graph = current_graph.graph
             is_habitat = not current_name == name
 

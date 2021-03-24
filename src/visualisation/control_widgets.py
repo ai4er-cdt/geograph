@@ -789,10 +789,13 @@ class HoverWidget(BaseControlWidget):
             ).value + """</br>
                 <b>Class label:</b> {}</br>
 
-                <b>Area:</b> {:.2f} m^2
+                <b>Area:</b> {:.2f} ha
+
+                <b>Fractal dim.:</b> {:.2f}
             """.format(
                 feature["properties"]["class_label"],
-                feature["properties"]["area_in_m2"],
+                feature["properties"]["area"] / 1e4,
+                feature["properties"]["fractal_dimension"],
             )
             self.hover_html.value = new_value
         except:  # pylint: disable=bare-except
