@@ -39,9 +39,12 @@ def create_node_edge_geometries(
             point_a = rep_points[node_a]
             point_b = rep_points[node_b]
             edge_lines[idx] = shapely.geometry.LineString([point_a, point_b])
-        edge_geoms = gpd.GeoSeries(edge_lines)
-        edge_geoms.set_crs(crs)
+        edge_geoms = gpd.GeoDataFrame({"geometry": edge_lines})
+        edge_geoms = edge_geoms.set_crs(crs)
     else:
         edge_geoms = None
+
+    node_geoms = gpd.GeoDataFrame({"geometry": node_geoms})
+    node_geoms = node_geoms.set_crs(crs)
 
     return node_geoms, edge_geoms
