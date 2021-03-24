@@ -1,4 +1,4 @@
-GeoGraph Package
+GeoGraph API Reference
 ===========
 
 Subpackages

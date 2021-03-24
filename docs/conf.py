@@ -70,6 +70,14 @@ html_theme_options = {
 
 html_favicon = 'images/geograph_logo_small.png'
 
+# This adds the 'edit on github' banner on top right corner
+html_context = {
+  'display_github': True,
+  'github_user': 'ai4er-cdt',
+  'github_repo': 'gtc-biodiversity',
+  'github_version': 'main/docs/'
+}
+
 # Latex options
 latex_logo = "./images/geograph_logo.png"
 latex_elements = {
