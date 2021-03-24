@@ -379,9 +379,9 @@ class LayerButtonWidget(widgets.ToggleButton):
                 )
                 # hide button if layer doesn't exist
                 if layer_exists:
-                    self.layout.visibility = "visible"
+                    self.layout.display = "block"
                 else:
-                    self.layout.visibility = "hidden"
+                    self.layout.display = "none"
                 # Note: there is a potential for speed improvement by not updating map
                 # layers for each button separately, as is done here.
                 self.viewer.layer_update()
