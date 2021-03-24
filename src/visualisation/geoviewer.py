@@ -162,12 +162,20 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.layer_dict["maps"][name] = dict(map=dict(layer=layer, active=True))
         self.layer_update()
 
-    def add_graph(self, graph: geograph.GeoGraph, name: str = "Graph") -> None:
+    def add_graph(
+        self,
+        graph: geograph.GeoGraph,
+        name: str = "Graph",
+        with_components: bool = True,
+    ) -> None:
         """Add GeoGraph to viewer.
 
         Args:
             graph (geograph.GeoGraph): graph to be added
             name (str, optional): name shown in control panel. Defaults to "Graph".
+            with_components(bool, optional): Iff True the graph components are
+                calculated. Warning, this can make the loading of the viewer slow.
+                Defaults to True.
         """
         if name in graph.habitats.keys():
             raise ValueError(
@@ -203,18 +211,21 @@ class GeoGraphViewer(ipyleaflet.Map):
             )
 
             # Creating layer for graph components
-            component_df = current_graph.get_graph_components(
-                calc_polygons=True
-            ).df.copy()
-            if is_habitat:
-                component_df.geometry = component_df.geometry.buffer(
-                    current_graph.max_travel_distance
+            if with_components:
+                component_df = current_graph.get_graph_components(
+                    calc_polygons=True
+                ).df.copy()
+                if is_habitat:
+                    component_df.geometry = component_df.geometry.buffer(
+                        current_graph.max_travel_distance
+                    )
+                component_choropleth = ipyleaflet.GeoData(
+                    geo_dataframe=component_df.to_crs(WGS84),
+                    name=current_name + "_components",
+                    **self.layer_style["components"]
                 )
-            component_choropleth = ipyleaflet.GeoData(
-                geo_dataframe=component_df.to_crs(WGS84),
-                name=current_name + "_components",
-                **self.layer_style["components"]
-            )
+            else:
+                component_choropleth = None
 
             # Creating layer for disconnected (no-edge) nodes
             disconnected_nx_graph = nx_graph.subgraph(
