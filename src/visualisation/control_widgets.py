@@ -802,13 +802,15 @@ class HoverWidget(BaseControlWidget):
                 "Current Patch"
             ).value + """</br>
                 <b>Class label:</b> {}</br>
-
-                <b>Area:</b> {:.2f} ha
-
+                <b>Area:</b> {:.2f} ha</br>
+                <b>Perimeter:</b> {:.2f} km</br>
+                <b>Shape index:</b> {:.2f}</br>
                 <b>Fractal dim.:</b> {:.2f}
             """.format(
                 feature["properties"]["class_label"],
                 feature["properties"]["area"] / 1e4,
+                feature["properties"]["perimeter"] / 1e3,
+                feature["properties"]["shape_index"],
                 feature["properties"]["fractal_dimension"],
             )
             self.hover_html.value = new_value
