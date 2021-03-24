@@ -395,7 +395,13 @@ class LayerButtonWidget(widgets.ToggleButton):
         else:
             self.layout.display = "none"
             self.logger.debug(
-                "Layer of this button does not exist for current graph. Button hidden."
+                (
+                    "LayerButtonWidget hidden for %s of %s. "
+                    "(type: %s). Layer doesn't exist."
+                ),
+                self.layer_subtype,
+                self.layer_name,
+                self.layer_type,
             )
 
 
