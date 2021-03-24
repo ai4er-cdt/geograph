@@ -255,10 +255,10 @@ class RadioVisibilityWidget(BaseControlWidget):
                         view_components_btn,
                         view_disconnected_nodes_btn,
                         view_poorly_con_nodes_btn,
+                        node_dynamics_btn,
+                        node_change_btn,
                     ]
                 ),
-                widget_utils.create_html_header("Temporal Analysis", level=2),
-                widgets.VBox([node_dynamics_btn, node_change_btn]),
             ]
         )
 
@@ -334,6 +334,7 @@ class LayerButtonWidget(widgets.ToggleButton):
                 widgets.dlink((self.viewer, "current_graph"), (self, "layer_name"))
 
         self.observe(self._handle_view, names=["value", "layer_name"])
+        self._check_layer_exists()
 
         self.logger.info("Initialised.")
 
@@ -371,23 +372,36 @@ class LayerButtonWidget(widgets.ToggleButton):
                     owner.layer_type, new_layer_name, owner.layer_subtype, owner.value
                 )
 
-                layer_exists = (
-                    self.viewer.layer_dict[owner.layer_type][new_layer_name][
-                        owner.layer_subtype
-                    ]["layer"]
-                    is not None
-                )
-                # hide button if layer doesn't exist
-                if layer_exists:
-                    self.layout.visibility = "visible"
-                else:
-                    self.layout.visibility = "hidden"
+                self._check_layer_exists()
                 # Note: there is a potential for speed improvement by not updating map
                 # layers for each button separately, as is done here.
                 self.viewer.layer_update()
         except:  # pylint: disable=bare-except
             self.logger.exception(
                 "Exception in LayerButtonWidget callback on button click or change."
+            )
+
+    def _check_layer_exists(self) -> None:
+        """Check if layer exists and hide button if it doesn't."""
+        layer_exists = (
+            self.viewer.layer_dict[self.layer_type][self.layer_name][
+                self.layer_subtype
+            ]["layer"]
+            is not None
+        )
+        # hide button if layer doesn't exist
+        if layer_exists:
+            self.layout.display = "block"
+        else:
+            self.layout.display = "none"
+            self.logger.debug(
+                (
+                    "LayerButtonWidget hidden for %s of %s. "
+                    "(type: %s). Layer doesn't exist."
+                ),
+                self.layer_subtype,
+                self.layer_name,
+                self.layer_type,
             )
 
 

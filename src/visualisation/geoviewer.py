@@ -288,6 +288,8 @@ class GeoGraphViewer(ipyleaflet.Map):
                 poorly_connected_nodes=dict(
                     layer=poorly_con_nodes_geo_data, active=False
                 ),
+                node_dynamics=dict(layer=None, active=False),
+                node_change=dict(layer=None, active=False),
                 metrics=graph_metrics,
                 original_graph=current_graph,
             )

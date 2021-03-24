@@ -43,4 +43,7 @@ def create_node_edge_geometries(
     else:
         edge_geoms = None
 
+    node_geoms = gpd.GeoDataFrame({"geometry": node_geoms})
+    node_geoms = node_geoms.set_crs(crs)
+
     return node_geoms, edge_geoms
