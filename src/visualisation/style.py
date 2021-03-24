@@ -32,6 +32,27 @@ _POORLY_CONNECTED_STYLE = dict(
     point_style={"radius": 20},
 )
 
+_node_dynamics_cmap = branca.colormap.StepColormap(
+    colors=[
+        "#ff7f00",
+        "#fdbf6f",
+        "#f3f3f3",
+        "#a6cee3",
+        "#b2df8a",
+        "#33a02c",
+        "#6a3d9a",
+    ],
+    vmin=0,
+    vmax=6,
+)
+_NODE_DYNAMICS_STYLE = dict(
+    style={"fillOpacity": 0.75, "weight": 0.1},
+    hover_style={"fillOpacity": 0.98, "weight": 1},
+    colormap=_node_dynamics_cmap,  # See https://colorbrewer2.org/
+    value_min=0,
+    value_max=6,
+)
+
 DEFAULT_LAYER_STYLE = dict(
     graph=_GRAPH_STYLE,
     pgons=_PGONS_STYLE,
