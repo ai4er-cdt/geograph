@@ -303,7 +303,11 @@ class GeoGraphViewer(ipyleaflet.Map):
         """
         df = df.to_crs(WGS84)
         geo_data = df.geometry.__geo_interface__
-        choro_data = dict(zip(df.index.astype("str"), df[colname]))
+        if pd.api.types.is_numeric_dtype(df[colname]):
+            choro_data = {str(key): val for key, val in df[colname].items()}
+        else:
+            col_as_categories = df[colname].astype("category").cat.codes
+            choro_data = {str(key): val for key, val in col_as_categories.items()}
 
         choropleth_layer = ipyleaflet.Choropleth(
             geo_data=geo_data, choro_data=choro_data, **choropleth_args
