@@ -443,5 +443,5 @@ class FoliumGeoGraphViewer:
             graph (geograph.GeoGraph): GeoGraph to be added
         """
         self.widget = folium_utils.add_graph_to_folium_map(
-            folium_map=self.widget, graph=graph.graph
+            folium_map=self.widget, graph=graph
         )
