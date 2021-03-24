@@ -30,7 +30,7 @@ def create_node_edge_geometries(
             respectively.
     """
 
-    node_geoms = graph.df.representative_point()
+    node_geoms = graph.df.geometry.to_crs(crs).representative_point()
     rep_points = node_geoms.to_dict()
 
     if include_edges:
@@ -40,7 +40,6 @@ def create_node_edge_geometries(
             point_b = rep_points[node_b]
             edge_lines[idx] = shapely.geometry.LineString([point_a, point_b])
         edge_geoms = gpd.GeoSeries(edge_lines)
-        edge_geoms.set_crs(crs)
     else:
         edge_geoms = None
 
