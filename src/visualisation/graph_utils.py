@@ -5,14 +5,14 @@ from __future__ import annotations
 from typing import Tuple
 
 import geopandas as gpd
-import networkx as nx
 import shapely.geometry
 
 from src.constants import UTM35N
+import src.geograph
 
 
 def create_node_edge_geometries(
-    graph: nx.Graph,
+    graph: src.geograph.GeoGraph,
     crs: str = UTM35N,
     include_edges: bool = True,
 ) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
@@ -30,22 +30,19 @@ def create_node_edge_geometries(
             respectively.
     """
 
-    node_gdf = gpd.GeoDataFrame(columns=["id", "geometry"])
-    rep_points = graph.nodes(data="rep_point")
-    for idx, rep_point in rep_points:
-        node_gdf.loc[idx] = [idx, rep_point]
-    node_gdf = node_gdf.set_crs(crs)
+    rep_points = graph.df.representative_point().to_dict()
+    node_geoms = gpd.GeoSeries(rep_points)
+    node_geoms.set_crs(crs)
 
     if include_edges:
-        edge_gdf = gpd.GeoDataFrame(columns=["id", "geometry"])
-        for idx, (node_a, node_b) in enumerate(graph.edges()):
+        edge_lines = {}
+        for idx, (node_a, node_b) in enumerate(graph.graph.edges()):
             point_a = rep_points[node_a]
             point_b = rep_points[node_b]
-            line = shapely.geometry.LineString([point_a, point_b])
-
-            edge_gdf.loc[idx] = [idx, line]
-            edge_gdf = edge_gdf.set_crs(crs)
+            edge_lines[idx] = shapely.geometry.LineString([point_a, point_b])
+        edge_geoms = gpd.GeoSeries(edge_lines)
+        edge_geoms.set_crs(crs)
     else:
-        edge_gdf = None
+        edge_geoms = None
 
-    return node_gdf, edge_gdf
+    return node_geoms, edge_geoms
