@@ -30,9 +30,8 @@ def create_node_edge_geometries(
             respectively.
     """
 
-    rep_points = graph.df.representative_point().to_dict()
-    node_geoms = gpd.GeoSeries(rep_points)
-    node_geoms.set_crs(crs)
+    node_geoms = graph.df.representative_point()
+    rep_points = node_geoms.to_dict()
 
     if include_edges:
         edge_lines = {}
