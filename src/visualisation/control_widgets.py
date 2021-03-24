@@ -217,6 +217,23 @@ class RadioVisibilityWidget(BaseControlWidget):
             layer_subtype="poorly_connected_nodes",
             viewer=self.viewer,
         )
+        node_dynamics_btn = LayerButtonWidget(
+            description="Show node dynamics",
+            tooltip="Show node dynamics.",
+            icon="exclamation-circle",
+            layer_type="graphs",
+            layer_subtype="node_dynamics",
+            viewer=self.viewer,
+        )
+        node_change_btn = LayerButtonWidget(
+            description="Show node change",
+            tooltip="View poorly connected patches (patches with single edge)",
+            icon="exclamation-circle",
+            layer_type="graphs",
+            layer_subtype="node_change",
+            viewer=self.viewer,
+        )
+
         view_graph_btn.value = True
         view_pgon_btn.value = True
         view_map_btn.value = True
@@ -232,7 +249,7 @@ class RadioVisibilityWidget(BaseControlWidget):
             [
                 widget_utils.create_html_header("Main", level=2),
                 widgets.HBox([view_graph_btn, view_pgon_btn, view_map_btn]),
-                widget_utils.create_html_header("Additional", level=2),
+                widget_utils.create_html_header("Insights", level=2),
                 widgets.VBox(
                     [
                         view_components_btn,
@@ -240,6 +257,8 @@ class RadioVisibilityWidget(BaseControlWidget):
                         view_poorly_con_nodes_btn,
                     ]
                 ),
+                widget_utils.create_html_header("Temporal Analysis", level=2),
+                widgets.VBox([node_dynamics_btn, node_change_btn]),
             ]
         )
 
@@ -351,6 +370,18 @@ class LayerButtonWidget(widgets.ToggleButton):
                 self.viewer.set_layer_visibility(
                     owner.layer_type, new_layer_name, owner.layer_subtype, owner.value
                 )
+
+                layer_exists = (
+                    self.viewer.layer_dict[owner.layer_type][new_layer_name][
+                        owner.layer_subtype
+                    ]["layer"]
+                    is not None
+                )
+                # hide button if layer doesn't exist
+                if layer_exists:
+                    self.layout.visibility = "visible"
+                else:
+                    self.layout.visibility = "hidden"
                 # Note: there is a potential for speed improvement by not updating map
                 # layers for each button separately, as is done here.
                 self.viewer.layer_update()
