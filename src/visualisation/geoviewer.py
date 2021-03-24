@@ -198,7 +198,9 @@ class GeoGraphViewer(ipyleaflet.Map):
 
             # Creating choropleth layer for patch polygons
             pgon_df = current_graph.df.loc[list(nx_graph)]
-            pgon_choropleth = self._get_choropleth_from_df(pgon_df)
+            pgon_choropleth = self._get_choropleth_from_df(
+                pgon_df, colname="class_label", **self.layer_style["pgons"]
+            )
 
             # Creating layer for graph components
             component_df = current_graph.get_graph_components(
@@ -271,35 +273,28 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.layer_update()
         self.logger.info("Added graph.")
 
-    def _get_choropleth_from_df(self, df: gpd.GeoDataFrame) -> ipyleaflet.Choropleth:
+    def _get_choropleth_from_df(
+        self, df: gpd.GeoDataFrame, colname: str = "class_label", **choropleth_args
+    ) -> ipyleaflet.Choropleth:
         """Create ipyleaflet.Choropleth from GeoDataFrame of polygons.
 
         Args:
             df (gpd.GeoDataFrame): dataframe to visualise
+            colname (str): name of the column to display as choropleth data
+            **choropleth_args: Keywordarguments passed to `ipyleaflet.Choropleth`.
 
         Returns:
             ipyleaflet.Choropleth: choropleth layer
         """
-        df["area_in_m2"] = df.area
         df = df.to_crs(WGS84)
-        geo_data = df.__geo_interface__
+        geo_data = df.geometry.__geo_interface__
+        choro_data = dict(zip(df.index.astype("str"), df[colname]))
 
-        # This fix is needed because ipyleaflet.choropleth can't reach individual
-        # properties for key
-        for feature in geo_data["features"]:
-            feature["class_label"] = feature["properties"]["class_label"]
-
-        unique_classes = list(df.class_label.unique())
-        choro_data = dict(zip(unique_classes, range(len(unique_classes))))
-
-        choropleth = ipyleaflet.Choropleth(
-            geo_data=geo_data,
-            choro_data=choro_data,
-            key_on="class_label",
-            **self.layer_style["pgons"]
+        choropleth_layer = ipyleaflet.Choropleth(
+            geo_data=geo_data, choro_data=choro_data, **choropleth_args
         )
 
-        return choropleth
+        return choropleth_layer
 
     def layer_update(self) -> None:
         """Update `self.layer` tuple from `self.layer_dict`."""
