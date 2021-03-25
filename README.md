@@ -1,5 +1,5 @@
 <p align="center">
-<img src="docs/images/geograph_logo.png" alt="GeoGraph" width="300px">
+<img src="https://raw.githubusercontent.com/ai4er-cdt/gtc-biodiversity/main/docs/images/geograph_logo.png" alt="GeoGraph" width="300px">
 </p>
 
 _Created as part of the AI4ER Group Team Challenge 2021 by the Biodiversity Team._
@@ -10,7 +10,7 @@ _Created as part of the AI4ER Group Team Challenge 2021 by the Biodiversity Team
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 [![Documentation Status](https://readthedocs.org/projects/geograph/badge/?version=latest)](https://geograph.readthedocs.io/en/latest/?badge=latest)
 
- ![GeoGraphViewer demo gif](docs/images/viewer_demo.gif)
+ ![GeoGraphViewer demo gif](https://raw.githubusercontent.com/ai4er-cdt/gtc-biodiversity/main/docs/images/viewer_demo.gif)
 
 
 __Table of contents:__
