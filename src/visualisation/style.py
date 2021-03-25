@@ -53,6 +53,17 @@ _NODE_DYNAMICS_STYLE = dict(
     value_max=6,
 )
 
+_abs_growth_cmap = branca.colormap.LinearColormap(
+    colors=["red", "white", "green"], index=[-10e5, 0, 10e5], vmin=-10e5, vmax=10e5
+)
+_ABS_GROWTH_STYLE = dict(
+    style={"fillOpacity": 0.75, "weight": 0.1},
+    hover_style={"fillOpacity": 0.98, "weight": 1},
+    colormap=_abs_growth_cmap,  # See https://colorbrewer2.org/
+    value_min=-10e5,
+    value_max=10e5,
+)
+
 DEFAULT_LAYER_STYLE = dict(
     graph=_GRAPH_STYLE,
     pgons=_PGONS_STYLE,
