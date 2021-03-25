@@ -8,7 +8,7 @@ import networkx as nx
 import numpy as np
 
 if TYPE_CHECKING:
-    from src import geograph
+    import geograph
 
 
 # define a metric dataclass with < <= => > == comparisons that work as you would

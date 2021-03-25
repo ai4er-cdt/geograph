@@ -24,13 +24,13 @@ clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
 
-## Lint src directory using flake8
+## Lint geograph directory using flake8
 lint:
-	pylint --ignore-patterns=lint_test src
+	pylint --ignore-patterns=lint_test geograph
 
-## Format src directory using black
+## Format geograph directory using black
 format:
-	black src
+	black geograph
 
 ## Set up pre-commit hooks
 precommit:

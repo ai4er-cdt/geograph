@@ -28,7 +28,7 @@ jobs:
       - name: Lint with pylint
         run: |
           # lint with the rules defined in pylintrc
-          pylint --ignore-patterns=lint_test src
+          pylint --ignore-patterns=lint_test geograph
 
 # For unit tests later
 #    - name: Test with pytest

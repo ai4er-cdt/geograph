@@ -7,8 +7,7 @@ from typing import Dict, Optional
 
 import ipywidgets as widgets
 import traitlets
-
-from src.visualisation import geoviewer, widget_utils
+from geograph.visualisation import geoviewer, widget_utils
 
 
 class BaseControlWidget(widgets.Box):

@@ -3,13 +3,12 @@
 from typing import Iterable, Optional, Tuple, Union
 
 import affine
+import geograph.utils.geopandas_utils as gpd_utils
 import geopandas as gpd
 import numpy as np
 from rasterio.crs import CRS
 from rasterio.features import shapes
 from rasterio.io import DatasetReader
-
-import src.utils.geopandas_utils as gpd_utils
 
 
 class CoordinateSystemError(Exception):

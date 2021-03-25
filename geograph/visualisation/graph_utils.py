@@ -4,15 +4,14 @@ from __future__ import annotations
 
 from typing import Tuple
 
+import geograph
 import geopandas as gpd
 import shapely.geometry
-
-from src.constants import WGS84
-import src.geograph
+from geograph.constants import WGS84
 
 
 def create_node_edge_geometries(
-    graph: src.geograph.GeoGraph,
+    graph: geograph.GeoGraph,
     crs: str = WGS84,
 ) -> Tuple[gpd.GeoSeries, gpd.GeoSeries]:
     """Create node and edge geometries for the networkx graph G.
