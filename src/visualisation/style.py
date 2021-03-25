@@ -34,13 +34,13 @@ _POORLY_CONNECTED_STYLE = dict(
 
 _node_dynamics_cmap = branca.colormap.StepColormap(
     colors=[
-        "#ff7f00",
-        "#fdbf6f",
-        "#f3f3f3",
-        "#a6cee3",
-        "#b2df8a",
-        "#33a02c",
-        "#6a3d9a",
+        "#ff7f00",  # split
+        "#fdbf6f",  # shrank
+        "#f3f3f3",  # unchanged
+        "#a6cee3",  # complex
+        "#b2df8a",  # grew
+        "#33a02c",  # merged
+        "#6a3d9a",  # birth
     ],
     vmin=0,
     vmax=6,
