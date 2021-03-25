@@ -102,6 +102,8 @@ class GeoGraphViewer(ipyleaflet.Map):
             "components",
             "disconnected_nodes",
             "poorly_connected_nodes",
+            "node_dynamics",
+            "node_change",
         ]
 
         # Setting the current view of graph and map as traits. Together with layer_dict
@@ -129,6 +131,9 @@ class GeoGraphViewer(ipyleaflet.Map):
             layer_subtype (str): subtype of layer (e.g. "map","components")
             active (bool): whether layer is activate (=visible)
         """
+        self.logger.debug(
+            "Set visibility of %s: %s to %s", layer_name, layer_subtype, active
+        )
         self.layer_dict[layer_type][layer_name][layer_subtype]["active"] = active
 
     def hide_all_layers(self) -> None:
@@ -221,6 +226,23 @@ class GeoGraphViewer(ipyleaflet.Map):
                 current_graph.df, colname="class_label", **self.layer_style["pgons"]
             )
 
+            # Creating choropleth layer for node identification
+            if "node_dynamic" in current_graph.df.columns:
+                self.logger.debug("Adding node dynamics layer.")
+                dynamics_choropleth = self._get_choropleth_from_df(
+                    graph_utils.map_dynamic_to_int(current_graph.df),
+                    colname="dynamic_class",
+                    **style._NODE_DYNAMICS_STYLE  # pylint: disable=protected-access
+                )
+                abs_growth_choropleth = self._get_choropleth_from_df(
+                    current_graph.df,
+                    colname="absolute_growth",
+                    **style._ABS_GROWTH_STYLE  # pylint: disable=protected-access
+                )
+            else:
+                dynamics_choropleth = None
+                abs_growth_choropleth = None
+
             # Creating layer for graph components
             if with_components:
                 self.logger.debug("Creating components layer (component_choropleth).")
@@ -288,8 +310,8 @@ class GeoGraphViewer(ipyleaflet.Map):
                 poorly_connected_nodes=dict(
                     layer=poorly_con_nodes_geo_data, active=False
                 ),
-                node_dynamics=dict(layer=None, active=False),
-                node_change=dict(layer=None, active=False),
+                node_dynamics=dict(layer=dynamics_choropleth, active=False),
+                node_change=dict(layer=abs_growth_choropleth, active=False),
                 metrics=graph_metrics,
                 original_graph=current_graph,
             )

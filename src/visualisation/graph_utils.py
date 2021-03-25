@@ -40,3 +40,21 @@ def create_node_edge_geometries(
     edge_geoms = gpd.GeoSeries(edge_lines)
 
     return node_geoms, edge_geoms
+
+
+_NODE_DYNAMIC_TO_INT = {
+    "split": 0,
+    "shrank": 1,
+    "unchanged": 2,
+    "complex": 3,
+    "grew": 4,
+    "merged": 5,
+    "birth": 6,
+}
+
+_map_dynamic_to_int = lambda x: _NODE_DYNAMIC_TO_INT[x]
+
+
+def map_dynamic_to_int(df: gpd.GeoDataFrame) -> gpd.Series:
+    df["dynamic_class"] = df["node_dynamic"].map(_map_dynamic_to_int)
+    return df
