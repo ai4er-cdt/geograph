@@ -5,11 +5,10 @@ from __future__ import annotations
 from typing import Callable, List, Optional, Tuple
 
 import folium
+import geograph
 import geopandas as gpd
-
-from src.constants import CHERNOBYL_COORDS_WGS84, UTM35N
-from src.visualisation import graph_utils
-from src import geograph
+from geograph.constants import CHERNOBYL_COORDS_WGS84, UTM35N
+from geograph.visualisation import graph_utils
 
 
 def add_graph_to_folium_map(

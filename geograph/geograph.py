@@ -25,9 +25,9 @@ import shapely
 from shapely.prepared import prep
 from tqdm import tqdm
 
-from src import binary_graph_operations, metrics
-from src.metrics import CLASS_METRICS_DICT, Metric
-from src.utils import rasterio_utils
+from geograph import binary_graph_operations, metrics
+from geograph.metrics import CLASS_METRICS_DICT, Metric
+from geograph.utils import rasterio_utils
 
 pd.options.mode.chained_assignment = None  # default='warn'
 

@@ -6,10 +6,9 @@ from typing import Dict, Iterable, Tuple
 
 import geopandas as gpd
 import numpy as np
-
-from src.constants import SRC_PATH
-from src.tests.utils import get_array_transform, polygonise_sub_array
-from src.utils.rasterio_utils import polygonise
+from geograph.constants import SRC_PATH
+from geograph.tests.utils import get_array_transform, polygonise_sub_array
+from geograph.utils.rasterio_utils import polygonise
 
 
 def _polygonise_splits(

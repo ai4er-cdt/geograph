@@ -72,3 +72,4 @@ wandb
 pytorch-lightning
 git+https://github.com/qubvel/segmentation_models.pytorch
 hydra-core
+twine           # for publishing to PyPI

@@ -2,13 +2,12 @@
 from typing import Iterable, Tuple
 
 import affine
+import geograph
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-
-from src.geograph import GeoGraph
-from src.utils.rasterio_utils import polygonise
+from geograph.utils.rasterio_utils import polygonise
 
 # Mirror the x axis
 AFFINE_MIRROR_X = affine.Affine(-1, 0, 0, 0, 1, 0)
@@ -106,7 +105,7 @@ def polygonise_sub_array(
 
 
 def plot_identified_nodes(
-    node: dict, other_graph: GeoGraph, identified_nodes: Iterable[int]
+    node: dict, other_graph: geograph.GeoGraph, identified_nodes: Iterable[int]
 ) -> None:
     """
     Plot nodes that identify with `node` in `other_graph`
