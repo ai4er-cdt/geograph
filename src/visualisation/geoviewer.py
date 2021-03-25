@@ -10,6 +10,8 @@ import ipyleaflet
 import ipywidgets as widgets
 import pandas as pd
 import traitlets
+import time
+import threading
 
 from src import geograph, metrics
 from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
@@ -34,8 +36,10 @@ class GeoGraphViewer(ipyleaflet.Map):
         zoom: int = 7,
         layout: Union[widgets.Layout, None] = None,
         metric_list: Optional[List[str]] = None,
-        small_screen: bool = False,
-        logging_level=logging.DEBUG,
+        small_screen: bool = True,
+        logging_level: str = "WARNING",
+        max_log_len: int = 20,
+        layer_update_delay: float = 0.0,
         **kwargs
     ) -> None:
         """Class for interactively viewing a GeoGraph.
@@ -49,9 +53,17 @@ class GeoGraphViewer(ipyleaflet.Map):
             metric_list (List[str], optional): list of GeoGraph metrics to be shown.
                 Defaults to None.
             small_screen (bool, optional): whether to reduce the control widget height
-                for better usability on smaller screens.
-            logging_level ([type], optional): python logging level. Defaults to
-                logging.DEBUG.
+                for better usability on smaller screens. Defaults to True.
+            logging_level (str, optional): python logging level. Defaults to
+                "WARNING".
+            max_log_len (int, optional): how many log messages should be displayed in
+                in log tab. Note that a long log may slow down the viewer.
+                Defaults to 20.
+            layer_update_delay (float, optional): how long the viewer should wait
+                before updating layer. Whilst waiting other layer update requests
+                are caught. This reduces the amount of traffic between the client (your
+                browser) and the python kernel. Experimental. Defaults to 0.0.
+
         """
         super().__init__(
             center=center,
@@ -64,6 +76,8 @@ class GeoGraphViewer(ipyleaflet.Map):
         # There seems to be no easy way to add UTM35N to ipyleaflet.Map(), hence WGS84.
         self.gpd_crs_code = WGS84
         self.small_screen = small_screen
+        self.layer_update_delay = layer_update_delay
+
         if metric_list is None:
             self.metrics = metrics.STANDARD_METRICS
         else:
@@ -74,7 +88,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         # Setting log with handler, allows access to log via handler.show_logs()
         self.logger = logging.getLogger(type(self).__name__)
         self.logger.setLevel(logging_level)
-        self.log_handler = widget_utils.OutputWidgetHandler()
+        self.log_handler = widget_utils.OutputWidgetHandler(max_len=max_log_len)
         self.logger.addHandler(self.log_handler)
 
         default_map_layer = ipyleaflet.TileLayer(
@@ -114,6 +128,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         )
         self.current_graph = ""
         self.current_map = "Map"  # set to the default map added above
+        self.layer_update_requested = False
 
         self.logger.info("Viewer successfully initialised.")
 
@@ -368,6 +383,37 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         self.layers = tuple(layers)
         self.logger.debug("layer_update() called.")
+
+    def request_layer_update(self):
+        """Request layer_update to be called.
+
+        After receiving the first request the viewer waits for a set time, and then
+        executes its layer_update method. If new requests come in whilst this time
+        is passing no further action is taken. This helps avoid calling layer_update
+        for each button in control widgets separately, slowing down the viewer.
+        """
+
+        if self.layer_update_delay > 0:
+            self.logger.debug("Layer update requested.")
+
+            if not self.layer_update_requested:
+                self.layer_update_requested = True
+
+                def wait_and_update(viewer):
+                    time.sleep(self.layer_update_delay)
+                    viewer.layer_update()
+                    viewer.layer_update_requested = False
+                    viewer.logger.debug("Layer update request executed.")
+
+                thread = threading.Thread(
+                    target=wait_and_update,
+                    args=(self,),
+                )
+                thread.start()
+            else:
+                pass
+        else:
+            self.layer_update()
 
     def set_graph_style(self, radius: float = 10, node_color: str = None) -> None:
         """Set the style of any graphs added to viewer.
