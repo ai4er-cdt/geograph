@@ -41,9 +41,7 @@ Done, you're ready to go!
 
 ## 3. Requirements
 
-GeoGraph is written in Python 3.8 and builds on [NetworkX](https://github.com/NetworkX/NetworkX), [ipyleaflet](https://github.com/jupyter-widgets/ipyleaflet) and many more packages. See the [requirements directory](./requirements) for a full list of dependencies.
-
+GeoGraph is written in Python 3.8 and builds on [NetworkX](https://github.com/NetworkX/NetworkX), [ipyleaflet](https://github.com/jupyter-widgets/ipyleaflet) and many more packages. See the [requirements directory](https://github.com/ai4er-cdt/gtc-biodiversity/tree/main/requirements) for a full list of dependencies.
 ## 4. Documentation
 
 Our documentation is available at [geograph.readthedocs.io](https://geograph.readthedocs.io/).
-
