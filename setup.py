@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Module that defines a setup function and publishes the package to PyPI."""
+"""
+Module that defines a setup function and publishes the package to PyPI.
+
+Use the command `python setup.py upload`.
+"""
 # Note: To use the "upload" functionality of this file, you must:
 #   $ pip install twine
 
@@ -15,7 +19,7 @@ from setuptools import Command, find_packages, setup
 
 # Package meta-data.
 NAME = "geograph"
-DESCRIPTION = "Group Team Challenge 2021; Biodiversity Team."
+DESCRIPTION = "Group Team Challenge 2021 - Biodiversity Team"
 URL = "https://geograph.readthedocs.io/"
 EMAIL = "hb574@cam.ac.uk"
 AUTHOR = "Biodiversity Team"
@@ -43,18 +47,17 @@ EXTRAS: Dict = {
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-# Import the README and use it as the long-description.
-# Note: this will only work if "README.md" is present in your MANIFEST.in file!
+# Import the PYPI README and use it as the long-description.
+# Note: this will only work if "PYPI_README.md" is present in your MANIFEST.in file!
 try:
-    with io.open(os.path.join(here, "README.md"), encoding="utf-8") as f:
+    with io.open(os.path.join(here, "PYPI_README.md"), encoding="utf-8") as f:
         long_description = "\n" + f.read()
 except FileNotFoundError:
     long_description = DESCRIPTION
 
 # Load the package"s _version.py module as a dictionary.
 about: Dict = {}
-project_slug = "src".lower().replace("-", "_").replace(" ", "_")
-with open(os.path.join(here, project_slug, "_version.py")) as f:
+with open(os.path.join(here, NAME, "_version.py")) as f:
     # pylint: disable=exec-used
     exec(f.read(), about)
 
@@ -77,7 +80,7 @@ class UploadCommand(Command):
         pass
 
     def run(self):
-        "Publish package to PyPI."
+        """Publish package to PyPI."""
         try:
             self.status("Removing previous builds…")
             rmtree(os.path.join(here, "dist"))
@@ -88,11 +91,11 @@ class UploadCommand(Command):
         os.system("{0} setup.py sdist bdist_wheel --universal".format(sys.executable))
 
         self.status("Uploading the package to PyPI via Twine…")
-        os.system("twine upload --repository-url https://test.pypi.org/legacy/ dist/*")
+        os.system("twine upload dist/*")
 
-        # self.status("Pushing git tags…")
-        # os.system("git tag v{0}".format(about["__version__"]))
-        # os.system("git push --tags")
+        self.status("Pushing git tags…")
+        os.system("git tag v{0}".format(about["__version__"]))
+        os.system("git push --tags")
 
         sys.exit()
 
@@ -139,5 +142,5 @@ setup(
     cmdclass={
         "upload": UploadCommand,
     },
-    test_suite="src.tests.test_all.suite",
+    test_suite="geograph.tests.test_all.suite",
 )
