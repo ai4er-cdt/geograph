@@ -36,7 +36,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         zoom: int = 7,
         layout: Union[widgets.Layout, None] = None,
         metric_list: Optional[List[str]] = None,
-        small_screen: bool = False,
+        small_screen: bool = True,
         logging_level: str = "WARNING",
         max_log_len: int = 20,
         layer_update_delay: float = 0.0,
@@ -53,7 +53,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             metric_list (List[str], optional): list of GeoGraph metrics to be shown.
                 Defaults to None.
             small_screen (bool, optional): whether to reduce the control widget height
-                for better usability on smaller screens.
+                for better usability on smaller screens. Defaults to True.
             logging_level (str, optional): python logging level. Defaults to
                 "WARNING".
             max_log_len (int, optional): how many log messages should be displayed in
