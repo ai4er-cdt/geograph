@@ -792,6 +792,16 @@ class HoverWidget(BaseControlWidget):
             pgon_choropleth = graph_dict["pgons"]["layer"]
             pgon_choropleth.on_hover(self._hover_callback)
 
+            # Enable hover for node dynamics
+            node_dynamics_choropleth = graph_dict["node_dynamics"]["layer"]
+            if node_dynamics_choropleth is not None:
+                node_dynamics_choropleth.on_hover(self._hover_callback)
+
+            # Enable hover for node absolute growth (change)
+            abs_growth_choropleth = graph_dict["node_change"]["layer"]
+            if abs_growth_choropleth is not None:
+                abs_growth_choropleth.on_hover(self._hover_callback)
+
         return widgets.VBox([self.hover_html])
 
     def _hover_callback(self, feature, **kwargs):  # pylint: disable=unused-argument
@@ -813,6 +823,14 @@ class HoverWidget(BaseControlWidget):
                 feature["properties"]["shape_index"],
                 feature["properties"]["fractal_dimension"],
             )
+            if "node_dynamic" in feature["properties"].keys():
+                new_value += "</br><b>Node dyanmic:</b> {}".format(
+                    feature["properties"]["node_dynamic"]
+                )
+            if "absolute_growth" in feature["properties"].keys():
+                new_value += "</br><b>Abs. growth:</b> {:.2f} ha/yr".format(
+                    feature["properties"]["absolute_growth"] / 1e4
+                )
             self.hover_html.value = new_value
         except:  # pylint: disable=bare-except
             self.logger.exception("Exception in hover callback.")
