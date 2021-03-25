@@ -49,6 +49,3 @@ GeoGraph is written in Python 3.8 and builds on [NetworkX](https://github.com/Ne
 
 Our documentation is available at [geograph.readthedocs.io](https://geograph.readthedocs.io/).
 
-## 5. Project Organization
-
-TODO

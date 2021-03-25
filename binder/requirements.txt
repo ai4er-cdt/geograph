@@ -33,3 +33,6 @@ networkx==2.5            # manipulating graph data
 
 # comparison to fragmentation metrics in binder
 pylandstats==2.2.1
+
+# saving and loading netcdf4 files
+netcdf4

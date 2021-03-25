@@ -326,16 +326,24 @@ class GeoGraph:
         return data["dataframe"]
 
     def save_graph(
-        self, save_path: Union[str, pathlib.Path], overwrite: bool = False
+        self,
+        save_path: Union[str, pathlib.Path],
+        overwrite: bool = False,
+        pickle_protocol: int = pickle.DEFAULT_PROTOCOL,
     ) -> None:
         """
         Save graph with attributes and dataframe as pickle file. Can be compressed.
 
         Args:
             save_path (Union[pathlib.Path, str]): Path to a pickle file. Can be
-                compressed with gzip or bz2 by passing filenames ending in `gz` or `bz2`.
+                compressed with gzip or bz2 by passing filenames ending in `gz` or
+                `bz2`.
             overwrite (bool, optional): If True, an existing file at `save_path`
                 will be overwritten. Else throws an error. Defaults to False.
+            pickle_protocol (int, optional): Selects the pickle protocol that is used
+                for python object serealisation. Supported protocols are explained here:
+                https://docs.python.org/3/library/pickle.html#data-stream-format
+                Defaults to pickle.DEFAULT_PROTOCOL (4 in python 3.8).
 
         Raises:
             ValueError: If `save_path` is not a pickle, gz, or bz2 file.
@@ -349,19 +357,19 @@ class GeoGraph:
 
         if save_path.suffix not in (".pickle", ".pkl", ".gz", ".bz2"):
             raise ValueError(
-                """Argument `save_path` should be a pickle file or
-                compressed file."""
+                "Argument `save_path` should end in `.pickle`, `.pkl`, `.gz` or `.bz2` "
+                "to indicate a pickle file or compressed pickle file."
             )
         data = {"graph": self.graph, "dataframe": self.df}
         if save_path.suffix == ".bz2":
             with bz2.BZ2File(save_path, "wb") as bz2_file:
-                pickle.dump(data, bz2_file)
+                pickle.dump(data, bz2_file, protocol=pickle_protocol)
         elif save_path.suffix == ".gz":
             with gzip.GzipFile(save_path, "wb") as gz_file:
-                gz_file.write(pickle.dumps(data))
+                gz_file.write(pickle.dumps(data, protocol=pickle_protocol))
         else:
             with open(save_path, "wb") as file:
-                pickle.dump(data, file)
+                pickle.dump(data, file, protocol=pickle_protocol)
         save_path.chmod(0o664)
 
     def _load_from_dataframe(

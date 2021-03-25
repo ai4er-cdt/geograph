@@ -10,6 +10,8 @@ import ipyleaflet
 import ipywidgets as widgets
 import pandas as pd
 import traitlets
+import time
+import threading
 
 from src import geograph, metrics
 from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
@@ -34,8 +36,10 @@ class GeoGraphViewer(ipyleaflet.Map):
         zoom: int = 7,
         layout: Union[widgets.Layout, None] = None,
         metric_list: Optional[List[str]] = None,
-        small_screen: bool = False,
-        logging_level=logging.DEBUG,
+        small_screen: bool = True,
+        logging_level: str = "WARNING",
+        max_log_len: int = 20,
+        layer_update_delay: float = 0.0,
         **kwargs
     ) -> None:
         """Class for interactively viewing a GeoGraph.
@@ -49,9 +53,17 @@ class GeoGraphViewer(ipyleaflet.Map):
             metric_list (List[str], optional): list of GeoGraph metrics to be shown.
                 Defaults to None.
             small_screen (bool, optional): whether to reduce the control widget height
-                for better usability on smaller screens.
-            logging_level ([type], optional): python logging level. Defaults to
-                logging.DEBUG.
+                for better usability on smaller screens. Defaults to True.
+            logging_level (str, optional): python logging level. Defaults to
+                "WARNING".
+            max_log_len (int, optional): how many log messages should be displayed in
+                in log tab. Note that a long log may slow down the viewer.
+                Defaults to 20.
+            layer_update_delay (float, optional): how long the viewer should wait
+                before updating layer. Whilst waiting other layer update requests
+                are caught. This reduces the amount of traffic between the client (your
+                browser) and the python kernel. Experimental. Defaults to 0.0.
+
         """
         super().__init__(
             center=center,
@@ -64,6 +76,8 @@ class GeoGraphViewer(ipyleaflet.Map):
         # There seems to be no easy way to add UTM35N to ipyleaflet.Map(), hence WGS84.
         self.gpd_crs_code = WGS84
         self.small_screen = small_screen
+        self.layer_update_delay = layer_update_delay
+
         if metric_list is None:
             self.metrics = metrics.STANDARD_METRICS
         else:
@@ -74,7 +88,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         # Setting log with handler, allows access to log via handler.show_logs()
         self.logger = logging.getLogger(type(self).__name__)
         self.logger.setLevel(logging_level)
-        self.log_handler = widget_utils.OutputWidgetHandler()
+        self.log_handler = widget_utils.OutputWidgetHandler(max_len=max_log_len)
         self.logger.addHandler(self.log_handler)
 
         default_map_layer = ipyleaflet.TileLayer(
@@ -102,6 +116,8 @@ class GeoGraphViewer(ipyleaflet.Map):
             "components",
             "disconnected_nodes",
             "poorly_connected_nodes",
+            "node_dynamics",
+            "node_change",
         ]
 
         # Setting the current view of graph and map as traits. Together with layer_dict
@@ -112,6 +128,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         )
         self.current_graph = ""
         self.current_map = "Map"  # set to the default map added above
+        self.layer_update_requested = False
 
         self.logger.info("Viewer successfully initialised.")
 
@@ -129,6 +146,9 @@ class GeoGraphViewer(ipyleaflet.Map):
             layer_subtype (str): subtype of layer (e.g. "map","components")
             active (bool): whether layer is activate (=visible)
         """
+        self.logger.debug(
+            "Set visibility of %s: %s to %s", layer_name, layer_subtype, active
+        )
         self.layer_dict[layer_type][layer_name][layer_subtype]["active"] = active
 
     def hide_all_layers(self) -> None:
@@ -166,13 +186,22 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.layer_dict["maps"][name] = dict(map=dict(layer=layer, active=True))
         self.layer_update()
 
-    def add_graph(self, graph: geograph.GeoGraph, name: str = "Graph") -> None:
+    def add_graph(
+        self,
+        graph: geograph.GeoGraph,
+        name: str = "Graph",
+        with_components: bool = True,
+    ) -> None:
         """Add GeoGraph to viewer.
 
         Args:
             graph (geograph.GeoGraph): graph to be added
             name (str, optional): name shown in control panel. Defaults to "Graph".
+            with_components(bool, optional): Iff True the graph components are
+                calculated. Warning, this can make the loading of the viewer slow.
+                Defaults to True.
         """
+        self.logger.info("Started adding GeoGraph.")
         if name in graph.habitats.keys():
             raise ValueError(
                 "Name given cannot be same as habitat name in given GeoGraph."
@@ -184,69 +213,101 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         graphs = {name: graph, **graph.habitats}
 
-        for current_name, current_graph in graphs.items():
+        for idx, (current_name, current_graph) in enumerate(graphs.items()):
+            self.logger.info(
+                "Started adding graph %s of %s: %s", idx + 1, len(graphs), current_name
+            )
 
-            nx_graph = current_graph.graph
+            # Calculate patch metrics for current graph
+            current_graph.get_patch_metrics()
             is_habitat = not current_name == name
 
             # Creating layer with geometries representing graph on map
+            self.logger.debug("Creating graph geometries layer (graph_geo_data).")
             nodes, edges = graph_utils.create_node_edge_geometries(
-                nx_graph, crs=current_graph.crs
+                current_graph, crs=self.gpd_crs_code
             )
-            graph_geometries = pd.concat([edges, nodes]).reset_index()
             graph_geo_data = ipyleaflet.GeoData(
-                geo_dataframe=graph_geometries.to_crs(self.gpd_crs_code),
+                geo_dataframe=edges.append(nodes)
+                .to_frame(name="geometry")
+                .reset_index(),
                 name=current_name + "_graph",
                 **self.layer_style["graph"]
             )
 
             # Creating choropleth layer for patch polygons
-            pgon_df = current_graph.df.loc[list(nx_graph)]
-            pgon_choropleth = self._get_choropleth_from_df(pgon_df)
+            self.logger.debug("Creating patch polygons layer (pgon_choropleth).")
+            pgon_choropleth = self._get_choropleth_from_df(
+                current_graph.df, colname="class_label", **self.layer_style["pgons"]
+            )
+
+            # Creating choropleth layer for node identification
+            if "node_dynamic" in current_graph.df.columns:
+                self.logger.debug("Adding node dynamics layer.")
+                dynamics_choropleth = self._get_choropleth_from_df(
+                    graph_utils.map_dynamic_to_int(current_graph.df),
+                    colname="dynamic_class",
+                    **style._NODE_DYNAMICS_STYLE  # pylint: disable=protected-access
+                )
+                abs_growth_choropleth = self._get_choropleth_from_df(
+                    current_graph.df,
+                    colname="absolute_growth",
+                    **style._ABS_GROWTH_STYLE  # pylint: disable=protected-access
+                )
+            else:
+                dynamics_choropleth = None
+                abs_growth_choropleth = None
 
             # Creating layer for graph components
-            component_df = current_graph.get_graph_components(
-                calc_polygons=True
-            ).df.copy()
-            if is_habitat:
-                component_df.geometry = component_df.geometry.buffer(
-                    current_graph.max_travel_distance
+            if with_components:
+                self.logger.debug("Creating components layer (component_choropleth).")
+                component_df = current_graph.get_graph_components(
+                    calc_polygons=True
+                ).df.copy()
+                if is_habitat:
+                    component_df.geometry = component_df.geometry.buffer(
+                        current_graph.max_travel_distance
+                    )
+                component_choropleth = ipyleaflet.GeoData(
+                    geo_dataframe=component_df.to_crs(WGS84),
+                    name=current_name + "_components",
+                    **self.layer_style["components"]
                 )
-            component_choropleth = ipyleaflet.GeoData(
-                geo_dataframe=component_df.to_crs(WGS84),
-                name=current_name + "_components",
-                **self.layer_style["components"]
-            )
+            else:
+                component_choropleth = None
 
             # Creating layer for disconnected (no-edge) nodes
-            disconnected_nx_graph = nx_graph.subgraph(
-                [node for node in nx_graph.nodes() if nx_graph.degree[node] == 0]
+            self.logger.debug(
+                "Creating disconnected node layer (discon_nodes_geo_data)."
             )
-
-            discon_nodes, _ = graph_utils.create_node_edge_geometries(
-                disconnected_nx_graph, crs=current_graph.crs, include_edges=False
-            )
-
+            disconnected = [
+                node
+                for node in current_graph.graph.nodes()
+                if current_graph.graph.degree[node] == 0
+            ]
             discon_nodes_geo_data = ipyleaflet.GeoData(
-                geo_dataframe=discon_nodes.to_crs(self.gpd_crs_code),
+                geo_dataframe=nodes.loc[disconnected].to_frame(name="geometry"),
                 name=current_name + "_disconnected_nodes",
                 **self.layer_style["disconnected_nodes"]
             )
 
             # Creating layer for poorly connected (one-edge) nodes
-            poorly_connected_nx_graph = nx_graph.subgraph(
-                [node for node in nx_graph.nodes() if nx_graph.degree[node] == 1]
+            self.logger.debug(
+                "Creating poorly connected node layer (poorly_con_nodes_geo_data)."
             )
-            poorly_con_nodes, _ = graph_utils.create_node_edge_geometries(
-                poorly_connected_nx_graph, crs=current_graph.crs, include_edges=False
-            )
+            poorly_connected = [
+                node
+                for node in current_graph.graph.nodes()
+                if current_graph.graph.degree[node] == 1
+            ]
             poorly_con_nodes_geo_data = ipyleaflet.GeoData(
-                geo_dataframe=poorly_con_nodes.to_crs(self.gpd_crs_code),
+                geo_dataframe=nodes.loc[poorly_connected].to_frame(name="geometry"),
                 name=current_name + "_poorly_connected_nodes",
                 **self.layer_style["poorly_connected_nodes"]
             )
 
             # Getting graph metrics
+            self.logger.debug("Add graph metrics.")
             graph_metrics = []
             for metric in self.metrics:
                 graph_metrics.append(
@@ -254,6 +315,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                 )  # pylint: disable=protected-access
 
             # Combining all layers and adding them to layer_dict
+            self.logger.debug("Assembling layer dict (layer).")
             layer = dict(
                 is_habitat=is_habitat,
                 graph=dict(layer=graph_geo_data, active=True),
@@ -263,6 +325,8 @@ class GeoGraphViewer(ipyleaflet.Map):
                 poorly_connected_nodes=dict(
                     layer=poorly_con_nodes_geo_data, active=False
                 ),
+                node_dynamics=dict(layer=dynamics_choropleth, active=False),
+                node_change=dict(layer=abs_growth_choropleth, active=False),
                 metrics=graph_metrics,
                 original_graph=current_graph,
             )
@@ -270,40 +334,40 @@ class GeoGraphViewer(ipyleaflet.Map):
                 layer["parent"] = name
 
             self.layer_dict["graphs"][current_name] = layer
+            self.logger.info("Finished adding graph: %s.", current_name)
 
         self.current_graph = name
         self.layer_update()
         self.logger.info("Added graph.")
 
-    def _get_choropleth_from_df(self, df: gpd.GeoDataFrame) -> ipyleaflet.Choropleth:
+    def _get_choropleth_from_df(
+        self, df: gpd.GeoDataFrame, colname: str = "class_label", **choropleth_args
+    ) -> ipyleaflet.Choropleth:
         """Create ipyleaflet.Choropleth from GeoDataFrame of polygons.
 
         Args:
             df (gpd.GeoDataFrame): dataframe to visualise
+            colname (str): name of the column to display as choropleth data
+            **choropleth_args: Keywordarguments passed to `ipyleaflet.Choropleth`.
 
         Returns:
             ipyleaflet.Choropleth: choropleth layer
         """
-        df["area_in_m2"] = df.area
-        df = df.to_crs(WGS84)
-        geo_data = df.__geo_interface__
+        geo_data = df.to_crs(WGS84).__geo_interface__  # ipyleaflet works with WGS84
+        if pd.api.types.is_numeric_dtype(df[colname]):
+            # for numeric types, display the numeric data directly
+            choro_data = {str(key): val for key, val in df[colname].items()}
+        else:
+            # for categorical types, convert to numbers and display those
+            col_as_categories = df[colname].astype("category").cat.codes
+            choro_data = {str(key): val for key, val in col_as_categories.items()}
 
-        # This fix is needed because ipyleaflet.choropleth can't reach individual
-        # properties for key
-        for feature in geo_data["features"]:
-            feature["class_label"] = feature["properties"]["class_label"]
-
-        unique_classes = list(df.class_label.unique())
-        choro_data = dict(zip(unique_classes, range(len(unique_classes))))
-
-        choropleth = ipyleaflet.Choropleth(
-            geo_data=geo_data,
-            choro_data=choro_data,
-            key_on="class_label",
-            **self.layer_style["pgons"]
+        # create ipyleaflet layer
+        choropleth_layer = ipyleaflet.Choropleth(
+            geo_data=geo_data, choro_data=choro_data, **choropleth_args
         )
 
-        return choropleth
+        return choropleth_layer
 
     def layer_update(self) -> None:
         """Update `self.layer` tuple from `self.layer_dict`."""
@@ -319,6 +383,37 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         self.layers = tuple(layers)
         self.logger.debug("layer_update() called.")
+
+    def request_layer_update(self):
+        """Request layer_update to be called.
+
+        After receiving the first request the viewer waits for a set time, and then
+        executes its layer_update method. If new requests come in whilst this time
+        is passing no further action is taken. This helps avoid calling layer_update
+        for each button in control widgets separately, slowing down the viewer.
+        """
+
+        if self.layer_update_delay > 0:
+            self.logger.debug("Layer update requested.")
+
+            if not self.layer_update_requested:
+                self.layer_update_requested = True
+
+                def wait_and_update(viewer):
+                    time.sleep(self.layer_update_delay)
+                    viewer.layer_update()
+                    viewer.layer_update_requested = False
+                    viewer.logger.debug("Layer update request executed.")
+
+                thread = threading.Thread(
+                    target=wait_and_update,
+                    args=(self,),
+                )
+                thread.start()
+            else:
+                pass
+        else:
+            self.layer_update()
 
     def set_graph_style(self, radius: float = 10, node_color: str = None) -> None:
         """Set the style of any graphs added to viewer.
@@ -417,5 +512,5 @@ class FoliumGeoGraphViewer:
             graph (geograph.GeoGraph): GeoGraph to be added
         """
         self.widget = folium_utils.add_graph_to_folium_map(
-            folium_map=self.widget, graph=graph.graph
+            folium_map=self.widget, graph=graph
         )

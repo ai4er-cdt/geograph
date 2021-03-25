@@ -6,17 +6,17 @@ from typing import Callable, List, Optional, Tuple
 
 import folium
 import geopandas as gpd
-import networkx as nx
 
 from src.constants import CHERNOBYL_COORDS_WGS84, UTM35N
 from src.visualisation import graph_utils
+from src import geograph
 
 
 def add_graph_to_folium_map(
     folium_map: folium.Map = None,
     polygon_gdf: gpd.GeoDataFrame = None,
     color_column: str = "index",
-    graph: Optional[nx.Graph] = None,
+    graph: Optional[geograph.GeoGraph] = None,
     name: str = "data",
     folium_tile_list: Optional[List[str]] = None,
     location: Tuple[float, float] = CHERNOBYL_COORDS_WGS84,
@@ -36,7 +36,8 @@ def add_graph_to_folium_map(
             Defaults to None.
         color_column (str, optional): column in polygon_gdf that determines which color
             is given to each polygon. Can be categorical values. Defaults to "index".
-        graph (Optional[nx.Graph], optional): graph to be plotted. Defaults to None.
+        graph (Optional[geograph.GeoGraph], optional): graph to be plotted.
+            Defaults to None.
         name (str, optional): prefix to all the folium layer names shown in layer
             control of map (if added). Defaults to "data".
         folium_tile_list (Optional[List[str]], optional): list of folium.Map tiles to be
