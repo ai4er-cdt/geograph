@@ -27,9 +27,9 @@ class OutputWidgetHandler(logging.Handler):
     https://ipywidgets.readthedocs.io/en/latest/examples/Output%20Widget.html
     """
 
-    def __init__(self, *args, max_length=100, **kwargs):
+    def __init__(self, *args, max_len=30, **kwargs):
         super().__init__(*args, **kwargs)
-        self.max_length = max_length
+        self.max_len = max_len
         layout = {
             "width": "100%",
             "border": "1px solid black",
@@ -48,9 +48,10 @@ class OutputWidgetHandler(logging.Handler):
             "output_type": "stream",
             "text": formatted_record + "\n",
         }
-        self.out.outputs = self.out.outputs + (new_output,)
-        if len(self.out.outputs) > self.max_length:
-            self.out.outputs = self.out.outputs[-self.max_length :]
+        if len(self.out.outputs) > self.max_len:
+            self.out.outputs = self.out.outputs[1:] + (new_output,)
+        else:
+            self.out.outputs = self.out.outputs + (new_output,)
 
     def show_logs(self):
         """ Show the logs """
