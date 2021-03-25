@@ -10,6 +10,8 @@ import ipyleaflet
 import ipywidgets as widgets
 import pandas as pd
 import traitlets
+import time
+import threading
 
 from src import geograph, metrics
 from src.constants import CHERNOBYL_COORDS_WGS84, WGS84
@@ -112,6 +114,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         )
         self.current_graph = ""
         self.current_map = "Map"  # set to the default map added above
+        self.layer_update_requested = False
 
         self.logger.info("Viewer successfully initialised.")
 
@@ -346,6 +349,34 @@ class GeoGraphViewer(ipyleaflet.Map):
 
         self.layers = tuple(layers)
         self.logger.debug("layer_update() called.")
+
+    def request_layer_update(self):
+        """Request layer_update to be called.
+
+        After receiving the first request the viewer waits for a set time, and then
+        executes its layer_update method. If new requests come in whilst this time
+        is passing no further action is taken. This helps avoid calling layer_update
+        for each button in control widgets separately, slowing down the viewer.
+        """
+
+        self.logger.debug("Layer update requested.")
+
+        if not self.layer_update_requested:
+            self.layer_update_requested = True
+
+            def wait_and_update(viewer):
+                time.sleep(0.005)
+                viewer.layer_update()
+                viewer.layer_update_requested = False
+                viewer.logger.debug("Layer update request executed.")
+
+            thread = threading.Thread(
+                target=wait_and_update,
+                args=(self,),
+            )
+            thread.start()
+        else:
+            pass
 
     def set_graph_style(self, radius: float = 10, node_color: str = None) -> None:
         """Set the style of any graphs added to viewer.

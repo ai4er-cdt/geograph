@@ -356,7 +356,7 @@ class LayerButtonWidget(widgets.ToggleButton):
                 self.viewer.set_layer_visibility(
                     owner.layer_type, owner.layer_name, owner.layer_subtype, active
                 )
-                self.viewer.layer_update()
+                self.viewer.request_layer_update()
 
             # Accessed if layer that the button is assigned to was changed
             elif change.name == "layer_name":
@@ -375,7 +375,7 @@ class LayerButtonWidget(widgets.ToggleButton):
                 self._check_layer_exists()
                 # Note: there is a potential for speed improvement by not updating map
                 # layers for each button separately, as is done here.
-                self.viewer.layer_update()
+                self.viewer.request_layer_update()
         except:  # pylint: disable=bare-except
             self.logger.exception(
                 "Exception in LayerButtonWidget callback on button click or change."
