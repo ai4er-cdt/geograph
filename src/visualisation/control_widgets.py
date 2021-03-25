@@ -226,8 +226,8 @@ class RadioVisibilityWidget(BaseControlWidget):
             viewer=self.viewer,
         )
         node_change_btn = LayerButtonWidget(
-            description="Show node change",
-            tooltip="View poorly connected patches (patches with single edge)",
+            description="Show node growth",
+            tooltip="View node absolute growth. See hover widget for patch values.",
             icon="exclamation-circle",
             layer_type="graphs",
             layer_subtype="node_change",
