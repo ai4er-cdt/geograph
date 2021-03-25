@@ -15,7 +15,6 @@ PROJECT_PATH = pathlib.Path(os.path.dirname(SRC_PATH))
 # Coordinate reference systems (crs)
 WGS84 = "EPSG:4326"  # WGS84 standard crs (latitude, longitude)
 UTM35N = "EPSG:32635"  # https://epsg.io/32635 - preferred crs for chernobyl region
-UCS2000_TM10 = "EPSG:6384"  # https://epsg.io/6384 - reference system for ukraine
 
 # Coordinates
 CHERNOBYL_COORDS_WGS84 = (
