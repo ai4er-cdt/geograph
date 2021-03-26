@@ -1,3 +1,3 @@
 # Source code folder
 
-# TODO: Documentation
+This folder contains the GeoGraph package.
