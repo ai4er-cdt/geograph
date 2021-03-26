@@ -6,7 +6,7 @@ How to get started with the GeoGraph package.
 Installation
 --------------
 
-You can install geograph via pip using
+You can install GeoGraph via pip using
 
 .. code-block:: shell
 
@@ -51,7 +51,7 @@ Additional Examples
 -------------------
 
 See the `jupyter notebooks in our repository`_ for more advanced examples of using GeoGraph.
-You can also run them without installing GeoGraph, by using binder with `this link`_.
+You can also run them just in your browser without installing anything locally, by using binder with `this link`_.
 
 .. _jupyter notebooks in our repository: https://github.com/ai4er-cdt/gtc-biodiversity/tree/main/notebooks
 .. _this link: https://mybinder.org/v2/gh/ai4er-cdt/gtc-biodiversity/main?urlpath=lab%2Ftree%2Fnotebooks
