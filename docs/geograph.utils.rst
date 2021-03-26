@@ -1,31 +1,31 @@
-src.utils package
+geograph.utils package
 =================
 
 Submodules
 ----------
 
-src.utils.geopandas\_utils module
+geograph.utils.geopandas\_utils module
 ---------------------------------
 
-.. automodule:: src.utils.geopandas_utils
+.. automodule:: geograph.utils.geopandas_utils
    :members:
    :undoc-members:
    :show-inheritance:
    :special-members: __init__
 
-src.utils.polygon\_utils module
+geograph.utils.polygon\_utils module
 -------------------------------
 
-.. automodule:: src.utils.polygon_utils
+.. automodule:: geograph.utils.polygon_utils
    :members:
    :undoc-members:
    :show-inheritance:
    :special-members: __init__
 
-src.utils.rasterio\_utils module
+geograph.utils.rasterio\_utils module
 --------------------------------
 
-.. automodule:: src.utils.rasterio_utils
+.. automodule:: geograph.utils.rasterio_utils
    :members:
    :undoc-members:
    :show-inheritance:
@@ -34,7 +34,7 @@ src.utils.rasterio\_utils module
 Module contents
 ---------------
 
-.. automodule:: src.utils
+.. automodule:: geograph.utils
    :members:
    :undoc-members:
    :show-inheritance:

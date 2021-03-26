@@ -15,31 +15,25 @@ _Created as part of the AI4ER Group Team Challenge 2021 by the Biodiversity Team
 
 __Table of contents:__
 1. Features
-1. Getting started
+1. Installation
 1. Requirements
 1. Documentation
-1. Project structure
 
 ## 1. Features
 
 GeoGraph provides a full-stack tool for analysing habitat fragmentation, and other related problems. It includes models to predict land cover classes, a method to extract graph structure from the resulting land cover maps and an extensive range of visualisation and analysis tools.
 
-## 2. Getting started
+## 2. Installation
 
-Clone this repository using
-
-```
-git clone https://github.com/ai4er-cdt/gtc-biodiversity.git
-```
-
-Enter the directory and install the conda environment using
+GeoGraph is available via pip, so you can install it using
 
 ```
-cd gtc-biodiversity
-make env
+pip install geograph
 ```
 
 Done, you're ready to go!
+
+See the [documentation](https://geograph.readthedocs.io/) for a full getting started guide.
 
 ## 3. Requirements
 
