@@ -18,7 +18,6 @@ __Table of contents:__
 1. Installation
 1. Requirements
 1. Documentation
-1. Project structure
 
 ## 1. Features
 
