@@ -23,7 +23,7 @@ Given a variable ``data`` that is one of
 - a numpy array containing raster data,
 - a dataframe containing polygons,
 
-you can create a `GeoGraph` using
+you can create a ``GeoGraph`` using
 
 .. code-block:: python
 
@@ -51,8 +51,7 @@ Additional Examples
 -------------------
 
 See the `jupyter notebooks in our repository`_ for more advanced examples of using GeoGraph.
-You can also run them without installing GeoGraph via binder by
-following `this link`_.
+You can also run them without installing GeoGraph, by using binder with `this link`_.
 
 .. _jupyter notebooks in our repository: https://github.com/ai4er-cdt/gtc-biodiversity/tree/main/notebooks
 .. _this link: https://mybinder.org/v2/gh/ai4er-cdt/gtc-biodiversity/main?urlpath=lab%2Ftree%2Fnotebooks
