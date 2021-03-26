@@ -4,7 +4,7 @@ Getting Started
 How to get started with the GeoGraph package.
 
 Installation
-------------
+--------------
 
 You can install geograph via pip using
 

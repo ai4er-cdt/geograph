@@ -55,7 +55,7 @@ Polygon Data Visualisation
 
    self
    getting_started
-   src
+   geograph
    about
 
 

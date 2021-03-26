@@ -1,5 +1,5 @@
 GeoGraph API Reference
-===========
+======================
 
 Subpackages
 -----------
@@ -7,52 +7,52 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   src.utils
-   src.visualisation
+   geograph.utils
+   geograph.visualisation
 
 Submodules
 ----------
 
-src.binary\_graph\_operations module
-------------------------------------
+geograph.binary\_graph\_operations module
+-----------------------------------------
 
-.. automodule:: src.binary_graph_operations
+.. automodule:: geograph.binary_graph_operations
    :members:
    :undoc-members:
    :show-inheritance:
    :special-members: __init__
 
-src.constants module
---------------------
+geograph.constants module
+-------------------------
 
-.. automodule:: src.constants
+.. automodule:: geograph.constants
    :members:
    :undoc-members:
    :show-inheritance:
    :special-members: __init__
 
-src.geograph module
--------------------
+geograph.geograph module
+------------------------
 
-.. automodule:: src.geograph
+.. automodule:: geograph.geograph
    :members:
    :undoc-members:
    :show-inheritance:
    :special-members: __init__
 
-src.geotimeline module
-----------------------
+geograph.geotimeline module
+---------------------------
 
-.. automodule:: src.geotimeline
+.. automodule:: geograph.geotimeline
    :members:
    :undoc-members:
    :show-inheritance:
    :special-members: __init__
 
-src.metrics module
-------------------
+geograph.metrics module
+-----------------------
 
-.. automodule:: src.metrics
+.. automodule:: geograph.metrics
    :members:
    :undoc-members:
    :show-inheritance:
@@ -61,7 +61,7 @@ src.metrics module
 Module contents
 ---------------
 
-.. automodule:: src
+.. automodule:: geograph
    :members:
    :undoc-members:
    :show-inheritance:
