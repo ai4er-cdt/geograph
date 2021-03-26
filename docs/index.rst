@@ -14,7 +14,7 @@ The Python package GeoGraph is built around the idea of geospatially
 referenced graph - a *GeoGraph*. Given either raster
 or polygon data as input, a GeoGraph is constructed by assigning each
 separate patch a graph node. In a second step, edges are added between nodes whenever the
-patches corresponding to two nodes are within a use-specificed distance. Based on this basic idea
+patches corresponding to two nodes are within a user-specificed distance. Based on this basic idea,
 the GeoGraph package provides a wide range of visualisation and analysis tools.
 
 What can it be used for?
@@ -34,7 +34,12 @@ Landscape Ecology
       1. Recommend conservation areas
       2. Flag areas at potential risk of fragmentation
 
-All Polygon Data
+   *Temporal Analysis*
+      The graph-based nature of the GeoGraph package allows us to track individual
+      patches over time, and use this information for detailed temporal analysis of
+      habitats.
+
+Polygon Data Visualisation
    Whilst our primary use-cases are in landscape ecology, this package can be used
    to investigate any kind of polygon data files, including ``.shp`` shape files.
    The :class:`GeoGraphViewer` allows for the data can be interactively viewed.
