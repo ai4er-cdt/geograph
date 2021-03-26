@@ -7,11 +7,11 @@ import geopandas as gpd
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import Polygon
 
-import src.utils.geopandas_utils as gpd_utils
-from src.utils.polygon_utils import EMPTY_POLYGON, collapse_empty_polygon
+import geograph.utils.geopandas_utils as gpd_utils
+from geograph.utils.polygon_utils import EMPTY_POLYGON, collapse_empty_polygon
 
 if TYPE_CHECKING:
-    from src import geograph
+    import geograph
 
 
 class NodeMap:

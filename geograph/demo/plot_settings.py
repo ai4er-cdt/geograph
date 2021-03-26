@@ -4,7 +4,7 @@ plot_settings.py
 
 usage:
 
-from src.plot_settings import (
+from geograph.plot_settings import (
     ps_defaults,
     label_subplots,
     get_dim,

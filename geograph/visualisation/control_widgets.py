@@ -7,8 +7,7 @@ from typing import Dict, Optional
 
 import ipywidgets as widgets
 import traitlets
-
-from src.visualisation import geoviewer, widget_utils
+from geograph.visualisation import geoviewer, widget_utils
 
 
 class BaseControlWidget(widgets.Box):
@@ -56,19 +55,18 @@ class GraphControlWidget(BaseControlWidget):
         viewer_height = int(viewer.layout.height.replace("px", ""))
         metrics_widget.layout.height = "{}px".format(viewer_height * 0.3)
 
+        if self.viewer.small_screen:
+            view_tab = [visibility_widget]
+        else:
+            view_tab = [visibility_widget, widget_utils.HRULE, metrics_widget]
+
         # Create combined widget, each key corresponds to a tab
-        combined_widget_dict = dict(
-            View=widgets.VBox(
-                [
-                    visibility_widget,
-                    widget_utils.HRULE,
-                    metrics_widget,
-                ]
-            ),
-            # Timeline=TimelineWidget(viewer=self.viewer), # currently only placeholder
-            Settings=settings_widget,
-            Log=self.log_handler.out,
-        )
+        combined_widget_dict = dict()
+        combined_widget_dict["View"] = widgets.VBox(view_tab)
+        if self.viewer.small_screen:
+            combined_widget_dict["Metrics"] = metrics_widget
+        combined_widget_dict["Settings"] = settings_widget
+        combined_widget_dict["Log"] = self.log_handler.out
 
         combined_widget = widgets.Tab()
         combined_widget.children = list(combined_widget_dict.values())
@@ -218,6 +216,23 @@ class RadioVisibilityWidget(BaseControlWidget):
             layer_subtype="poorly_connected_nodes",
             viewer=self.viewer,
         )
+        node_dynamics_btn = LayerButtonWidget(
+            description="Show node dynamics",
+            tooltip="Show node dynamics.",
+            icon="exclamation-circle",
+            layer_type="graphs",
+            layer_subtype="node_dynamics",
+            viewer=self.viewer,
+        )
+        node_change_btn = LayerButtonWidget(
+            description="Show node growth",
+            tooltip="View node absolute growth. See hover widget for patch values.",
+            icon="exclamation-circle",
+            layer_type="graphs",
+            layer_subtype="node_change",
+            viewer=self.viewer,
+        )
+
         view_graph_btn.value = True
         view_pgon_btn.value = True
         view_map_btn.value = True
@@ -233,12 +248,14 @@ class RadioVisibilityWidget(BaseControlWidget):
             [
                 widget_utils.create_html_header("Main", level=2),
                 widgets.HBox([view_graph_btn, view_pgon_btn, view_map_btn]),
-                widget_utils.create_html_header("Additional", level=2),
+                widget_utils.create_html_header("Insights", level=2),
                 widgets.VBox(
                     [
                         view_components_btn,
                         view_disconnected_nodes_btn,
                         view_poorly_con_nodes_btn,
+                        node_dynamics_btn,
+                        node_change_btn,
                     ]
                 ),
             ]
@@ -316,6 +333,7 @@ class LayerButtonWidget(widgets.ToggleButton):
                 widgets.dlink((self.viewer, "current_graph"), (self, "layer_name"))
 
         self.observe(self._handle_view, names=["value", "layer_name"])
+        self._check_layer_exists()
 
         self.logger.info("Initialised.")
 
@@ -337,7 +355,7 @@ class LayerButtonWidget(widgets.ToggleButton):
                 self.viewer.set_layer_visibility(
                     owner.layer_type, owner.layer_name, owner.layer_subtype, active
                 )
-                self.viewer.layer_update()
+                self.viewer.request_layer_update()
 
             # Accessed if layer that the button is assigned to was changed
             elif change.name == "layer_name":
@@ -352,12 +370,37 @@ class LayerButtonWidget(widgets.ToggleButton):
                 self.viewer.set_layer_visibility(
                     owner.layer_type, new_layer_name, owner.layer_subtype, owner.value
                 )
+
+                self._check_layer_exists()
                 # Note: there is a potential for speed improvement by not updating map
                 # layers for each button separately, as is done here.
-                self.viewer.layer_update()
+                self.viewer.request_layer_update()
         except:  # pylint: disable=bare-except
             self.logger.exception(
                 "Exception in LayerButtonWidget callback on button click or change."
+            )
+
+    def _check_layer_exists(self) -> None:
+        """Check if layer exists and hide button if it doesn't."""
+        layer_exists = (
+            self.viewer.layer_dict[self.layer_type][self.layer_name][
+                self.layer_subtype
+            ]["layer"]
+            is not None
+        )
+        # hide button if layer doesn't exist
+        if layer_exists:
+            self.layout.display = "block"
+        else:
+            self.layout.display = "none"
+            self.logger.debug(
+                (
+                    "LayerButtonWidget hidden for %s of %s. "
+                    "(type: %s). Layer doesn't exist."
+                ),
+                self.layer_subtype,
+                self.layer_name,
+                self.layer_type,
             )
 
 
@@ -748,6 +791,16 @@ class HoverWidget(BaseControlWidget):
             pgon_choropleth = graph_dict["pgons"]["layer"]
             pgon_choropleth.on_hover(self._hover_callback)
 
+            # Enable hover for node dynamics
+            node_dynamics_choropleth = graph_dict["node_dynamics"]["layer"]
+            if node_dynamics_choropleth is not None:
+                node_dynamics_choropleth.on_hover(self._hover_callback)
+
+            # Enable hover for node absolute growth (change)
+            abs_growth_choropleth = graph_dict["node_change"]["layer"]
+            if abs_growth_choropleth is not None:
+                abs_growth_choropleth.on_hover(self._hover_callback)
+
         return widgets.VBox([self.hover_html])
 
     def _hover_callback(self, feature, **kwargs):  # pylint: disable=unused-argument
@@ -758,12 +811,25 @@ class HoverWidget(BaseControlWidget):
                 "Current Patch"
             ).value + """</br>
                 <b>Class label:</b> {}</br>
-
-                <b>Area:</b> {:.2f} m^2
+                <b>Area:</b> {:.2f} ha</br>
+                <b>Perimeter:</b> {:.2f} km</br>
+                <b>Shape index:</b> {:.2f}</br>
+                <b>Fractal dim.:</b> {:.2f}
             """.format(
                 feature["properties"]["class_label"],
-                feature["properties"]["area_in_m2"],
+                feature["properties"]["area"] / 1e4,
+                feature["properties"]["perimeter"] / 1e3,
+                feature["properties"]["shape_index"],
+                feature["properties"]["fractal_dimension"],
             )
+            if "node_dynamic" in feature["properties"].keys():
+                new_value += "</br><b>Node dyanmic:</b> {}".format(
+                    feature["properties"]["node_dynamic"]
+                )
+            if "absolute_growth" in feature["properties"].keys():
+                new_value += "</br><b>Abs. growth:</b> {:.2f} ha/yr".format(
+                    feature["properties"]["absolute_growth"] / 1e4
+                )
             self.hover_html.value = new_value
         except:  # pylint: disable=bare-except
             self.logger.exception("Exception in hover callback.")
