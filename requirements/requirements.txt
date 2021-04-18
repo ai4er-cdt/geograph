@@ -12,7 +12,7 @@ folium              # plotting maps
 ipyleaflet          # plotting ipywidget maps
 
 # interactive computing
-tqdm                # progress bars 
+tqdm                # progress bars
 
 # geospatial analysis requirements
 #  vector data
@@ -20,9 +20,8 @@ geopandas           # manipulating geospatial vector data
 shapely             # working with vector shapes
 rtree               # efficiently querying polygon data
 #  raster data
-rasterio            # opening and loading raster data
+rasterio==1.1.8     # opening and loading raster data
 xarray              # useful data structures
-
 
 # graph requirements
 networkx            # manipulating graph data

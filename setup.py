@@ -35,7 +35,7 @@ REQUIRED: List = [
     "geopandas",
     "shapely",
     "rtree",
-    "rasterio",
+    "rasterio==1.1.8",
     "xarray",
     "networkx",
 ]
