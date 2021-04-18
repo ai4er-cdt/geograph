@@ -1,8 +1,4 @@
-"""
-This file is used to save all project wide constants such as the path of the
-source folder, the project path, etc.
-"""
-
+"""All project wide constants are saved in this module."""
 # Place all your constants here
 import os
 import pathlib

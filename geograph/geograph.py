@@ -192,7 +192,7 @@ class GeoGraph:
 
     @property
     def bounds(self):
-        """Return bounds of entire graph"""
+        """Return bounds of entire graph."""
         return self.df.sindex.bounds
 
     @property
@@ -205,7 +205,7 @@ class GeoGraph:
 
     @property
     def classes(self) -> np.ndarray:
-        """Return a list of the sorted, unique class labels in the graph"""
+        """Return a list of the sorted, unique class labels in the graph."""
         return np.unique(self.df["class_label"].values)
 
     @property
@@ -528,6 +528,28 @@ class GeoGraph:
         if not set(class_list).issubset(self.df["class_label"].unique()):
             raise ValueError("`class_list` must only contain valid class names.")
         self.df.loc[self.df["class_label"].isin(class_list), "class_label"] = new_name
+        # Get set of indices of nodes for the new class
+        node_set = set(
+            self.df.loc[
+                self.df["class_label"].isin(class_list), "class_label"
+            ].index.tolist()
+        )
+        merged_neighbours = set()
+        for node in node_set:
+            # Skip iteration if node has already been merged
+            if node in merged_neighbours:
+                continue
+            nodes_to_merge = []
+            # Get list of neighbours of node, and append them to the merge list
+            # if they have the label of the new class
+            neighbours = self.graph[node]
+            for neighbour in neighbours:
+                if neighbour in node_set:
+                    nodes_to_merge.append(neighbour)
+            # Merge nodes with neighbours where both have the label of the new
+            # class. Crucially, we assign the merged node an index in `node_set`.
+            self.merge_nodes(nodes_to_merge, class_label=new_name, final_index=node)
+            merged_neighbours.update(nodes_to_merge)
 
     def add_habitat(
         self,
@@ -716,7 +738,7 @@ class GeoGraph:
         return comp_geograph
 
     def get_metric(
-        self, name: str, class_value: Optional[int] = None, **metric_kwargs
+        self, name: str, class_value: Union[int, str] = None, **metric_kwargs
     ) -> metrics.Metric:
         """
         Calculate and save the metric with name `name` for the current GeoGraph.
@@ -759,7 +781,7 @@ class GeoGraph:
     def get_class_metrics(
         self,
         names: Optional[Union[str, Sequence[str]]] = None,
-        classes: Optional[Union[str, Sequence[int], np.ndarray]] = None,
+        classes: Optional[Union[str, Sequence[Union[str, int]], np.ndarray]] = None,
         **metric_kwargs,
     ) -> pd.DataFrame:
         """
@@ -786,7 +808,7 @@ class GeoGraph:
             names = [names]
         if classes is None:
             classes = self.classes
-        elif isinstance(classes, int):
+        elif isinstance(classes, (str, int)):
             classes = [classes]
 
         # Create metrics id not yet present
