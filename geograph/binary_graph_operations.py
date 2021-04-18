@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class NodeMap:
-    """Class to store node mappings between two graphs (the src_graph and trg_graph)"""
+    """Class to store node mappings between two graphs (the src_graph and trg_graph)."""
 
     def __init__(
         self,
@@ -24,7 +24,7 @@ class NodeMap:
         mapping: Dict[int, List[int]],
     ) -> None:
         """
-        Class to store node mappings between two graphs (`trg_graph` and `src_graph`)
+        Class to store node mappings between two graphs (`trg_graph` and `src_graph`).
 
         This class stores a dictionary of node one-to-many relationships of nodes from
         `src_graph` to `trg_graph`. It also provides support for convenient methods for
@@ -45,27 +45,27 @@ class NodeMap:
 
     @property
     def src_graph(self) -> geograph.GeoGraph:
-        """Keys in the mapping dict correspond to node indices in the `src_graph`"""
+        """Keys in the mapping dict correspond to node indices in the `src_graph`."""
         return self._src_graph
 
     @property
     def trg_graph(self) -> geograph.GeoGraph:
-        """Values in the mapping dict correspond to node indices in the `trg_graph`"""
+        """Values in the mapping dict correspond to node indices in the `trg_graph`."""
         return self._trg_graph
 
     @property
     def mapping(self) -> Dict[int, List[int]]:
-        """
-        Look-up table connecting node indices from `src_graph` to those of `trg_graph`.
-        """
+        """Look-up table connecting node indices from `src_graph` to `trg_graph`."""
         return self._mapping
 
     def __invert__(self) -> NodeMap:
-        """Compute the inverse NodeMap"""
+        """Compute the inverse NodeMap."""
         return self.invert()
 
-    def __eq__(self, other: NodeMap) -> bool:
-        """Check two NodeMaps for equality"""
+    def __eq__(self, other: object) -> bool:
+        """Check two NodeMaps for equality."""
+        if not isinstance(other, NodeMap):
+            return False
         return (
             self.src_graph == other.src_graph
             and self.trg_graph == other.trg_graph
@@ -73,8 +73,8 @@ class NodeMap:
         )
 
     def invert(self) -> NodeMap:
-        """Compute the inverse NodeMap from `trg_graph` to `src_graph`"""
-        inverted_mapping = {index: [] for index in self.trg_graph.df.index}
+        """Compute the inverse NodeMap from `trg_graph` to `src_graph`."""
+        inverted_mapping: Dict = {index: [] for index in self.trg_graph.df.index}
 
         for src_node in self.src_graph.df.index:
             for trg_node in self.mapping[src_node]:
@@ -117,7 +117,7 @@ def identify_graphs(
     graph1: geograph.GeoGraph, graph2: geograph.GeoGraph, mode: str
 ) -> NodeMap:
     """
-    Idenitfy all nodes from `graph1` with nodes from `graph2` based on the given `mode`
+    Idenitfy all nodes from `graph1` with nodes from `graph2` based on the given `mode`.
 
     Args:
         graph1 (GeoGraph): The GeoGraph whose node indicies will form the domain
@@ -143,8 +143,7 @@ def identify_graphs(
 
 def graph_polygon_diff(node_map: NodeMap) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """
-    Return the (multi)polygon areas that were added/removed when going
-    from `src_graph` to `trg_graph`.
+    Return the polygons that were added/removed going from `src_graph` to `trg_graph`.
 
     Args:
         node_map (NodeMap): The node map from `src_graph` to `trg_graph`
@@ -193,7 +192,6 @@ def node_polygon_diff(
         Tuple[BaseGeometry, BaseGeometry]: Added part and removed part as shapely
             BaseGeometry objects.
     """
-
     src_polygon: Polygon = node_map.src_graph.df.geometry.loc[src_node_id]
     trg_node_ids: List[int] = node_map.mapping[src_node_id]
 
