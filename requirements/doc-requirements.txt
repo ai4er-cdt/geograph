@@ -76,3 +76,4 @@ hydra-core
 #docs
 sphinx
 sphinx-autodoc-typehints
+nbsphinx
