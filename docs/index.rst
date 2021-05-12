@@ -55,9 +55,9 @@ Polygon Data Visualisation
 
    self
    getting_started
+   tutorials
    geograph
    about
-   ../notebooks/1-demo-landscape-metrics-comparison-to-pylandstats
 
 
 Indices and tables
