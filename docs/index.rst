@@ -54,7 +54,7 @@ Polygon Data Visualisation
    :caption: Contents:
 
    self
-   getting_started
+   installation
    tutorials
    geograph
    about
