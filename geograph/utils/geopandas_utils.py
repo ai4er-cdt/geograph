@@ -3,6 +3,7 @@ from typing import Dict, List
 
 import geopandas as gpd
 import networkx as nx
+import tqdm
 from geograph.utils.polygon_utils import (
     connect_with_interior_bulk,
     connect_with_interior_or_edge_bulk,
@@ -90,7 +91,8 @@ def identify_dfs(
     assert df1.crs == df2.crs, "CRS systems do not agree."
     mapping = {index1: [] for index1 in df1.index}
 
-    for index in df1.index:  # TODO: Speed up & enable trivial parallelisation
+    progress_bar = tqdm.tqdm(df1.index, desc="Identifying nodes")
+    for index in progress_bar:  # TODO: Speed up & enable trivial parallelisation
         mapping[index] = identify_node(df1.loc[index], df2, mode=mode)
 
     return mapping
