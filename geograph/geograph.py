@@ -569,10 +569,25 @@ class GeoGraph:
         are not in the resulting habitat graph. This graph is then stored as its
         own HabitatGeoGraph object with all meta information.
 
+        The optional argument `barrier_classes` allows for a list of class labels
+        which block the path between two nodes in `valid_classes`. The pathfinding
+        code will not add an edge between them if the barrier class node in the
+        middle *completely* blocks the path, which is rare.
+
+        Warning: In a large dataset, passing values to `barrier_classes` will often
+        make this function significantly slower, up to an order of magnitude.
+
         Args:
             name (str): The name of the habitat.
             valid_classes (List): A list of class labels which make up the habitat.
-            barrier_classes (List): Defaults to None.
+            barrier_classes (List): A list of class labels which are barrier classes.
+                The program will check if there are any nodes with a barrier class
+                label completely blocking the path between two nodes less than
+                `max_travel_distance` apart, and if so the edge will not be added.
+                Note that this is only applicable in rare cases - in many instances
+                the path will not be completely blocked and therefore the result
+                will be the same as if there were no barrier classes.
+                Defaults to None.
             max_travel_distance (float): The maximum distance the animal(s) in
                 the habitat can travel through non-habitat areas. The habitat graph
                 will contain edges between any two nodes that have a class label in
@@ -613,41 +628,86 @@ class GeoGraph:
         # np.where is very fast here and gets the iloc based indexes
         # Combining it with the set comprehension reduces time by an order of
         # magnitude compared to `set(self.df.loc[])`
-        valid_class_indices = np.isin(self.class_label, valid_classes)
-        invalid_idx = {idx_dict[i] for i in np.where(~valid_class_indices)[0]}
+        valid_class_bool = np.isin(self.class_label, valid_classes)
+        invalid_idx = {idx_dict[i] for i in np.where(~valid_class_bool)[0]}
         hgraph.remove_nodes_from(invalid_idx)
-
+        # get list of barrier node indices (iloc)
+        barrier_indices = set(np.where(np.isin(self.class_label, barrier_classes))[0])
         for node in tqdm(
             hgraph.nodes, desc="Generating habitat graph", total=len(hgraph)
         ):
             polygon = polygons[node]
             if max_travel_distance > 0:
                 buff_poly_bounds = buff_polygons[node].bounds
-                buff_poly = prep(buff_polygons[node])
+                if len(barrier_classes) == 0:
+                    buff_poly = prep(buff_polygons[node])
+                else:
+                    buff_poly = buff_polygons[node]
             else:
                 buff_poly_bounds = polygon.bounds
-                buff_poly = prep(polygon)
+                if len(barrier_classes) == 0:
+                    buff_poly = prep(polygon)
+                else:
+                    buff_poly = polygon
             # Query rtree for all polygons within `max_travel_distance` of the original
-            for nbr in self.rtree.intersection(buff_poly_bounds):
-                # Necessary to correct for the rtree returning iloc indexes
-                nbr = idx_dict[nbr]
-                # If a node is not a habitat class node, don't add the edge
-                if nbr == node or nbr in invalid_idx:
+            nbrs = set(self.rtree.intersection(buff_poly_bounds))
+            barrier_nbrs = {idx_dict[nbr] for nbr in barrier_indices.intersection(nbrs)}
+            barriers_exist = len(barrier_nbrs) > 0
+            # Necessary to correct for the rtree returning iloc indexes
+            nbrs = {idx_dict[nbr] for nbr in nbrs}
+            for nbr in nbrs:
+                # If a node is not a habitat class node or is a barrier class node,
+                # don't add the edge
+                if nbr == node or nbr in barrier_nbrs or nbr in invalid_idx:
                     continue
                 # Otherwise add the edge with distance attribute
                 nbr_polygon = polygons[nbr]
                 if not hgraph.has_edge(node, nbr) and buff_poly.intersects(nbr_polygon):
-                    if add_distance:
-                        if max_travel_distance == 0:
-                            dist = 0.0
+                    add_edge = True
+                    if barriers_exist:
+                        # Here we loop through all barrier_nbrs and calculate the
+                        # set difference between the buffered polygon and the
+                        # barrier polygon. If this results in multiple polygons,
+                        # then the barrier polygon fully cuts the buffered polygon.
+                        #
+                        # Therefore we find the largest polygon in the result,
+                        # which will contain the original node polygon, and check
+                        # if it intersects the neighbour polygon we're trying to
+                        # reach. If it does not, there is no path.
+                        # If it does, there may be a path or there may not - it
+                        # would require complex pathfinding code to discover, but
+                        # we add the edge anyway.
+                        for barrier_nbr in barrier_nbrs:
+                            barrier_poly = polygons[barrier_nbr]
+                            # Invalid geometries are common here and throw an error
+                            # for in the difference operation
+                            if not barrier_poly.is_valid:
+                                barrier_poly = barrier_poly.buffer(0)
+                            if not buff_poly.is_valid:
+                                buff_poly = buff_poly.buffer(0)
+                            if not barrier_poly.is_valid or not buff_poly.is_valid:
+                                continue
+                            # if buff poly and barrier poly do not intersect,
+                            # then diff will just return buff_poly.
+                            diff = buff_poly - barrier_poly
+                            if isinstance(diff, shapely.geometry.MultiPolygon):
+                                if len(diff) > 1:
+                                    areas = [poly.area for poly in diff]
+                                    larger_poly = diff[areas.index(max(areas))]
+                                    if not larger_poly.intersects(nbr_polygon):
+                                        add_edge = False
+                    if add_edge:
+                        if add_distance:
+                            if max_travel_distance == 0:
+                                dist = 0.0
+                            else:
+                                dist = polygon.distance(nbr_polygon)
+                            hgraph.add_edge(node, nbr, distance=dist)
                         else:
-                            dist = polygon.distance(nbr_polygon)
-                        hgraph.add_edge(node, nbr, distance=dist)
-                    else:
-                        hgraph.add_edge(node, nbr)
+                            hgraph.add_edge(node, nbr)
         # Add habitat to habitats dict
         habitat = HabitatGeoGraph(
-            data=self.df.iloc[np.where(valid_class_indices)[0]],
+            data=self.df.iloc[np.where(valid_class_bool)[0]],
             name=name,
             graph=hgraph,
             valid_classes=valid_classes,
@@ -1016,7 +1076,7 @@ class HabitatGeoGraph(GeoGraph):
         )
 
         print(
-            f"Habitat successfully loaded with {self.graph.number_of_nodes()} nodes",
+            f"\nHabitat successfully loaded with {self.graph.number_of_nodes()} nodes",
             f"and {self.graph.number_of_edges()} edges.",
         )
 
