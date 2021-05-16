@@ -729,7 +729,7 @@ class GeoGraph:
         Args:
             func (Callable): A function that is a method of GeoGraph or
                 HabitatGeoGraph. This must not be a method of an instance of
-            GeoGraph; it can only be an actual method definition, such as
+                GeoGraph; it can only be an actual method definition, such as
                 `GeoGraph.merge_nodes`.
 
         Raises:
@@ -935,13 +935,13 @@ class GeoGraph:
         adjacencies: Iterable[int],
         requires_sorting: bool = True,
         **data,
-    ):
+    ) -> None:
         """
         Add node to graph.
 
         Args:
             node_id (int): The id of the node to add.
-                adjacencies (Iterable[int]): Iterable of node ids which are adjacent
+            adjacencies (Iterable[int]): Iterable of node ids which are adjacent
                 to the new node.
             requires_sorting (bool, optional): Whether or not to sort the dataframe
                 index after adding the node. Defaults to True.
@@ -974,8 +974,32 @@ class GeoGraph:
         )
 
     # pylint: disable=dangerous-default-value
-    def _add_nodes(self, node_ids, adjacencies, node_data={}, **data):
-        raise NotImplementedError
+    def _add_nodes(
+        self,
+        node_ids,
+        adjacencies: Dict[int, Iterable[int]],
+        node_data: Dict[int, Dict],
+        requires_sorting: bool = True,
+    ) -> None:
+        """
+        Add multiple nodes to the graph.
+
+        Args:
+            node_ids (Iterable[int]): The ids of the nodes to add.
+            adjacencies (Dict[int, Iterable[int]): Dict mapping node ids to
+                Iterables of node ids which are adjacent to each new node.
+            node_data (Dict[int, Dict]): Dict mapping node ids to dictionaries of
+                node attributes.
+            requires_sorting (bool, optional): Whether or not to sort the dataframe
+                index after adding the nodes. Defaults to True.
+        """
+        for node_id in node_ids:
+            self._add_node(
+                node_id=node_id,
+                adjacencies=adjacencies[node_id],
+                requires_sorting=requires_sorting,
+                **node_data[node_id],
+            )
 
     def _merge_graph(self, other: GeoGraph) -> GeoGraph:
 
