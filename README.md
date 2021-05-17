@@ -2,8 +2,6 @@
 <img src="docs/images/geograph_logo.png" alt="GeoGraph" width="300px">
 </p>
 
-_Created as part of the AI4ER Group Team Challenge 2021 by the Biodiversity Team._
-
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ai4er-cdt/gtc-biodiversity/main?urlpath=lab%2Ftree%2Fnotebooks)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -14,14 +12,14 @@ _Created as part of the AI4ER Group Team Challenge 2021 by the Biodiversity Team
 
 
 __Table of contents:__
-1. Features
+1. Description
 1. Installation
 1. Requirements
 1. Documentation
 
-## 1. Features
+## 1. Description
 
-GeoGraph provides a full-stack tool for analysing habitat fragmentation, and other related problems. It includes models to predict land cover classes, a method to extract graph structure from the resulting land cover maps and an extensive range of visualisation and analysis tools.
+GeoGraph provides a tool for analysing habitat fragmentation, related problems in landscape ecology. GeoGraph builds a geospatially referenced graph from land cover or field survey data and enables graph-based landscape ecology analysis as well as interactive visualizations. Beyond the graph-based features, GeoGraph also enables the computation of common landscape metrics.
 
 ## 2. Installation
 
@@ -42,4 +40,3 @@ GeoGraph is written in Python 3.8 and builds on [NetworkX](https://github.com/Ne
 ## 4. Documentation
 
 Our documentation is available at [geograph.readthedocs.io](https://geograph.readthedocs.io/).
-

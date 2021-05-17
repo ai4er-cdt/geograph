@@ -36,7 +36,9 @@ author = ""
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
-    'sphinx_autodoc_typehints'
+    "sphinx_autodoc_typehints",
+    "nbsphinx",
+    "nbsphinx_link",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -63,24 +65,24 @@ html_static_path = ["_static"]
 html_logo = "images/geograph_logo.png"
 
 html_theme_options = {
-    'style_nav_header_background': '#a0a0a0',
-    'logo_only': True,
-    'display_version': True,
+    "style_nav_header_background": "#a0a0a0",
+    "logo_only": True,
+    "display_version": True,
 }
 
-html_favicon = 'images/geograph_logo_small.png'
+html_favicon = "images/geograph_logo_small.png"
 
 # This adds the 'edit on github' banner on top right corner
 html_context = {
-  'display_github': True,
-  'github_user': 'ai4er-cdt',
-  'github_repo': 'gtc-biodiversity',
-  'github_version': 'main/docs/'
+    "display_github": True,
+    "github_user": "ai4er-cdt",
+    "github_repo": "gtc-biodiversity",
+    "github_version": "main/docs/",
 }
 
 # Latex options
 latex_logo = "./images/geograph_logo.png"
 latex_elements = {
-  'extraclassoptions': 'openany,oneside',
-  'papersize': 'a4paper',
+    "extraclassoptions": "openany,oneside",
+    "papersize": "a4paper",
 }
