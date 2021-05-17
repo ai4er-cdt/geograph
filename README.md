@@ -3,7 +3,7 @@
 </p>
 
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ai4er-cdt/gtc-biodiversity/main?urlpath=lab%2Ftree%2Fnotebooks)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ai4er-cdt/geograph/main?urlpath=lab%2Ftree%2Fnotebooks)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 [![Documentation Status](https://readthedocs.org/projects/geograph/badge/?version=latest)](https://geograph.readthedocs.io/en/latest/?badge=latest)
