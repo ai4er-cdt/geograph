@@ -570,9 +570,10 @@ class GeoGraph:
         own HabitatGeoGraph object with all meta information.
 
         The optional argument `barrier_classes` allows for a list of class labels
-        which block the path between two nodes in `valid_classes`. The pathfinding
-        code will not add an edge between them if the barrier class node in the
-        middle *completely* blocks the path, which is rare.
+        which block the path between two nodes in `valid_classes`. Warning: The current pathfinding
+        code is experimental and will only remove an edge between two classes within the max travel distance
+        if the barrier class node in the middle *completely* blocks the path, which is rare. A full version
+        of a pathfinding code is currently under development and will become available in a later release.
 
         Warning: In a large dataset, passing values to `barrier_classes` will often
         make this function significantly slower, up to an order of magnitude.
@@ -798,7 +799,7 @@ class GeoGraph:
         return comp_geograph
 
     def get_metric(
-        self, name: str, class_value: Union[int, str] = None, **metric_kwargs
+        self, name: str, class_value: Optional[Union[int, str]] = None, **metric_kwargs
     ) -> metrics.Metric:
         """
         Calculate and save the metric with name `name` for the current GeoGraph.
@@ -993,7 +994,7 @@ class GeoGraph:
             requires_sorting (bool, optional): Whether or not to sort the dataframe
                 index after adding the nodes. Defaults to True.
         """
-        for node_id in node_ids:
+        for node_id in node_ids:  # TODO: Speed up by turning into bulk operation
             self._add_node(
                 node_id=node_id,
                 adjacencies=adjacencies[node_id],

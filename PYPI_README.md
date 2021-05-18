@@ -16,7 +16,7 @@ __Table of contents:__
 
 ## 1. Description
 
-GeoGraph provides a tool for analysing habitat fragmentation, related problems in landscape ecology. GeoGraph builds a geospatially referenced graph from land cover or field survey data and enables graph-based landscape ecology analysis as well as interactive visualizations. Beyond the graph-based features, GeoGraph also enables the computation of common landscape metrics.
+GeoGraph provides a tool for analysing habitat fragmentation and related problems in landscape ecology. GeoGraph builds a geospatially referenced graph from land cover or field survey data and enables graph-based landscape ecology analysis as well as interactive visualizations. Beyond the graph-based features, GeoGraph also enables the computation of common landscape metrics.
 
 ## 2. Installation
 
@@ -30,11 +30,11 @@ Done, you're ready to go!
 
 You can also visit the [Github repository](https://github.com/ai4er-cdt/geograph).
 
-See the [documentation](https://geograph.readthedocs.io/) for a full getting started guide.
+See the [documentation](https://geograph.readthedocs.io/) for a full getting started guide or check out the [binder](https://mybinder.org/v2/gh/ai4er-cdt/geograph/main?urlpath=lab%2Ftree%2Fnotebooks) for tutorials on how to get started .
 
 ## 3. Requirements
 
-GeoGraph is written in Python 3.8 and builds on [NetworkX](https://github.com/NetworkX/NetworkX), [ipyleaflet](https://github.com/jupyter-widgets/ipyleaflet) and many more packages. See the [requirements directory](./requirements) for a full list of dependencies.
+GeoGraph is written in Python 3.8 and builds on [NetworkX](https://github.com/NetworkX/NetworkX), [ipyleaflet](https://github.com/jupyter-widgets/ipyleaflet), [geopandas](https://geopandas.org/), [rasterio](https://rasterio.readthedocs.io/en/latest/) and many more packages. See the [requirements directory](./requirements) for a full list of dependencies.
 
 ## 4. Documentation
 
