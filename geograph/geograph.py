@@ -192,7 +192,7 @@ class GeoGraph:
 
     @property
     def bounds(self):
-        """Return bounds of entire graph"""
+        """Return bounds of entire graph."""
         return self.df.sindex.bounds
 
     @property
@@ -205,7 +205,7 @@ class GeoGraph:
 
     @property
     def classes(self) -> np.ndarray:
-        """Return a list of the sorted, unique class labels in the graph"""
+        """Return a list of the sorted, unique class labels in the graph."""
         return np.unique(self.df["class_label"].values)
 
     @property
@@ -515,6 +515,8 @@ class GeoGraph:
         """
         Merge multiple classes together into one by renaming the class labels.
 
+        Warning: this can be very slow when merging classes with a lot of nodes.
+
         Args:
             new_name (Union[str, int]): The new name for the combined class,
                 either a string or an int.
@@ -527,7 +529,33 @@ class GeoGraph:
         """
         if not set(class_list).issubset(self.df["class_label"].unique()):
             raise ValueError("`class_list` must only contain valid class names.")
+        # Get set of indices of nodes for the new class
+        node_set = set(
+            self.df.loc[self.df["class_label"].isin(class_list), "class_label"].index
+        )
+        # rename class labels
         self.df.loc[self.df["class_label"].isin(class_list), "class_label"] = new_name
+        merged_neighbours = set()
+        while True:
+            num_merges = 0
+            for node in node_set:
+                # Skip iteration if node has already been merged
+                if node in merged_neighbours:
+                    continue
+                nodes_to_merge = [node]
+                # Get list of neighbours of node, and append them to the merge list
+                # if they have the label of the new class
+                neighbours = self.graph[node]
+                for neighbour in neighbours:
+                    if neighbour in node_set:
+                        nodes_to_merge.append(neighbour)
+                # Merge nodes with neighbours where both have the label of the new
+                # class. Crucially, we assign the merged node an index in `node_set`.
+                self.merge_nodes(nodes_to_merge, class_label=new_name, final_index=node)
+                merged_neighbours.update(nodes_to_merge)
+                num_merges += 1
+            if num_merges == 0:
+                break
 
     def add_habitat(
         self,
@@ -547,10 +575,28 @@ class GeoGraph:
         are not in the resulting habitat graph. This graph is then stored as its
         own HabitatGeoGraph object with all meta information.
 
+        The optional argument `barrier_classes` allows for a list of class labels
+        which block the path between two nodes in `valid_classes`.
+        Warning: The current pathfinding code is experimental and will only
+        remove an edge between two classes within the max travel distance if the
+        barrier class node in the middle *completely* blocks the path, which is
+        rare. A full version of the pathfinding code is currently under development
+        and will become available in a later release.
+
+        Warning: In a large dataset, passing values to `barrier_classes` will often
+        make this function significantly slower, up to an order of magnitude.
+
         Args:
             name (str): The name of the habitat.
             valid_classes (List): A list of class labels which make up the habitat.
-            barrier_classes (List): Defaults to None.
+            barrier_classes (List): A list of class labels which are barrier classes.
+                The program will check if there are any nodes with a barrier class
+                label completely blocking the path between two nodes less than
+                `max_travel_distance` apart, and if so the edge will not be added.
+                Note that this is only applicable in rare cases - in many instances
+                the path will not be completely blocked and therefore the result
+                will be the same as if there were no barrier classes.
+                Defaults to None.
             max_travel_distance (float): The maximum distance the animal(s) in
                 the habitat can travel through non-habitat areas. The habitat graph
                 will contain edges between any two nodes that have a class label in
@@ -591,41 +637,85 @@ class GeoGraph:
         # np.where is very fast here and gets the iloc based indexes
         # Combining it with the set comprehension reduces time by an order of
         # magnitude compared to `set(self.df.loc[])`
-        valid_class_indices = np.isin(self.class_label, valid_classes)
-        invalid_idx = {idx_dict[i] for i in np.where(~valid_class_indices)[0]}
+        valid_class_bool = np.isin(self.class_label, valid_classes)
+        invalid_idx = {idx_dict[i] for i in np.where(~valid_class_bool)[0]}
         hgraph.remove_nodes_from(invalid_idx)
-
+        # get list of barrier node indices (iloc)
+        barrier_indices = set(np.where(np.isin(self.class_label, barrier_classes))[0])
         for node in tqdm(
             hgraph.nodes, desc="Generating habitat graph", total=len(hgraph)
         ):
             polygon = polygons[node]
+            repr_point = polygon.representative_point()
             if max_travel_distance > 0:
                 buff_poly_bounds = buff_polygons[node].bounds
-                buff_poly = prep(buff_polygons[node])
+                buff_poly = buff_polygons[node]
             else:
                 buff_poly_bounds = polygon.bounds
-                buff_poly = prep(polygon)
+                buff_poly = polygon
+            if len(barrier_classes) == 0:
+                buff_poly = prep(buff_poly)
             # Query rtree for all polygons within `max_travel_distance` of the original
-            for nbr in self.rtree.intersection(buff_poly_bounds):
-                # Necessary to correct for the rtree returning iloc indexes
-                nbr = idx_dict[nbr]
-                # If a node is not a habitat class node, don't add the edge
-                if nbr == node or nbr in invalid_idx:
+            nbrs = set(self.rtree.intersection(buff_poly_bounds))
+            barrier_nbrs = {idx_dict[nbr] for nbr in barrier_indices.intersection(nbrs)}
+            barriers_exist = len(barrier_nbrs) > 0
+            barrier_poly = self.df["geometry"].loc[barrier_nbrs].unary_union
+            # Necessary to correct for the rtree returning iloc indexes
+            nbrs = {idx_dict[nbr] for nbr in nbrs}
+            for nbr in nbrs:
+                # If a node is not a habitat class node or is a barrier class node,
+                # don't add the edge
+                if nbr == node or nbr in barrier_nbrs or nbr in invalid_idx:
                     continue
                 # Otherwise add the edge with distance attribute
                 nbr_polygon = polygons[nbr]
                 if not hgraph.has_edge(node, nbr) and buff_poly.intersects(nbr_polygon):
-                    if add_distance:
-                        if max_travel_distance == 0:
-                            dist = 0.0
+                    add_edge = True
+                    if barriers_exist:
+                        # Here we loop through all barrier_nbrs and calculate the
+                        # set difference between the buffered polygon and the
+                        # barrier polygon. If this results in multiple polygons,
+                        # then the barrier polygon fully cuts the buffered polygon.
+                        #
+                        # We find the resulting buffered polygon fragment that contains 
+                        # the original node polygon, by selecting the polygon that 
+                        # contains a representative point sampled from the original 
+                        # polygon. 
+                        # We then check if that polygon fragment intersects the 
+                        # neighbour polygon we're trying to reach. 
+                        # If it does not, there is no path.
+                        # If it does, there may be a path or there may not - it
+                        # would require complex pathfinding code to discover, but
+                        # we add the edge anyway.
+                        #
+                        # Invalid geometries are common here and throw an error
+                        # for in the difference operation
+                        if not barrier_poly.is_valid:
+                            barrier_poly = barrier_poly.buffer(0)
+                        if not buff_poly.is_valid:
+                            buff_poly = buff_poly.buffer(0)
+                        if barrier_poly.is_valid and buff_poly.is_valid:
+                            # if buff poly and barrier poly do not intersect,
+                            # then diff will just return buff_poly.
+                            diff = buff_poly - barrier_poly
+                            if isinstance(diff, shapely.geometry.MultiPolygon):
+                                if len(diff) > 1:
+                                    bools = [poly.contains(repr_point) for poly in diff]
+                                    node_poly = diff[bools.index(True)]
+                                    if not node_poly.intersects(nbr_polygon):
+                                        add_edge = False
+                    if add_edge:
+                        if add_distance:
+                            if max_travel_distance == 0:
+                                dist = 0.0
+                            else:
+                                dist = polygon.distance(nbr_polygon)
+                            hgraph.add_edge(node, nbr, distance=dist)
                         else:
-                            dist = polygon.distance(nbr_polygon)
-                        hgraph.add_edge(node, nbr, distance=dist)
-                    else:
-                        hgraph.add_edge(node, nbr)
+                            hgraph.add_edge(node, nbr)
         # Add habitat to habitats dict
         habitat = HabitatGeoGraph(
-            data=self.df.iloc[np.where(valid_class_indices)[0]],
+            data=self.df.iloc[np.where(valid_class_bool)[0]],
             name=name,
             graph=hgraph,
             valid_classes=valid_classes,
@@ -647,7 +737,7 @@ class GeoGraph:
         Args:
             func (Callable): A function that is a method of GeoGraph or
                 HabitatGeoGraph. This must not be a method of an instance of
-            GeoGraph; it can only be an actual method definition, such as
+                GeoGraph; it can only be an actual method definition, such as
                 `GeoGraph.merge_nodes`.
 
         Raises:
@@ -716,7 +806,7 @@ class GeoGraph:
         return comp_geograph
 
     def get_metric(
-        self, name: str, class_value: Optional[int] = None, **metric_kwargs
+        self, name: str, class_value: Optional[Union[int, str]] = None, **metric_kwargs
     ) -> metrics.Metric:
         """
         Calculate and save the metric with name `name` for the current GeoGraph.
@@ -759,7 +849,7 @@ class GeoGraph:
     def get_class_metrics(
         self,
         names: Optional[Union[str, Sequence[str]]] = None,
-        classes: Optional[Union[str, Sequence[int], np.ndarray]] = None,
+        classes: Optional[Union[str, Sequence[Union[str, int]], np.ndarray]] = None,
         **metric_kwargs,
     ) -> pd.DataFrame:
         """
@@ -786,7 +876,7 @@ class GeoGraph:
             names = [names]
         if classes is None:
             classes = self.classes
-        elif isinstance(classes, int):
+        elif isinstance(classes, (str, int)):
             classes = [classes]
 
         # Create metrics id not yet present
@@ -853,13 +943,13 @@ class GeoGraph:
         adjacencies: Iterable[int],
         requires_sorting: bool = True,
         **data,
-    ):
+    ) -> None:
         """
         Add node to graph.
 
         Args:
             node_id (int): The id of the node to add.
-                adjacencies (Iterable[int]): Iterable of node ids which are adjacent
+            adjacencies (Iterable[int]): Iterable of node ids which are adjacent
                 to the new node.
             requires_sorting (bool, optional): Whether or not to sort the dataframe
                 index after adding the node. Defaults to True.
@@ -881,8 +971,7 @@ class GeoGraph:
         missing_cols = {
             key: None for key in set(self.df.columns) - set(node_data.keys())
         }
-
-        self.df.loc[node_id] = gpd.GeoSeries({**data, **missing_cols}, crs=self.df.crs)
+        self.df.loc[node_id] = {**data, **missing_cols}
         if requires_sorting:
             self.df = self.df.sort_index()
 
@@ -892,8 +981,32 @@ class GeoGraph:
         )
 
     # pylint: disable=dangerous-default-value
-    def _add_nodes(self, node_ids, adjacencies, node_data={}, **data):
-        raise NotImplementedError
+    def _add_nodes(
+        self,
+        node_ids,
+        adjacencies: Dict[int, Iterable[int]],
+        node_data: Dict[int, Dict],
+        requires_sorting: bool = True,
+    ) -> None:
+        """
+        Add multiple nodes to the graph.
+
+        Args:
+            node_ids (Iterable[int]): The ids of the nodes to add.
+            adjacencies (Dict[int, Iterable[int]): Dict mapping node ids to
+                Iterables of node ids which are adjacent to each new node.
+            node_data (Dict[int, Dict]): Dict mapping node ids to dictionaries of
+                node attributes.
+            requires_sorting (bool, optional): Whether or not to sort the dataframe
+                index after adding the nodes. Defaults to True.
+        """
+        for node_id in node_ids:  # TODO: Speed up by turning into bulk operation
+            self._add_node(
+                node_id=node_id,
+                adjacencies=adjacencies[node_id],
+                requires_sorting=requires_sorting,
+                **node_data[node_id],
+            )
 
     def _merge_graph(self, other: GeoGraph) -> GeoGraph:
 
@@ -994,7 +1107,7 @@ class HabitatGeoGraph(GeoGraph):
         )
 
         print(
-            f"Habitat successfully loaded with {self.graph.number_of_nodes()} nodes",
+            f"\nHabitat successfully loaded with {self.graph.number_of_nodes()} nodes",
             f"and {self.graph.number_of_edges()} edges.",
         )
 

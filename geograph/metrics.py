@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import networkx as nx
 import numpy as np
@@ -50,7 +50,7 @@ class Metric:
 
 
 ########################################################################################
-###### 1. Landscape level metrics
+# 1. Landscape level metrics
 ########################################################################################
 def _num_patches(geo_graph: geograph.GeoGraph) -> Metric:
     return Metric(
@@ -112,7 +112,7 @@ def _largest_patch_index(geo_graph: geograph.GeoGraph) -> Metric:
 
 def _shannon_diversity_index(geo_graph: geograph.GeoGraph) -> Metric:
     """
-    Calculate shannon diversity of GeoGraph
+    Calculate Shannon diversity of a GeoGraph.
 
     Further reference:
         https://pylandstats.readthedocs.io/en/latest/landscape.html
@@ -144,12 +144,11 @@ def _shannon_diversity_index(geo_graph: geograph.GeoGraph) -> Metric:
 
 def _simpson_diversity_index(geo_graph: geograph.GeoGraph) -> Metric:
     """
-    Calculate simpson diversity of GeoGraph
+    Calculate Simpson diversity of a GeoGraph.
 
     Reference:
         umass.edu/landeco/teaching/landscape_ecology/schedule/chapter9_metrics.pdf
     """
-
     class_prop_of_landscape = np.array(
         [
             geo_graph.get_metric(
@@ -184,11 +183,13 @@ LANDSCAPE_METRICS_DICT = {
 }
 
 ########################################################################################
-###### 2. Landcover class level metrics
+# 2. Landcover class level metrics
 ########################################################################################
 
 
-def _class_total_area(geo_graph: geograph.GeoGraph, class_value: int) -> Metric:
+def _class_total_area(
+    geo_graph: geograph.GeoGraph, class_value: Union[int, str]
+) -> Metric:
 
     class_areas = geo_graph.df["geometry"][
         geo_graph.df["class_label"] == class_value
@@ -203,7 +204,9 @@ def _class_total_area(geo_graph: geograph.GeoGraph, class_value: int) -> Metric:
     )
 
 
-def _class_avg_patch_area(geo_graph: geograph.GeoGraph, class_value: int) -> Metric:
+def _class_avg_patch_area(
+    geo_graph: geograph.GeoGraph, class_value: Union[int, str]
+) -> Metric:
 
     class_num_patches = geo_graph.get_metric(
         "num_patches", class_value=class_value
@@ -219,7 +222,9 @@ def _class_avg_patch_area(geo_graph: geograph.GeoGraph, class_value: int) -> Met
     )
 
 
-def _class_num_patches(geo_graph: geograph.GeoGraph, class_value: int) -> Metric:
+def _class_num_patches(
+    geo_graph: geograph.GeoGraph, class_value: Union[int, str]
+) -> Metric:
     return Metric(
         value=np.sum(geo_graph.df["class_label"] == class_value),
         name=f"num_patches_class={class_value}",
@@ -230,7 +235,7 @@ def _class_num_patches(geo_graph: geograph.GeoGraph, class_value: int) -> Metric
 
 
 def _class_proportion_of_landscape(
-    geo_graph: geograph.GeoGraph, class_value: int
+    geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
 
     class_total_area = geo_graph.get_metric("total_area", class_value=class_value).value
@@ -245,7 +250,9 @@ def _class_proportion_of_landscape(
     )
 
 
-def _class_patch_density(geo_graph: geograph.GeoGraph, class_value: int) -> Metric:
+def _class_patch_density(
+    geo_graph: geograph.GeoGraph, class_value: Union[int, str]
+) -> Metric:
 
     class_num_patches = geo_graph.get_metric(
         "num_patches", class_value=class_value
@@ -262,7 +269,7 @@ def _class_patch_density(geo_graph: geograph.GeoGraph, class_value: int) -> Metr
 
 
 def _class_largest_patch_index(
-    geo_graph: geograph.GeoGraph, class_value: int
+    geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
     """
     Return proportion of total landscape comprised by largest patch of given class.
@@ -270,7 +277,6 @@ def _class_largest_patch_index(
     Definition taken from:
         https://pylandstats.readthedocs.io/en/latest/landscape.html
     """
-
     total_area = geo_graph.get_metric("total_area").value
     class_areas = geo_graph.df["geometry"][
         geo_graph.df["class_label"] == class_value
@@ -278,7 +284,7 @@ def _class_largest_patch_index(
 
     description = (
         "Proportion of total landscape compriesed by largest patch of "
-        f"class {class_value} in the graph.",
+        f"class {class_value} in the graph."
     )
 
     return Metric(
@@ -290,7 +296,9 @@ def _class_largest_patch_index(
     )
 
 
-def _class_total_edge(geo_graph: geograph.GeoGraph, class_value: int) -> Metric:
+def _class_total_edge(
+    geo_graph: geograph.GeoGraph, class_value: Union[int, str]
+) -> Metric:
     # TODO: Implement option for not counting edges.
 
     class_perimeters = geo_graph.df["geometry"][
@@ -306,9 +314,12 @@ def _class_total_edge(geo_graph: geograph.GeoGraph, class_value: int) -> Metric:
     )
 
 
-def _class_edge_density(geo_graph: geograph.GeoGraph, class_value: int) -> Metric:
+def _class_edge_density(
+    geo_graph: geograph.GeoGraph, class_value: Union[int, str]
+) -> Metric:
     """
     Return total length of class edges for the given class.
+
     Note: Currently the boundary also counted towards the edge length.
 
     Definition taken from:
@@ -332,14 +343,15 @@ def _class_edge_density(geo_graph: geograph.GeoGraph, class_value: int) -> Metri
     )
 
 
-def _class_shape_index(geo_graph: geograph.GeoGraph, class_value: int) -> Metric:
+def _class_shape_index(
+    geo_graph: geograph.GeoGraph, class_value: Union[int, str]
+) -> Metric:
     """
     Return shape index of given class.
 
     Definition taken from:
         https://pylandstats.readthedocs.io/en/latest/landscape.html
     """
-
     total_edge = geo_graph.get_metric("total_edge", class_value=class_value).value
     total_area = geo_graph.get_metric("total_area", class_value=class_value).value
 
@@ -359,7 +371,7 @@ def _class_shape_index(geo_graph: geograph.GeoGraph, class_value: int) -> Metric
 
 
 def _class_effective_mesh_size(
-    geo_graph: geograph.GeoGraph, class_value: int
+    geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
     """
     Return effective mesh size of given class.
@@ -367,7 +379,6 @@ def _class_effective_mesh_size(
     Definition taken from:
         https://pylandstats.readthedocs.io/en/latest/landscape.html
     """
-
     class_areas = geo_graph.df["geometry"][
         geo_graph.df["class_label"] == class_value
     ].area
@@ -402,8 +413,10 @@ CLASS_METRICS_DICT = {
 }
 
 ########################################################################################
-###### 3. Habitat componment level metrics
+# 3. Habitat componment level metrics
 ########################################################################################
+
+
 def _num_components(geo_graph: geograph.GeoGraph) -> Metric:
     return Metric(
         value=nx.number_connected_components(geo_graph.graph),
@@ -477,7 +490,7 @@ COMPONENT_METRICS_DICT = {
 
 
 ########################################################################################
-###### 4. Define access interface for GeoGraph
+# 4. Define access interface for GeoGraph
 ########################################################################################
 
 STANDARD_METRICS = ["num_components", "avg_patch_area", "total_area"]
@@ -486,11 +499,11 @@ STANDARD_METRICS = ["num_components", "avg_patch_area", "total_area"]
 def _get_metric(
     name: str,
     geo_graph: geograph.GeoGraph,
-    class_value: Optional[int] = None,
+    class_value: Optional[Union[int, str]] = None,
     **metric_kwargs,
 ) -> Metric:
     """
-    Calculate selected metric for the given GeoGraph
+    Calculate selected metric for the given GeoGraph.
 
     Args:
         name (str): Name of the metric to compute
@@ -500,9 +513,8 @@ def _get_metric(
             is desired. Defaults to None.
 
     Returns:
-        Metric: The desired metric
+        Metric: The desired metric.
     """
-
     # Landscape level metrics
     if class_value is None:
         try:
