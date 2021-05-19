@@ -515,6 +515,8 @@ class GeoGraph:
         """
         Merge multiple classes together into one by renaming the class labels.
 
+        Warning: this can be very slow when merging classes with a lot of nodes.
+
         Args:
             new_name (Union[str, int]): The new name for the combined class,
                 either a string or an int.
@@ -527,29 +529,33 @@ class GeoGraph:
         """
         if not set(class_list).issubset(self.df["class_label"].unique()):
             raise ValueError("`class_list` must only contain valid class names.")
-        self.df.loc[self.df["class_label"].isin(class_list), "class_label"] = new_name
         # Get set of indices of nodes for the new class
         node_set = set(
-            self.df.loc[
-                self.df["class_label"].isin(class_list), "class_label"
-            ].index.tolist()
+            self.df.loc[self.df["class_label"].isin(class_list), "class_label"].index
         )
+        # rename class labels
+        self.df.loc[self.df["class_label"].isin(class_list), "class_label"] = new_name
         merged_neighbours = set()
-        for node in node_set:
-            # Skip iteration if node has already been merged
-            if node in merged_neighbours:
-                continue
-            nodes_to_merge = []
-            # Get list of neighbours of node, and append them to the merge list
-            # if they have the label of the new class
-            neighbours = self.graph[node]
-            for neighbour in neighbours:
-                if neighbour in node_set:
-                    nodes_to_merge.append(neighbour)
-            # Merge nodes with neighbours where both have the label of the new
-            # class. Crucially, we assign the merged node an index in `node_set`.
-            self.merge_nodes(nodes_to_merge, class_label=new_name, final_index=node)
-            merged_neighbours.update(nodes_to_merge)
+        while True:
+            num_merges = 0
+            for node in node_set:
+                # Skip iteration if node has already been merged
+                if node in merged_neighbours:
+                    continue
+                nodes_to_merge = [node]
+                # Get list of neighbours of node, and append them to the merge list
+                # if they have the label of the new class
+                neighbours = self.graph[node]
+                for neighbour in neighbours:
+                    if neighbour in node_set:
+                        nodes_to_merge.append(neighbour)
+                # Merge nodes with neighbours where both have the label of the new
+                # class. Crucially, we assign the merged node an index in `node_set`.
+                self.merge_nodes(nodes_to_merge, class_label=new_name, final_index=node)
+                merged_neighbours.update(nodes_to_merge)
+                num_merges += 1
+            if num_merges == 0:
+                break
 
     def add_habitat(
         self,
@@ -570,10 +576,12 @@ class GeoGraph:
         own HabitatGeoGraph object with all meta information.
 
         The optional argument `barrier_classes` allows for a list of class labels
-        which block the path between two nodes in `valid_classes`. Warning: The current pathfinding
-        code is experimental and will only remove an edge between two classes within the max travel distance
-        if the barrier class node in the middle *completely* blocks the path, which is rare. A full version
-        of a pathfinding code is currently under development and will become available in a later release.
+        which block the path between two nodes in `valid_classes`.
+        Warning: The current pathfinding code is experimental and will only
+        remove an edge between two classes within the max travel distance if the
+        barrier class node in the middle *completely* blocks the path, which is
+        rare. A full version of the pathfinding code is currently under development
+        and will become available in a later release.
 
         Warning: In a large dataset, passing values to `barrier_classes` will often
         make this function significantly slower, up to an order of magnitude.
@@ -964,8 +972,7 @@ class GeoGraph:
         missing_cols = {
             key: None for key in set(self.df.columns) - set(node_data.keys())
         }
-
-        self.df.loc[node_id] = gpd.GeoSeries({**data, **missing_cols}, crs=self.df.crs)
+        self.df.loc[node_id] = {**data, **missing_cols}
         if requires_sorting:
             self.df = self.df.sort_index()
 

@@ -499,7 +499,7 @@ STANDARD_METRICS = ["num_components", "avg_patch_area", "total_area"]
 def _get_metric(
     name: str,
     geo_graph: geograph.GeoGraph,
-    class_value: Union[int, str] = None,
+    class_value: Optional[Union[int, str]] = None,
     **metric_kwargs,
 ) -> Metric:
     """
