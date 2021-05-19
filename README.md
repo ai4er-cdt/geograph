@@ -8,6 +8,8 @@
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 [![Documentation Status](https://readthedocs.org/projects/geograph/badge/?version=latest)](https://geograph.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/geograph.svg)](https://badge.fury.io/py/geograph)
+[![DOI](https://zenodo.org/badge/320347092.svg)](https://zenodo.org/badge/latestdoi/320347092)
+
 
 ![GeoGraphViewer demo gif](docs/images/viewer_demo.gif)
 
