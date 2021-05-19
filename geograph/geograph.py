@@ -646,22 +646,20 @@ class GeoGraph:
             hgraph.nodes, desc="Generating habitat graph", total=len(hgraph)
         ):
             polygon = polygons[node]
+            repr_point = polygon.representative_point()
             if max_travel_distance > 0:
                 buff_poly_bounds = buff_polygons[node].bounds
-                if len(barrier_classes) == 0:
-                    buff_poly = prep(buff_polygons[node])
-                else:
-                    buff_poly = buff_polygons[node]
+                buff_poly = buff_polygons[node]
             else:
                 buff_poly_bounds = polygon.bounds
-                if len(barrier_classes) == 0:
-                    buff_poly = prep(polygon)
-                else:
-                    buff_poly = polygon
+                buff_poly = polygon
+            if len(barrier_classes) == 0:
+                buff_poly = prep(buff_poly)
             # Query rtree for all polygons within `max_travel_distance` of the original
             nbrs = set(self.rtree.intersection(buff_poly_bounds))
             barrier_nbrs = {idx_dict[nbr] for nbr in barrier_indices.intersection(nbrs)}
             barriers_exist = len(barrier_nbrs) > 0
+            barrier_poly = self.df["geometry"].loc[barrier_nbrs].unary_union
             # Necessary to correct for the rtree returning iloc indexes
             nbrs = {idx_dict[nbr] for nbr in nbrs}
             for nbr in nbrs:
@@ -686,24 +684,22 @@ class GeoGraph:
                         # If it does, there may be a path or there may not - it
                         # would require complex pathfinding code to discover, but
                         # we add the edge anyway.
-                        for barrier_nbr in barrier_nbrs:
-                            barrier_poly = polygons[barrier_nbr]
-                            # Invalid geometries are common here and throw an error
-                            # for in the difference operation
-                            if not barrier_poly.is_valid:
-                                barrier_poly = barrier_poly.buffer(0)
-                            if not buff_poly.is_valid:
-                                buff_poly = buff_poly.buffer(0)
-                            if not barrier_poly.is_valid or not buff_poly.is_valid:
-                                continue
+                        #
+                        # Invalid geometries are common here and throw an error
+                        # for in the difference operation
+                        if not barrier_poly.is_valid:
+                            barrier_poly = barrier_poly.buffer(0)
+                        if not buff_poly.is_valid:
+                            buff_poly = buff_poly.buffer(0)
+                        if barrier_poly.is_valid and buff_poly.is_valid:
                             # if buff poly and barrier poly do not intersect,
                             # then diff will just return buff_poly.
                             diff = buff_poly - barrier_poly
                             if isinstance(diff, shapely.geometry.MultiPolygon):
                                 if len(diff) > 1:
-                                    areas = [poly.area for poly in diff]
-                                    larger_poly = diff[areas.index(max(areas))]
-                                    if not larger_poly.intersects(nbr_polygon):
+                                    bools = [poly.contains(repr_point) for poly in diff]
+                                    node_poly = diff[bools.index(True)]
+                                    if not node_poly.intersects(nbr_polygon):
                                         add_edge = False
                     if add_edge:
                         if add_distance:
