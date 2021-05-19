@@ -677,10 +677,13 @@ class GeoGraph:
                         # barrier polygon. If this results in multiple polygons,
                         # then the barrier polygon fully cuts the buffered polygon.
                         #
-                        # Therefore we find the largest polygon in the result,
-                        # which will contain the original node polygon, and check
-                        # if it intersects the neighbour polygon we're trying to
-                        # reach. If it does not, there is no path.
+                        # We find the resulting buffered polygon fragment that contains 
+                        # the original node polygon, by selecting the polygon that 
+                        # contains a representative point sampled from the original 
+                        # polygon. 
+                        # We then check if that polygon fragment intersects the 
+                        # neighbour polygon we're trying to reach. 
+                        # If it does not, there is no path.
                         # If it does, there may be a path or there may not - it
                         # would require complex pathfinding code to discover, but
                         # we add the edge anyway.
