@@ -308,10 +308,7 @@ class GeoGraphTimeline:
             )
 
             metrics_dfs.append(
-                xr.DataArray(
-                    patch_metrics,
-                    dims=["class_label", "metric"],
-                )
+                xr.DataArray(patch_metrics, dims=["class_label", "metric"],)
             )
 
         return xr.concat(metrics_dfs, dim=pd.Index(self.times, name="time"))
@@ -415,10 +412,8 @@ class GeoGraphTimeline:
             node_map = self.node_map_cache(prior_time, time)
 
             # Helper function to calculate dynamics type via a single map call
-            dynamics_oracle = (
-                lambda child_index: GeoGraphTimeline._calculate_node_dynamics(
-                    child_index, node_map
-                )
+            dynamics_oracle = lambda child_index: GeoGraphTimeline._calculate_node_dynamics(
+                child_index, node_map
             )
 
             dynamics_type = self[time].df.index.map(dynamics_oracle)
@@ -490,9 +485,7 @@ class GeoGraphTimeline:
             return "merged"
 
     @staticmethod
-    def _calculate_growth_rates(
-        mapping: NodeMap,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _calculate_growth_rates(mapping: NodeMap,) -> Tuple[np.ndarray, np.ndarray]:
         """
         Return relative and absolute node growth rates for the nodes in `target_graph`
         of the given NodeMap

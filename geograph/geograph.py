@@ -217,9 +217,7 @@ class GeoGraph:
         return self.df["geometry"].values
 
     def _load_from_vector_path(
-        self,
-        vector_path: pathlib.Path,
-        load_slice=None,
+        self, vector_path: pathlib.Path, load_slice=None,
     ) -> gpd.GeoDataFrame:
         """
         Load graph and dataframe with vector data from GeoPackage or shape file.
@@ -373,9 +371,7 @@ class GeoGraph:
         save_path.chmod(0o664)
 
     def _load_from_dataframe(
-        self,
-        df: gpd.GeoDataFrame,
-        tolerance: float = 0.0,
+        self, df: gpd.GeoDataFrame, tolerance: float = 0.0,
     ) -> gpd.GeoDataFrame:
         """
         Convert geopandas dataframe to networkx graph.
@@ -677,12 +673,12 @@ class GeoGraph:
                         # barrier polygon. If this results in multiple polygons,
                         # then the barrier polygon fully cuts the buffered polygon.
                         #
-                        # We find the resulting buffered polygon fragment that contains 
-                        # the original node polygon, by selecting the polygon that 
-                        # contains a representative point sampled from the original 
-                        # polygon. 
-                        # We then check if that polygon fragment intersects the 
-                        # neighbour polygon we're trying to reach. 
+                        # We find the resulting buffered polygon fragment that contains
+                        # the original node polygon, by selecting the polygon that
+                        # contains a representative point sampled from the original
+                        # polygon.
+                        # We then check if that polygon fragment intersects the
+                        # neighbour polygon we're trying to reach.
                         # If it does not, there is no path.
                         # If it does, there may be a path or there may not - it
                         # would require complex pathfinding code to discover, but
@@ -1222,9 +1218,7 @@ class ComponentGeoGraph(GeoGraph):
         self.metrics: Dict[str, Metric] = {}
 
     def _load_from_dataframe(
-        self,
-        df: gpd.GeoDataFrame,
-        tolerance: float = 0.0,
+        self, df: gpd.GeoDataFrame, tolerance: float = 0.0,
     ) -> gpd.GeoDataFrame:
         """
         Load graph from dataframe.

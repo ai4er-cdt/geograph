@@ -739,13 +739,7 @@ class SettingsWidget(BaseControlWidget):
         )
         widgets.jslink((zoom_slider, "value"), (self.viewer, "zoom"))
 
-        settings_widget = widgets.VBox(
-            [
-                zoom_slider,
-                node_color_picker,
-                radius_slider,
-            ]
-        )
+        settings_widget = widgets.VBox([zoom_slider, node_color_picker, radius_slider,])
 
         return settings_widget
 
@@ -807,20 +801,21 @@ class HoverWidget(BaseControlWidget):
         """Callback function on hover on graph polygon patch"""
         try:
             # self.logger.debug("HoverWidget callback called.")
-            new_value = widget_utils.create_html_header(
-                "Current Patch"
-            ).value + """</br>
+            new_value = (
+                widget_utils.create_html_header("Current Patch").value
+                + """</br>
                 <b>Class label:</b> {}</br>
                 <b>Area:</b> {:.2f} ha</br>
                 <b>Perimeter:</b> {:.2f} km</br>
                 <b>Shape index:</b> {:.2f}</br>
                 <b>Fractal dim.:</b> {:.2f}
             """.format(
-                feature["properties"]["class_label"],
-                feature["properties"]["area"] / 1e4,
-                feature["properties"]["perimeter"] / 1e3,
-                feature["properties"]["shape_index"],
-                feature["properties"]["fractal_dimension"],
+                    feature["properties"]["class_label"],
+                    feature["properties"]["area"] / 1e4,
+                    feature["properties"]["perimeter"] / 1e3,
+                    feature["properties"]["shape_index"],
+                    feature["properties"]["fractal_dimension"],
+                )
             )
             if "node_dynamic" in feature["properties"].keys():
                 new_value += "</br><b>Node dyanmic:</b> {}".format(

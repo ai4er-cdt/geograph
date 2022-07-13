@@ -405,10 +405,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                     viewer.layer_update_requested = False
                     viewer.logger.debug("Layer update request executed.")
 
-                thread = threading.Thread(
-                    target=wait_and_update,
-                    args=(self,),
-                )
+                thread = threading.Thread(target=wait_and_update, args=(self,),)
                 thread.start()
             else:
                 pass

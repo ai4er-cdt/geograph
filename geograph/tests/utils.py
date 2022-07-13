@@ -86,7 +86,6 @@ def polygonise_sub_array(
     Args:
         arr (np.ndarray): The numpy array from which to select the sub-array
         x_lims (Tuple[int, int]): The x-limits of the sub-array. Must be >=0 or None.
-
         y_lims (Tuple[int, int]): The y-limits of the sub-array. Must be >=0 or None.
 
     Returns:

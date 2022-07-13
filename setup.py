@@ -139,8 +139,6 @@ setup(
         "Operating System :: MacOS",
     ],
     # $ setup.py publish support.
-    cmdclass={
-        "upload": UploadCommand,
-    },
+    cmdclass={"upload": UploadCommand,},
     test_suite="geograph.tests.test_all.suite",
 )
