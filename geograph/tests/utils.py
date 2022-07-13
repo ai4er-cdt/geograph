@@ -1,6 +1,5 @@
 """Convenience functions for creating and analysing test data for GeoGraph"""
 from typing import Iterable, Tuple
-
 import affine
 import geograph
 import geopandas as gpd
@@ -8,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from geograph.utils.rasterio_utils import polygonise
+
 
 # Mirror the x axis
 AFFINE_MIRROR_X = affine.Affine(-1, 0, 0, 0, 1, 0)

@@ -3,7 +3,6 @@
 Note: We may want to delete this at some point.
 """
 from typing import Dict, Iterable, Tuple
-
 import geopandas as gpd
 import numpy as np
 from geograph.constants import SRC_PATH
