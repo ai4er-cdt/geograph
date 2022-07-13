@@ -6,4 +6,4 @@ dependencies:
   - python=3.8
   - pip
   - pip:
-    - -r dev-requirements.txt
+    - -r requirements.txt
