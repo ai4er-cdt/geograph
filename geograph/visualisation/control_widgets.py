@@ -1,10 +1,7 @@
 """Module with widgets to control GeoGraphViewer."""
-
 from __future__ import annotations
-
 import logging
 from typing import Dict, Optional
-
 import ipywidgets as widgets
 import traitlets
 from geograph.visualisation import geoviewer, widget_utils

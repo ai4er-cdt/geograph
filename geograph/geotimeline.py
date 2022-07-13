@@ -1,14 +1,11 @@
 """Module for analysing multiple GeoGraph objects."""
 from __future__ import annotations
-
 import datetime
 from bisect import bisect_left
 from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
-
 import numpy as np
 import pandas as pd
 import xarray as xr
-
 from geograph import GeoGraph
 from geograph.binary_graph_operations import NodeMap, identify_graphs
 

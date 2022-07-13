@@ -1,7 +1,5 @@
 """A collection of utility functions for data loading with rasterio."""
-
 from typing import Iterable, Optional, Tuple, Union
-
 import affine
 import geograph.utils.geopandas_utils as gpd_utils
 import geopandas as gpd

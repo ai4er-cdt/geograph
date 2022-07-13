@@ -1,9 +1,6 @@
 """Module with utility functions to plot graphs in folium."""
-
 from __future__ import annotations
-
 from typing import Callable, List, Optional, Tuple
-
 import folium
 import geograph
 import geopandas as gpd

@@ -1,9 +1,7 @@
 """Functions for calculating metrics from a GeoGraph."""
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional, Union
-
 import networkx as nx
 import numpy as np
 

@@ -1,12 +1,9 @@
 """This module contains the GeoGraphViewer to visualise GeoGraphs"""
-
 from __future__ import annotations
-
 import logging
 import threading
 import time
 from typing import TYPE_CHECKING, List, Optional, Union
-
 import folium
 import geograph
 import ipyleaflet
