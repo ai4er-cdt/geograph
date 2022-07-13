@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Bradley
+    given-names: Herbie
+    orcid: https://orcid.org/0000-0001-5390-1257
+  - family-names: Mathis
+    given-names Simon Valentine
+  - family-names: Findeis
+    given-names: Arduin
+  - family-names: Thomas
+    given-names: Simon D.A.
+    orcid: https://orcid.org/0000-0001-7911-1659
+  - family-names: Li
+    given-names: Yilin Li
+    orcid: https://orcid.org/0000-0002-7378-8615
+  - family-names: Green
+    given-names: Katherine
+    orcid: https://orcid.org/0000-0003-4664-3354
+  - family-names: Ashton-Butt
+    given-names: Adham
+    orcid: https://orcid.org/0000-0002-6926-6099
+  - family-names: Rogers
+    given-names: Martin
+  - family-names: Dowling
+    given-names: Tom
+  
+title: "Geograph"
+version: 0.0.2
+doi: 10.5281/zenodo.4774141
+date-released: 2021-05-19
+
