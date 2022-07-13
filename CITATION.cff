@@ -5,9 +5,11 @@ authors:
     given-names: "Herbie"
     orcid: "https://orcid.org/0000-0001-5390-1257"
   - family-names: "Mathis"
-    given-names: "Simon Valentine"
+    given-names: "Simon Valentin"
+    orcid: "https://orcid.org/0000-0002-5246-6481"
   - family-names: "Findeis"
     given-names: "Arduin"
+    orcid: "https://orcid.org/0000-0003-2163-3854"
   - family-names: "Thomas"
     given-names: "Simon D.A."
     orcid: "https://orcid.org/0000-0001-7911-1659"
@@ -22,8 +24,10 @@ authors:
     orcid: "https://orcid.org/0000-0002-6926-6099"
   - family-names: "Rogers"
     given-names: "Martin"
+    orcid: "https://orcid.org/0000-0003-0056-2030"
   - family-names: "Dowling"
     given-names: "Tom"
+    orcid: "https://orcid.org/0000-0003-0569-4462"
 title: "Geograph"
 version: 0.0.2
 doi: 10.5281/zenodo.4774141
