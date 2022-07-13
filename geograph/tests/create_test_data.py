@@ -40,7 +40,8 @@ def _polygonise_splits(
     return result
 
 
-if __name__ == "__main__":
+def create_test_data() -> None:
+    """Create the test data."""
     print("Creating test data ... ")
     TEST_DATA_FOLDER = SRC_PATH / "tests" / "testdata"
     TEST_DATA_FOLDER.mkdir(parents=True, exist_ok=True)
@@ -95,3 +96,7 @@ if __name__ == "__main__":
         polygons_t = polygonise(arr_t, transform=get_array_transform(arr_t))
         save_path = TEST_DATA_FOLDER / "timestack" / f"time_{i}.gpkg"
         polygons_t.to_file(save_path, driver="GPKG")
+
+
+if __name__ == "__main__":
+    create_test_data()
