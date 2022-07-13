@@ -32,7 +32,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install flake8 pytest matplotlib cmocean seaborn
+        python -m pip install flake8 pytest pytest-testbook matplotlib cmocean seaborn 
         pip install -e .
     - name: Lint with flake8
       run: |
