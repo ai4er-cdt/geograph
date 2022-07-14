@@ -162,7 +162,7 @@ def _simpson_diversity_index(geo_graph: geograph.GeoGraph) -> Metric:
     )
 
     return Metric(
-        value=1 - np.sum(class_prop_of_landscape ** 2),
+        value=1 - np.sum(class_prop_of_landscape**2),
         name="simpson_diversity_index",
         description=description,
         variant="conventional",
@@ -389,7 +389,7 @@ def _class_effective_mesh_size(
     )
 
     return Metric(
-        value=np.sum(class_areas ** 2) / total_area,
+        value=np.sum(class_areas**2) / total_area,
         name=f"effective_mesh_size_class={class_value}",
         description=description,
         variant="conventional",

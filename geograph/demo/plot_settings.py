@@ -141,7 +141,7 @@ def label_subplots(
 def get_dim(
     width: float = 600,
     fraction_of_line_width: float = 1,
-    ratio: float = (5 ** 0.5 - 1) / 2,
+    ratio: float = (5**0.5 - 1) / 2,
 ) -> Tuple[float, float]:
     """Return figure height, width in inches to avoid scaling in latex.
 
@@ -179,7 +179,7 @@ def set_dim(
     fig: matplotlib.pyplot.figure,
     width: float = 600,
     fraction_of_line_width: float = 1,
-    ratio: float = (5 ** 0.5 - 1) / 2,
+    ratio: float = (5**0.5 - 1) / 2,
 ) -> None:
     """Set aesthetic figure dimensions to avoid scaling in latex.
 

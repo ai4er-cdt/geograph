@@ -736,7 +736,13 @@ class SettingsWidget(BaseControlWidget):
         )
         widgets.jslink((zoom_slider, "value"), (self.viewer, "zoom"))
 
-        settings_widget = widgets.VBox([zoom_slider, node_color_picker, radius_slider,])
+        settings_widget = widgets.VBox(
+            [
+                zoom_slider,
+                node_color_picker,
+                radius_slider,
+            ]
+        )
 
         return settings_widget
 

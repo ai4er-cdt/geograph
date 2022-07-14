@@ -214,7 +214,9 @@ class GeoGraph:
         return self.df["geometry"].values
 
     def _load_from_vector_path(
-        self, vector_path: pathlib.Path, load_slice=None,
+        self,
+        vector_path: pathlib.Path,
+        load_slice=None,
     ) -> gpd.GeoDataFrame:
         """
         Load graph and dataframe with vector data from GeoPackage or shape file.
@@ -368,7 +370,9 @@ class GeoGraph:
         save_path.chmod(0o664)
 
     def _load_from_dataframe(
-        self, df: gpd.GeoDataFrame, tolerance: float = 0.0,
+        self,
+        df: gpd.GeoDataFrame,
+        tolerance: float = 0.0,
     ) -> gpd.GeoDataFrame:
         """
         Convert geopandas dataframe to networkx graph.
@@ -1215,7 +1219,9 @@ class ComponentGeoGraph(GeoGraph):
         self.metrics: Dict[str, Metric] = {}
 
     def _load_from_dataframe(
-        self, df: gpd.GeoDataFrame, tolerance: float = 0.0,
+        self,
+        df: gpd.GeoDataFrame,
+        tolerance: float = 0.0,
     ) -> gpd.GeoDataFrame:
         """
         Load graph from dataframe.

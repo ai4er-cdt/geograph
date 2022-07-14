@@ -8,7 +8,8 @@ from geograph.constants import WGS84
 
 
 def create_node_edge_geometries(
-    graph: geograph.GeoGraph, crs: str = WGS84,
+    graph: geograph.GeoGraph,
+    crs: str = WGS84,
 ) -> Tuple[gpd.GeoSeries, gpd.GeoSeries]:
     """Create node and edge geometries for the networkx graph G.
 

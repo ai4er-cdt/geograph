@@ -40,7 +40,7 @@ class OutputWidgetHandler(logging.Handler):
         self.setFormatter(formatter)
 
     def emit(self, record):
-        """ Overload of logging.Handler method """
+        """Overload of logging.Handler method"""
         formatted_record = self.format(record)
         new_output = {
             "name": "stdout",
@@ -53,9 +53,9 @@ class OutputWidgetHandler(logging.Handler):
             self.out.outputs = self.out.outputs + (new_output,)
 
     def show_logs(self):
-        """ Show the logs """
+        """Show the logs"""
         IPython.display.display(self.out)
 
     def clear_logs(self):
-        """ Clear the current logs """
+        """Clear the current logs"""
         self.out.clear_output()
