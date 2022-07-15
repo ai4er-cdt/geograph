@@ -1257,16 +1257,6 @@ class ComponentGeoGraph(GeoGraph):
             self.graph = nx.complete_graph(len(df))
         else:
             self.graph = nx.empty_graph(len(df))
-        # Add node attributes
-        for node in tqdm(
-            self.graph.nodes, desc="Constructing graph", total=len(self.graph)
-        ):
-            polygon = geom[node]
-            self.graph.nodes[node]["rep_point"] = polygon.representative_point()
-            self.graph.nodes[node]["area"] = polygon.area
-            self.graph.nodes[node]["perimeter"] = polygon.length
-            self.graph.nodes[node]["bounds"] = polygon.bounds
-
         # Add edge attributes if necessary
         if self.has_distance_edges:
             for u, v, attrs in tqdm(
