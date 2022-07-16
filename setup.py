@@ -32,6 +32,7 @@ REQUIRED: List = [
     "folium",
     "ipyleaflet",
     "tqdm",
+    "pipwin"
     "descartes",
     "geopandas",
     "shapely",
