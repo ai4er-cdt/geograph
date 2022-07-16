@@ -25,11 +25,6 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Sudo install rasterio requirments
-      run: |
-        sudo add-apt-repository ppa:ubuntugis/ppa
-        sudo apt-get update
-        sudo apt-get install python-numpy gdal-bin libgdal-dev build-essential
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
