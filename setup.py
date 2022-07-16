@@ -32,7 +32,7 @@ REQUIRED: List = [
     "folium",
     "ipyleaflet",
     "tqdm",
-    "pipwin"
+    "pipwin",
     "descartes",
     "geopandas",
     "shapely",
