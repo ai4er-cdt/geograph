@@ -33,7 +33,7 @@ REQUIRED: List = [
     "ipyleaflet",
     "tqdm",
     "matplotlib",
-    "sseaborn",
+    "seaborn",
     "geopandas",
     "shapely",
     "rtree",
