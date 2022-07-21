@@ -56,6 +56,10 @@ def ps_defaults(use_tex: bool = True) -> None:
     Args:
         use_tex (bool, optional): Whether or not to use latex matplotlib backend.
             Defaults to True.
+
+    Example::
+        >>> from geograph.demo import ps_defaults
+        >>> ps_defaults(use_tex=False)
     """
     # matplotlib.use('agg') this used to be required for jasmin
     p_general = {
