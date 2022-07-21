@@ -58,7 +58,7 @@ def ps_defaults(use_tex: bool = True) -> None:
             Defaults to True.
 
     Example::
-        >>> from geograph.demo import ps_defaults
+        >>> from geograph.demo.plot_settings import ps_defaults
         >>> ps_defaults(use_tex=False)
     """
     # matplotlib.use('agg') this used to be required for jasmin
