@@ -1,6 +1,5 @@
 """Convenience functions for creating and analysing test data for GeoGraph"""
 from typing import Iterable, Tuple
-
 import affine
 import geograph
 import geopandas as gpd
@@ -8,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from geograph.utils.rasterio_utils import polygonise
+
 
 # Mirror the x axis
 AFFINE_MIRROR_X = affine.Affine(-1, 0, 0, 0, 1, 0)
@@ -86,7 +86,6 @@ def polygonise_sub_array(
     Args:
         arr (np.ndarray): The numpy array from which to select the sub-array
         x_lims (Tuple[int, int]): The x-limits of the sub-array. Must be >=0 or None.
-
         y_lims (Tuple[int, int]): The y-limits of the sub-array. Must be >=0 or None.
 
     Returns:

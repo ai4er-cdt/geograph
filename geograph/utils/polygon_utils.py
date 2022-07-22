@@ -1,9 +1,9 @@
 """Helper functions for overlap computations with polygons in shapely."""
 from typing import List
-
 from geopandas.array import GeometryArray
 from numpy import ndarray
 from shapely.geometry.polygon import Polygon
+
 
 # Note: All DE-9IM patterns below are streamlined to work well with polygons.
 #  They are not guaranteed to work on lower dimensional objects (points/lines)

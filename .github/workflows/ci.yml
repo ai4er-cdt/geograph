@@ -4,10 +4,10 @@
 name: Continuous integration loop
 
 # Triggers the workflow on pull request
-# events but only for the master branch
+# events but only for the main branch
 on:
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
   build:

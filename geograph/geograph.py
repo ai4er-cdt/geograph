@@ -4,7 +4,6 @@ Module for processing and analysis of the geospatial graph.
 See https://networkx.org/documentation/stable/index.html for graph operations.
 """
 from __future__ import annotations
-
 import bz2
 import gzip
 import inspect
@@ -14,7 +13,6 @@ import pickle
 from copy import deepcopy
 from itertools import zip_longest
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
-
 import geopandas as gpd
 import networkx as nx
 import numpy as np
@@ -24,7 +22,6 @@ import rasterio
 import shapely
 from shapely.prepared import prep
 from tqdm import tqdm
-
 from geograph import binary_graph_operations, metrics
 from geograph.metrics import CLASS_METRICS_DICT, Metric
 from geograph.utils import rasterio_utils
@@ -677,12 +674,12 @@ class GeoGraph:
                         # barrier polygon. If this results in multiple polygons,
                         # then the barrier polygon fully cuts the buffered polygon.
                         #
-                        # We find the resulting buffered polygon fragment that contains 
-                        # the original node polygon, by selecting the polygon that 
-                        # contains a representative point sampled from the original 
-                        # polygon. 
-                        # We then check if that polygon fragment intersects the 
-                        # neighbour polygon we're trying to reach. 
+                        # We find the resulting buffered polygon fragment that contains
+                        # the original node polygon, by selecting the polygon that
+                        # contains a representative point sampled from the original
+                        # polygon.
+                        # We then check if that polygon fragment intersects the
+                        # neighbour polygon we're trying to reach.
                         # If it does not, there is no path.
                         # If it does, there may be a path or there may not - it
                         # would require complex pathfinding code to discover, but
