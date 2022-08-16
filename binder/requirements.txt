@@ -4,7 +4,7 @@
 -e ./..
 
 # linear algebra and general data analysis
-numpy==1.20.1               # arrays, linear algebra
+numpy==1.22.0               # arrays, linear algebra
 pandas==1.2.3              # tabular data analysis
 
 # interactive computing
