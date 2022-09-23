@@ -1,5 +1,4 @@
 """This file is for constants relevant to the binder demo."""
-
 from geograph.constants import PROJECT_PATH
 
 # Data directory on GWS

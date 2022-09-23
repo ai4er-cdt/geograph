@@ -1,12 +1,12 @@
 """This module contains utility function for generally plotting graphs."""
-
 from __future__ import annotations
 
 from typing import Tuple
 
-import geograph
 import geopandas as gpd
 import shapely.geometry
+
+import geograph
 from geograph.constants import WGS84
 
 

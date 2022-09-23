@@ -1,5 +1,4 @@
 """Module providing constants that define style of graph visualisation."""
-
 import branca.colormap
 
 _GRAPH_STYLE = dict(
