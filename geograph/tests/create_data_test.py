@@ -2,10 +2,10 @@
 
 Note: We may want to delete this at some point.
 """
-from typing import Dict, Iterable, Tuple
-
-import geopandas as gpd
 import numpy as np
+from typing import Dict, Iterable, Tuple
+import geopandas as gpd
+import pytest
 from geograph.constants import SRC_PATH
 from geograph.tests.utils import get_array_transform, polygonise_sub_array
 from geograph.utils.rasterio_utils import polygonise
@@ -41,7 +41,9 @@ def _polygonise_splits(
     return result
 
 
-if __name__ == "__main__":
+@pytest.mark.unit
+def test_create_data() -> None:
+    """Create the test data."""
     print("Creating test data ... ")
     TEST_DATA_FOLDER = SRC_PATH / "tests" / "testdata"
     TEST_DATA_FOLDER.mkdir(parents=True, exist_ok=True)
@@ -96,3 +98,7 @@ if __name__ == "__main__":
         polygons_t = polygonise(arr_t, transform=get_array_transform(arr_t))
         save_path = TEST_DATA_FOLDER / "timestack" / f"time_{i}.gpkg"
         polygons_t.to_file(save_path, driver="GPKG")
+
+
+if __name__ == "__main__":
+    test_create_data()

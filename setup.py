@@ -32,6 +32,8 @@ REQUIRED: List = [
     "folium",
     "ipyleaflet",
     "tqdm",
+    "matplotlib",
+    "seaborn",
     "geopandas",
     "shapely",
     "rtree",

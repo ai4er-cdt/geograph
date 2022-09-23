@@ -1,6 +1,5 @@
 """Helper functions for operating with geopandas objects."""
 from typing import Dict, List
-
 import geopandas as gpd
 import networkx as nx
 import tqdm
@@ -10,6 +9,7 @@ from geograph.utils.polygon_utils import (
     connect_with_interior_or_edge_or_corner_bulk,
 )
 from shapely.geometry import MultiPolygon
+
 
 # For switching identifiction mode in `identify_node`
 _BULK_SPATIAL_IDENTIFICATION_FUNCTION = {
