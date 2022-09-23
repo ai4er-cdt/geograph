@@ -13,7 +13,6 @@
 
 ![GeoGraphViewer demo gif](docs/images/viewer_demo.gif)
 
-
 __Table of contents:__
 1. Description
 1. Installation

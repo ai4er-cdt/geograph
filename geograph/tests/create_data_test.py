@@ -11,6 +11,9 @@ from geograph.tests.utils import get_array_transform, polygonise_sub_array
 from geograph.utils.rasterio_utils import polygonise
 
 
+TEST_DATA_FOLDER = SRC_PATH / "tests" / "testdata"
+
+
 def _polygonise_splits(
     arr: np.ndarray, named_slices: Iterable[Dict[str, Tuple]]
 ) -> Dict[str, gpd.GeoDataFrame]:
@@ -45,7 +48,6 @@ def _polygonise_splits(
 def test_create_data() -> None:
     """Create the test data."""
     print("Creating test data ... ")
-    TEST_DATA_FOLDER = SRC_PATH / "tests" / "testdata"
     TEST_DATA_FOLDER.mkdir(parents=True, exist_ok=True)
 
     # 1. Create non-overlapping polygons
@@ -60,9 +62,11 @@ def test_create_data() -> None:
         "upper_left": ((0, 2), (3, 6)),
         "lower_right": ((2, 4), (0, 3)),
     }
-    # Poligonise
+
+    # Polygonise
     polygons1 = _polygonise_splits(arr1, splits_of_interest)
     polygons1["full"] = polygonise(arr1, transform=get_array_transform(arr1))
+
     # Save
     for save_name, df in polygons1.items():
         save_path = TEST_DATA_FOLDER / "adjacent" / f"{save_name}.gpkg"

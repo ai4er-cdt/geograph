@@ -58,7 +58,7 @@ class GraphControlWidget(BaseControlWidget):
             view_tab = [visibility_widget, widget_utils.HRULE, metrics_widget]
 
         # Create combined widget, each key corresponds to a tab
-        combined_widget_dict = dict()
+        combined_widget_dict = {}
         combined_widget_dict["View"] = widgets.VBox(view_tab)
         if self.viewer.small_screen:
             combined_widget_dict["Metrics"] = metrics_widget
