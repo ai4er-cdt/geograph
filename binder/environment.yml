@@ -1,8 +1,38 @@
+prefix: ./env
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.8
-  - pip
+  - python=3.10
+  - pip==21.2.4
+    # linear algebra and general data analysis
+  - numpy ==1.23.3            # arrays, linear algebra
+  - pandas ==1.5.0            # tabular data analysis
+
+  # plotting
+  - folium ==0.12.1.post1              # plotting maps
+  - ipyleaflet ==0.17.1        # plotting ipywidget maps
+
+  # interactive computing
+  - tqdm ==4.64.1               # progress bars
+
+  # geospatial analysis requirements
+  #  vector data
+  - geopandas ==0.11.1          # manipulating geospatial vector data
+  - shapely ==1.8.4            # working with vector shapes
+  - rtree ==1.0.0              # efficiently querying polygon data
+  #  raster data
+  - rasterio ==1.3.2           # opening and loading raster data
+  - xarray ==2022.6.0             # useful data structures
+
+  # graph requirements
+  - networkx ==2.8.6           # manipulating graph data
+
+  # For binder
+  - rioxarray ==0.12.2
+  - seaborn ==0.12.0
+  - netcdf4 ==1.6.1
+
   - pip:
-      - -r requirements.txt
+    - pylandstats ==2.4.2
+    - -e ..
