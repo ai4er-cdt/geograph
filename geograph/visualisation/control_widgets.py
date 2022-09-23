@@ -58,7 +58,7 @@ class GraphControlWidget(BaseControlWidget):
             view_tab = [visibility_widget, widget_utils.HRULE, metrics_widget]
 
         # Create combined widget, each key corresponds to a tab
-        combined_widget_dict = dict()
+        combined_widget_dict = {}
         combined_widget_dict["View"] = widgets.VBox(view_tab)
         if self.viewer.small_screen:
             combined_widget_dict["Metrics"] = metrics_widget
@@ -135,7 +135,7 @@ class RadioVisibilityWidget(BaseControlWidget):
         for layer_name, layer in layers:
             layer_str = layer_name
             if layer_type == "graphs" and layer["is_habitat"]:
-                layer_str += " (habitat of {})".format(layer["parent"])
+                layer_str += f" (habitat of {})".format(layer["parent"])
             layer_list.append((layer_str, layer_name))
 
         radio_buttons = widgets.RadioButtons(
