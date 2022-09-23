@@ -518,7 +518,7 @@ def _get_metric(
         try:
             try:
                 return LANDSCAPE_METRICS_DICT[name](geo_graph, **metric_kwargs)
-            except KeyError as key_error:
+            except KeyError:
                 return COMPONENT_METRICS_DICT[name](geo_graph, **metric_kwargs)
         except KeyError as key_error:
             raise ValueError(
