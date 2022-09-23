@@ -107,6 +107,10 @@ class GeoGraph:
             **apply_buffer (bool, optional): Apply shapely buffer function to
                 the polygons after polygonising. This can fix issues with the
                 polygonisation creating invalid geometries.
+
+        Example::
+            >>> from geograph.geograph import Geograph
+
         """
         super().__init__()
         self.graph = nx.Graph()

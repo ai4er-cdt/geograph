@@ -135,7 +135,7 @@ class RadioVisibilityWidget(BaseControlWidget):
         for layer_name, layer in layers:
             layer_str = layer_name
             if layer_type == "graphs" and layer["is_habitat"]:
-                layer_str += f" (habitat of {})".format(layer["parent"])
+                layer_str += " (habitat of {})".format(layer["parent"])
             layer_list.append((layer_str, layer_name))
 
         radio_buttons = widgets.RadioButtons(
