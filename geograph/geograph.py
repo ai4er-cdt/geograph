@@ -113,7 +113,9 @@ class GeoGraph:
             >>> from geograph.constants import WGS84
             >>> from geograph.tests.create_data_test import TEST_DATA_FOLDER
             >>> gg = GeoGraph(os.path.join(TEST_DATA_FOLDER, "adjacent", "full.gpkg"), WGS84, "savepath.gz")
+            Graph successfully loaded with 15 nodes and 40 edges.
             >>> gg.crs == WGS84
+            True
 
         """
         super().__init__()
