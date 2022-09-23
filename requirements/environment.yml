@@ -3,7 +3,30 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.8
+  - python=3.10
   - pip
+    # linear algebra and general data analysis
+  - numpy 1.*              # arrays, linear algebra
+  - pandas 1.5.*             # tabular data analysis
+
+  # plotting
+  - folium ==0.12.1.post1              # plotting maps
+  - ipyleaflet          # plotting ipywidget maps
+
+  # interactive computing
+  - tqdm                # progress bars
+
+  # geospatial analysis requirements
+  #  vector data
+  - geopandas           # manipulating geospatial vector data
+  - shapely             # working with vector shapes
+  - rtree               # efficiently querying polygon data
+  #  raster data
+  - rasterio            # opening and loading raster data
+  - xarray              # useful data structures
+
+  # graph requirements
+  - networkx            # manipulating graph data
+
   - pip:
-    - -r requirements.txt
+    - -e ..
