@@ -4,6 +4,7 @@ Module for processing and analysis of the geospatial graph.
 See https://networkx.org/documentation/stable/index.html for graph operations.
 """
 from __future__ import annotations
+
 import bz2
 import gzip
 import inspect
@@ -13,6 +14,7 @@ import pickle
 from copy import deepcopy
 from itertools import zip_longest
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
+
 import geopandas as gpd
 import networkx as nx
 import numpy as np
@@ -22,6 +24,7 @@ import rasterio
 import shapely
 from shapely.prepared import prep
 from tqdm import tqdm
+
 from geograph import binary_graph_operations, metrics
 from geograph.metrics import CLASS_METRICS_DICT, Metric
 from geograph.utils import rasterio_utils
@@ -107,6 +110,16 @@ class GeoGraph:
             **apply_buffer (bool, optional): Apply shapely buffer function to
                 the polygons after polygonising. This can fix issues with the
                 polygonisation creating invalid geometries.
+
+        Example::
+            >>> import os
+            >>> from geograph.constants import WGS84
+            >>> from geograph.tests.create_data_test import TEST_DATA_FOLDER
+            >>> gg = GeoGraph(os.path.join(TEST_DATA_FOLDER, "adjacent", "full.gpkg"), WGS84, "savepath.gz")
+            Graph successfully loaded with 15 nodes and 40 edges.
+            >>> gg.crs == WGS84
+            True
+
         """
         super().__init__()
         self.graph = nx.Graph()

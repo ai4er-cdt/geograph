@@ -1,9 +1,12 @@
 """Module with utility functions to plot graphs in folium."""
 from __future__ import annotations
+
 from typing import Callable, List, Optional, Tuple
+
 import folium
-import geograph
 import geopandas as gpd
+
+import geograph
 from geograph.constants import CHERNOBYL_COORDS_WGS84, UTM35N
 from geograph.visualisation import graph_utils
 

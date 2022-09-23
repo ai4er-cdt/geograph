@@ -1,7 +1,9 @@
 """Functions for calculating metrics from a GeoGraph."""
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional, Union
+
 import networkx as nx
 import numpy as np
 
@@ -51,6 +53,15 @@ class Metric:
 # 1. Landscape level metrics
 ########################################################################################
 def _num_patches(geo_graph: geograph.GeoGraph) -> Metric:
+    """
+    Calculate number of patches.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+
+    Returns:
+        Metric: number of patches
+    """
     return Metric(
         value=len(geo_graph.df),
         name="num_patches",
@@ -61,6 +72,16 @@ def _num_patches(geo_graph: geograph.GeoGraph) -> Metric:
 
 
 def _avg_patch_area(geo_graph: geograph.GeoGraph) -> Metric:
+
+    """
+    Calculate the average number of patches.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+
+    Returns:
+        Metric: average number of patches
+    """
 
     total_area = np.sum(geo_graph.df.area.values)
     num_patches = geo_graph.get_metric("num_patches").value
@@ -75,6 +96,15 @@ def _avg_patch_area(geo_graph: geograph.GeoGraph) -> Metric:
 
 
 def _total_area(geo_graph: geograph.GeoGraph) -> Metric:
+    """
+    Calculate total area of a GeoGraph.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+
+    Returns:
+        Metric: total area
+    """
     return Metric(
         value=np.sum(geo_graph.df.area.values),
         name="total_area",
@@ -85,6 +115,15 @@ def _total_area(geo_graph: geograph.GeoGraph) -> Metric:
 
 
 def _patch_density(geo_graph: geograph.GeoGraph) -> Metric:
+    """
+    Calculate patch density of a GeoGraph.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+
+    Returns:
+        Metric: patch density
+    """
     return Metric(
         value=1.0 / geo_graph.get_metric("avg_patch_area").value,
         name="patch_density",
@@ -95,6 +134,15 @@ def _patch_density(geo_graph: geograph.GeoGraph) -> Metric:
 
 
 def _largest_patch_index(geo_graph: geograph.GeoGraph) -> Metric:
+    """
+    Calculate largest patch index of a GeoGraph.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+
+    Returns:
+        Metric: largest patch index
+    """
 
     total_area = np.sum(geo_graph.df.area.values)
     max_patch_area = max(geo_graph.df.area.values)
@@ -115,6 +163,12 @@ def _shannon_diversity_index(geo_graph: geograph.GeoGraph) -> Metric:
     Further reference:
         https://pylandstats.readthedocs.io/en/latest/landscape.html
         https://en.wikipedia.org/wiki/Diversity_index
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+
+    Returns:
+        Metric: Shannon Diversity Index
     """
     class_prop_of_landscape = np.array(
         [
@@ -142,11 +196,18 @@ def _shannon_diversity_index(geo_graph: geograph.GeoGraph) -> Metric:
 
 def _simpson_diversity_index(geo_graph: geograph.GeoGraph) -> Metric:
     """
-    Calculate Simpson diversity of a GeoGraph.
+    Calculate Simpson Diversity Index of a GeoGraph.
 
     Reference:
         umass.edu/landeco/teaching/landscape_ecology/schedule/chapter9_metrics.pdf
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+
+    Returns:
+        Metric: Simpson Diversity Index
     """
+
     class_prop_of_landscape = np.array(
         [
             geo_graph.get_metric(
@@ -188,6 +249,16 @@ LANDSCAPE_METRICS_DICT = {
 def _class_total_area(
     geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
+    """
+    Calculate the total area of all patches for a given class in a GeoGraph.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+        class_value (Union[int, str]): class value
+
+    Returns:
+        Metric: total area of class patches
+    """
 
     class_areas = geo_graph.df["geometry"][
         geo_graph.df["class_label"] == class_value
@@ -205,6 +276,16 @@ def _class_total_area(
 def _class_avg_patch_area(
     geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
+    """
+    Calculate the average area of patches for a given class in a GeoGraph.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+        class_value (Union[int, str]): class value
+
+    Returns:
+        Metric: average area of class patches
+    """
 
     class_num_patches = geo_graph.get_metric(
         "num_patches", class_value=class_value
@@ -223,6 +304,16 @@ def _class_avg_patch_area(
 def _class_num_patches(
     geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
+    """
+    Calculate the number of patches for a given class in a GeoGraph.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+        class_value (Union[int, str]): class value
+
+    Returns:
+        Metric: number of class patches
+    """
     return Metric(
         value=np.sum(geo_graph.df["class_label"] == class_value),
         name=f"num_patches_class={class_value}",
@@ -235,6 +326,16 @@ def _class_num_patches(
 def _class_proportion_of_landscape(
     geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
+    """
+    Calculate the proportional abundance of a given class in a GeoGraph.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+        class_value (Union[int, str]): class value
+
+    Returns:
+        Metric: class proportional abundance
+    """
 
     class_total_area = geo_graph.get_metric("total_area", class_value=class_value).value
     total_area = geo_graph.get_metric("total_area").value
@@ -251,6 +352,16 @@ def _class_proportion_of_landscape(
 def _class_patch_density(
     geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
+    """
+    Calculate the patch density a given class in a GeoGraph.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+        class_value (Union[int, str]): class value
+
+    Returns:
+        Metric: class patch density
+    """
 
     class_num_patches = geo_graph.get_metric(
         "num_patches", class_value=class_value
@@ -270,10 +381,18 @@ def _class_largest_patch_index(
     geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
     """
-    Return proportion of total landscape comprised by largest patch of given class.
+    Calculate the proportion of total landscape comprised by largest patch of given class.
 
     Definition taken from:
         https://pylandstats.readthedocs.io/en/latest/landscape.html
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+        class_value (Union[int, str]): class value
+
+    Returns:
+        Metric: proportion of total landscape comprised by largest patch
+
     """
     total_area = geo_graph.get_metric("total_area").value
     class_areas = geo_graph.df["geometry"][
@@ -297,6 +416,16 @@ def _class_largest_patch_index(
 def _class_total_edge(
     geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
+    """
+    Calculate the total edgelength of patches a given class in a GeoGraph.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+        class_value (Union[int, str]): class value
+
+    Returns:
+        Metric: total edgelength of class patches
+    """
     # TODO: Implement option for not counting edges.
 
     class_perimeters = geo_graph.df["geometry"][
@@ -316,12 +445,19 @@ def _class_edge_density(
     geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
     """
-    Return total length of class edges for the given class.
+    Calculate the edge length per unit area for the given class in a GeoGraph.
 
     Note: Currently the boundary also counted towards the edge length.
 
     Definition taken from:
         https://pylandstats.readthedocs.io/en/latest/landscape.html
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+        class_value (Union[int, str]): class value
+
+    Returns:
+        Metric: class edge length per unit area
     """
     # TODO: Implement option for not counting edges.
 
@@ -345,10 +481,17 @@ def _class_shape_index(
     geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
     """
-    Return shape index of given class.
+    Calculate shape index of given class for a GeoGraph.
 
     Definition taken from:
         https://pylandstats.readthedocs.io/en/latest/landscape.html
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+        class_value (Union[int, str]): class value
+
+    Returns:
+        Metric: class shape index
     """
     total_edge = geo_graph.get_metric("total_edge", class_value=class_value).value
     total_area = geo_graph.get_metric("total_area", class_value=class_value).value
@@ -372,11 +515,19 @@ def _class_effective_mesh_size(
     geo_graph: geograph.GeoGraph, class_value: Union[int, str]
 ) -> Metric:
     """
-    Return effective mesh size of given class.
+    Calculate effective mesh size of given class.
 
     Definition taken from:
         https://pylandstats.readthedocs.io/en/latest/landscape.html
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+        class_value (Union[int, str]): class value
+
+    Returns:
+        Metric: class mesh size
     """
+
     class_areas = geo_graph.df["geometry"][
         geo_graph.df["class_label"] == class_value
     ].area
@@ -416,6 +567,15 @@ CLASS_METRICS_DICT = {
 
 
 def _num_components(geo_graph: geograph.GeoGraph) -> Metric:
+    """
+    Calculate number of connected components in GeoGraph.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+
+    Returns:
+        Metric: number of connected components in the graph
+    """
     return Metric(
         value=nx.number_connected_components(geo_graph.graph),
         name="num_components",
@@ -426,6 +586,15 @@ def _num_components(geo_graph: geograph.GeoGraph) -> Metric:
 
 
 def _avg_component_area(geo_graph: geograph.GeoGraph) -> Metric:
+    """
+    Calculate average component area in GeoGraph.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+
+    Returns:
+        Metric: average component area
+    """
     if not geo_graph.components.has_df:
         print("Calculating component polygons...")
         geo_graph.components = geo_graph.get_graph_components(calc_polygons=True)
@@ -443,8 +612,14 @@ def _avg_component_isolation(geo_graph: geograph.GeoGraph) -> Metric:
     """
     Calculate the average distance to the next-nearest component.
 
-    Warning: very computationally expensive for graphs with more than ~100
+    !!! Warning !!!: very computationally expensive for graphs with more than ~100
     components.
+
+    Args:
+        geo_graph (geograph.GeoGraph): GeoGraph
+
+    Returns:
+        Metric: avverage distance to the next-nearest component
     """
     if not geo_graph.components.has_df or not geo_graph.components.has_distance_edges:
         print(
@@ -504,14 +679,14 @@ def _get_metric(
     Calculate selected metric for the given GeoGraph.
 
     Args:
-        name (str): Name of the metric to compute
+        name (str): name of the metric to compute
         geo_graph (geograph.GeoGraph): GeoGraph object to compute the metric for
-        class_value (Optional[int], optional): The value of the desired class if a
+        class_value (Optional[int], optional): value of the desired class if a
             class level metric is desired. None if a landscape/component level metric
             is desired. Defaults to None.
 
     Returns:
-        Metric: The desired metric.
+        Metric: desired metric.
     """
     # Landscape level metrics
     if class_value is None:

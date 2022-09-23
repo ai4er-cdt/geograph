@@ -76,7 +76,7 @@ html_favicon = "images/geograph_logo_small.png"
 html_context = {
     "display_github": True,
     "github_user": "ai4er-cdt",
-    "github_repo": "gtc-biodiversity",
+    "github_repo": "geograph",
     "github_version": "main/docs/",
 }
 
