@@ -2,14 +2,15 @@
 
 Note: We may want to delete this at some point.
 """
-import numpy as np
 from typing import Dict, Iterable, Tuple
+
 import geopandas as gpd
+import numpy as np
 import pytest
+
 from geograph.constants import SRC_PATH
 from geograph.tests.utils import get_array_transform, polygonise_sub_array
 from geograph.utils.rasterio_utils import polygonise
-
 
 TEST_DATA_FOLDER = SRC_PATH / "tests" / "testdata"
 

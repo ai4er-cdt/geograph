@@ -4,6 +4,7 @@ Module for processing and analysis of the geospatial graph.
 See https://networkx.org/documentation/stable/index.html for graph operations.
 """
 from __future__ import annotations
+
 import bz2
 import gzip
 import inspect
@@ -13,6 +14,7 @@ import pickle
 from copy import deepcopy
 from itertools import zip_longest
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
+
 import geopandas as gpd
 import networkx as nx
 import numpy as np
@@ -22,6 +24,7 @@ import rasterio
 import shapely
 from shapely.prepared import prep
 from tqdm import tqdm
+
 from geograph import binary_graph_operations, metrics
 from geograph.metrics import CLASS_METRICS_DICT, Metric
 from geograph.utils import rasterio_utils
