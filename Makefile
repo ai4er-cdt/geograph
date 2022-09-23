@@ -15,6 +15,12 @@ else
 HAS_CONDA=True
 endif
 
+ifeq (,$(shell which mamba))
+HAS_MAMBA=False
+else
+HAS_MAMBA=True
+endif
+
 #################################################################################
 # COMMANDS                                                                      #
 #################################################################################
@@ -30,6 +36,7 @@ lint:
 
 ## Format geograph directory using black
 format:
+	isort geograph
 	black geograph
 
 ## Set up pre-commit hooks
@@ -39,20 +46,22 @@ precommit:
 
 ## Set up python interpreter environment and install basic dependencies
 env:
-ifeq (True,$(HAS_CONDA))
-	@echo ">>> Detected conda, creating conda environment."
+ifeq (True, $(HAS_MAMBA))
+	@echo ">>> Detected mamba, creating conda environment via mamba."
+	
+	# Create the conda environment
+	mamba env create --prefix=./env -f requirements/environment.yml
 
+	@echo ">>> New mamba env created. Activate from project directory with:\nconda activate ./env"
+else ifeq (True,$(HAS_CONDA))
+	@echo ">>> Detected conda, creating conda environment."
+	
 	# Create the conda environment
 	conda env create --prefix=./env -f requirements/environment.yml
 
 	@echo ">>> New conda env created. Activate from project directory with:\nconda activate ./env"
 else
-	@echo ">>> No conda detected. Falling back to virtualenv instead. The python verison will be that of your python3 interpreter."
-	$(PYTHON_INTERPRETER) -m pip install -q virtualenv virtualenvwrapper
-	@echo ">>> Installing virtualenvwrapper if not already installed.\nMake sure the following lines are in shell startup file\n\
-	export WORKON_HOME=$$HOME/.virtualenvs\nexport PROJECT_HOME=$$HOME/Devel\nsource /usr/local/bin/virtualenvwrapper.sh\n"
-	@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER)"
-	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
+	@echo ">>> No conda detected. Please install conda or manually install requirements in your preferred python version."
 endif
 
 #################################################################################
