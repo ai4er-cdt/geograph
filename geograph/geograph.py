@@ -112,7 +112,7 @@ class GeoGraph:
             >>> import os
             >>> from geograph.constants import WGS84
             >>> from geograph.tests.create_data_test import TEST_DATA_FOLDER
-            >>> Geograph(os.path.join(TEST_DATA_FOLDER, "adjacent", "full.gpkg"), WGS84, "savepath.gz")
+            >>> GeoGraph(os.path.join(TEST_DATA_FOLDER, "adjacent", "full.gpkg"), WGS84, "savepath.gz")
 
         """
         super().__init__()
