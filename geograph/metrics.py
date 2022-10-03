@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional, Union
+from itertools import combinations
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import networkx as nx
 import numpy as np
@@ -10,7 +11,9 @@ import numpy as np
 if TYPE_CHECKING:
     import geograph
 
-
+# TODO: refactor this file to return a tuple with the values to put inside the
+# metric such that the metric is only created once by the calling GeoGraph
+# since dataclass creation is slow
 # define a metric dataclass with < <= => > == comparisons that work as you would
 # expect intuitively
 @dataclass()
@@ -52,6 +55,8 @@ class Metric:
 ########################################################################################
 # 1. Landscape level metrics
 ########################################################################################
+
+
 def _num_patches(geo_graph: geograph.GeoGraph) -> Metric:
     """
     Calculate number of patches.
@@ -562,7 +567,7 @@ CLASS_METRICS_DICT = {
 }
 
 ########################################################################################
-# 3. Habitat componment level metrics
+# 3. Habitat component level metrics
 ########################################################################################
 
 
@@ -655,16 +660,56 @@ def _avg_component_isolation(geo_graph: geograph.GeoGraph) -> Metric:
     )
 
 
+def _habitat_iic(
+    geo_graph: geograph.GeoGraph,
+    get_total_area: bool = False,
+    shortest_path_cutoff: Optional[int] = None,
+) -> Metric:
+    if get_total_area:
+        # Most efficient way to get area of convex hull of the GeoGraph
+        total_area = geo_graph.components.df.dissolve().convex_hull.values[0].area
+    iic = 0.0
+    idx_dict = dict(zip(geo_graph.df.index.values, range(len(geo_graph.df))))
+    path_lengths: Dict = dict(
+        nx.all_pairs_shortest_path_length(geo_graph.graph, cutoff=shortest_path_cutoff)
+    )
+    for x in combinations(geo_graph.df.index.values, 2):
+        if x[1] not in path_lengths[x[0]]:
+            continue
+        iic += (
+            geo_graph.graph.nodes[x[0]]["area"] * geo_graph.graph.nodes[x[1]]["area"]
+        ) / (1 + path_lengths[x[0]][x[1]])
+    if get_total_area:
+        # for node in geo_graph.graph.nodes:
+        #    iic += geo_graph.graph.nodes[node]["area"] ** 2
+        return Metric(
+            value=iic / total_area,
+            name="habitat_iic",
+            description="The habitat IIC metric",
+            variant="component",
+            unit="dimensionless",
+        )
+    return Metric(
+        value=iic,
+        name="habitat_iic",
+        description="The habitat IIC metric",
+        variant="component",
+        unit="dimensionless",
+    )
+
+
 COMPONENT_METRICS_DICT = {
     "num_components": _num_components,
     "avg_component_area": _avg_component_area,
     "avg_component_isolation": _avg_component_isolation,
+    "habitat_iic": _habitat_iic,
 }
 
 
 ########################################################################################
 # 4. Define access interface for GeoGraph
 ########################################################################################
+
 
 STANDARD_METRICS = ["num_components", "avg_patch_area", "total_area"]
 
