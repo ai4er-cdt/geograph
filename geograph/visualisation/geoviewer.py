@@ -1,15 +1,18 @@
 """This module contains the GeoGraphViewer to visualise GeoGraphs"""
 from __future__ import annotations
+
 import logging
 import threading
 import time
 from typing import TYPE_CHECKING, List, Optional, Union
+
 import folium
-import geograph
 import ipyleaflet
 import ipywidgets as widgets
 import pandas as pd
 import traitlets
+
+import geograph
 from geograph import metrics
 from geograph.constants import CHERNOBYL_COORDS_WGS84, WGS84
 from geograph.visualisation import (

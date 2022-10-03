@@ -4,6 +4,7 @@ Module for processing and analysis of the geospatial graph.
 See https://networkx.org/documentation/stable/index.html for graph operations.
 """
 from __future__ import annotations
+
 import bz2
 import gzip
 import inspect
@@ -13,6 +14,7 @@ import pickle
 from copy import deepcopy
 from itertools import zip_longest
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
+
 import geopandas as gpd
 import networkx as nx
 import numpy as np
@@ -22,6 +24,7 @@ import rasterio
 import shapely
 from shapely.prepared import prep
 from tqdm import tqdm
+
 from geograph import binary_graph_operations, metrics
 from geograph.metrics import CLASS_METRICS_DICT, Metric
 from geograph.utils import rasterio_utils
@@ -107,6 +110,16 @@ class GeoGraph:
             **apply_buffer (bool, optional): Apply shapely buffer function to
                 the polygons after polygonising. This can fix issues with the
                 polygonisation creating invalid geometries.
+
+        Example::
+            >>> import os
+            >>> from geograph.constants import WGS84
+            >>> from geograph.tests.create_data_test import TEST_DATA_FOLDER
+            >>> gg = GeoGraph(os.path.join(TEST_DATA_FOLDER, "adjacent", "full.gpkg"), WGS84, "savepath.gz")
+            Graph successfully loaded with 15 nodes and 40 edges.
+            >>> gg.crs == WGS84
+            True
+
         """
         super().__init__()
         self.graph = nx.Graph()
@@ -409,48 +422,57 @@ class GeoGraph:
 
         # Reset index to ensure consistent indices
         df = df.reset_index(drop=True)
-        # Using this list and iterating through it is slightly faster than
-        # iterating through df due to the dataframe overhead
-        geom: List[shapely.Polygon] = df["geometry"].tolist()
-        # this dict maps polygon row numbers in df to a list
-        # of neighbouring polygon row numbers
-        graph_dict = {}
-
-        if tolerance > 0:
-            # Expand the borders of the polygons by `tolerance```
-            new_polygons: List[shapely.Polygon] = (
-                df["geometry"].buffer(tolerance).tolist()
-            )
+        # pylint: disable=protected-access
+        if gpd._compat.USE_PYGEOS:
+            if tolerance > 0:
+                neighbour_arr = df.sindex.query_bulk(
+                    df["geometry"].buffer(tolerance), predicate="intersects"
+                ).transpose()
+            else:
+                neighbour_arr = df.sindex.query_bulk(
+                    df["geometry"], predicate="intersects"
+                ).transpose()
+        else:
+            # this dict maps polygon row numbers in df to a list
+            # of neighbouring polygon row numbers
+            graph_dict = {}
+            if tolerance > 0:
+                # Expand the borders of the polygons by `tolerance```
+                new_polygons: gpd.GeoSeries = df["geometry"].buffer(tolerance)
         # Creating nodes (=vertices) and finding neighbors
         for index, polygon in tqdm(
-            enumerate(geom),
+            enumerate(df["geometry"]),
             desc="Step 1 of 2: Creating nodes and finding neighbours",
-            total=len(geom),
+            total=len(df),
         ):
-            if tolerance > 0:
-                # find the indexes of all polygons which intersect with this one
-                neighbours = df.sindex.query(
-                    new_polygons[index], predicate="intersects"
-                )
-            else:
-                neighbours = df.sindex.query(polygon, predicate="intersects")
+            # pylint: disable=protected-access
+            if not gpd._compat.USE_PYGEOS:
+                if tolerance > 0:
+                    # find the indexes of all polygons which intersect with this one
+                    neighbours = df.sindex.query(
+                        new_polygons[index], predicate="intersects"
+                    )
+                else:
+                    neighbours = df.sindex.query(polygon, predicate="intersects")
 
-            graph_dict[index] = neighbours
-            # add each polygon as a node to the graph with useful attributes
-            self.graph.add_node(
-                index,
-                rep_point=polygon.representative_point(),
-                area=polygon.area,
-                perimeter=polygon.length,
-                bounds=polygon.bounds,
-            )
+                graph_dict[index] = neighbours
+            # TODO: factor out for use_pygeos
+            self.graph.add_node(index)
         # iterate through the dict and add edges between neighbouring polygons
-        for polygon_id, neighbours in tqdm(
-            graph_dict.items(), desc="Step 2 of 2: Adding edges"
-        ):
-            for neighbour_id in neighbours:
-                if polygon_id != neighbour_id:
-                    self.graph.add_edge(polygon_id, neighbour_id)
+        # pylint: disable=protected-access
+        if gpd._compat.USE_PYGEOS:
+            for index, neighbour in tqdm(
+                neighbour_arr, desc="Step 2 of 2: Adding edges"
+            ):
+                if index != neighbour:
+                    self.graph.add_edge(index, neighbour)
+        else:
+            for polygon_id, neighbours in tqdm(
+                graph_dict.items(), desc="Step 2 of 2: Adding edges"
+            ):
+                for neighbour_id in neighbours:
+                    if polygon_id != neighbour_id:
+                        self.graph.add_edge(polygon_id, neighbour_id)
 
         # add index name
         df.index.name = "node_index"
@@ -789,7 +811,9 @@ class GeoGraph:
         """
         components: List[set] = list(nx.connected_components(self.graph))
         if calc_polygons:
-            geom = [self.df["geometry"].loc[comp].unary_union for comp in components]
+            geom = [
+                self.df["geometry"].loc[list(comp)].unary_union for comp in components
+            ]
             gdf = gpd.GeoDataFrame(
                 {"geometry": geom, "class_label": -1}, crs=self.df.crs
             )
@@ -837,7 +861,7 @@ class GeoGraph:
                 result = metrics._get_metric(
                     name=name, geo_graph=self, class_value=class_value, **metric_kwargs
                 )
-                if name in self.class_metrics.keys():
+                if name in self.class_metrics:
                     self.class_metrics[name][class_value] = result
                 else:
                     self.class_metrics[name] = {class_value: result}
@@ -955,14 +979,7 @@ class GeoGraph:
         node_data = dict(data.items())
 
         # Add node to graph
-        self.graph.add_node(
-            node_id,
-            rep_point=node_data["geometry"].representative_point(),
-            area=node_data["geometry"].area,
-            perimeter=node_data["geometry"].length,
-            class_label=node_data["class_label"],
-            bounds=node_data["geometry"].bounds,
-        )
+        self.graph.add_node(node_id)
 
         # Add node data to dataframe
         missing_cols = {
@@ -1108,25 +1125,25 @@ class HabitatGeoGraph(GeoGraph):
             f"and {self.graph.number_of_edges()} edges.",
         )
 
-    def _load_from_graph_path(self, load_path: pathlib.Path) -> None:
+    def _load_from_graph_path(self, graph_path: pathlib.Path) -> None:
         """
         Load networkx graph and dataframe objects from a pickle file.
 
         Args:
-            load_path (pathlib.Path): Path to a pickle file. Can be compressed
+            graph_path (pathlib.Path): Path to a pickle file. Can be compressed
             with gzip or bz2.
 
         Returns:
             gpd.GeoDataFrame: The dataframe containing polygon objects.
         """
-        if load_path.suffix == ".bz2":
-            with bz2.BZ2File(load_path, "rb") as bz2_file:
+        if graph_path.suffix == ".bz2":
+            with bz2.BZ2File(graph_path, "rb") as bz2_file:
                 data = pickle.load(bz2_file)
-        elif load_path.suffix == ".gz":
-            with gzip.GzipFile(load_path, "rb") as gz_file:
+        elif graph_path.suffix == ".gz":
+            with gzip.GzipFile(graph_path, "rb") as gz_file:
                 data = pickle.loads(gz_file.read())
         else:
-            with open(load_path, "rb") as file:
+            with open(graph_path, "rb") as file:
                 data = pickle.load(file)
         self.df = data["dataframe"]
         self.name = data["name"]
@@ -1250,16 +1267,6 @@ class ComponentGeoGraph(GeoGraph):
             self.graph = nx.complete_graph(len(df))
         else:
             self.graph = nx.empty_graph(len(df))
-        # Add node attributes
-        for node in tqdm(
-            self.graph.nodes, desc="Constructing graph", total=len(self.graph)
-        ):
-            polygon = geom[node]
-            self.graph.nodes[node]["rep_point"] = polygon.representative_point()
-            self.graph.nodes[node]["area"] = polygon.area
-            self.graph.nodes[node]["perimeter"] = polygon.length
-            self.graph.nodes[node]["bounds"] = polygon.bounds
-
         # Add edge attributes if necessary
         if self.has_distance_edges:
             for u, v, attrs in tqdm(

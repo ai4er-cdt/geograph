@@ -1,9 +1,12 @@
 """Contains tools for binary operations between GeoGraph objects."""
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Dict, List, Tuple
+
 import geopandas as gpd
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import Polygon
+
 import geograph.utils.geopandas_utils as gpd_utils
 from geograph.utils.polygon_utils import EMPTY_POLYGON, collapse_empty_polygon
 

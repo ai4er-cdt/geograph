@@ -1,8 +1,8 @@
 """Module with utils for logging, debugging and styling ipywidgets."""
 import logging
+
 import IPython.display
 import ipywidgets as widgets
-
 
 # Styling widgets
 HRULE = widgets.HTML('<hr style="opacity: 0.5"/>')
