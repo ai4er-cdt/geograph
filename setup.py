@@ -32,10 +32,12 @@ REQUIRED: List = [
     "folium",
     "ipyleaflet",
     "tqdm",
+    "matplotlib",
+    "seaborn",
     "geopandas",
     "shapely",
     "rtree",
-    "rasterio==1.1.8",
+    "rasterio",
     "xarray",
     "networkx",
 ]

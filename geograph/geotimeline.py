@@ -121,7 +121,7 @@ class GeoGraphTimeline:
         }
 
     def _load_from_sequence(self, graph_list: List[TimedGeoGraph]) -> None:
-        """Loads the sorted list of timed geographs into the timeline. """
+        """Loads the sorted list of timed geographs into the timeline."""
 
         # Make sure list is sorted in ascending time order (earliest = left)
         by_time = lambda item: item.time
@@ -186,7 +186,7 @@ class GeoGraphTimeline:
             raise NotCachedError
 
     def _empty_node_map_cache(self) -> None:
-        """ Empties the node map cache."""
+        """Empties the node map cache."""
         self._node_map_cache = dict()
 
     def timestack(self, use_cached: bool = True) -> List[NodeMap]:

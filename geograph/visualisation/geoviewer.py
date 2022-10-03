@@ -1,5 +1,4 @@
 """This module contains the GeoGraphViewer to visualise GeoGraphs"""
-
 from __future__ import annotations
 
 import logging
@@ -8,11 +7,12 @@ import time
 from typing import TYPE_CHECKING, List, Optional, Union
 
 import folium
-import geograph
 import ipyleaflet
 import ipywidgets as widgets
 import pandas as pd
 import traitlets
+
+import geograph
 from geograph import metrics
 from geograph.constants import CHERNOBYL_COORDS_WGS84, WGS84
 from geograph.visualisation import (
@@ -40,7 +40,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         logging_level: str = "WARNING",
         max_log_len: int = 20,
         layer_update_delay: float = 0.0,
-        **kwargs
+        **kwargs,
     ) -> None:
         """Class for interactively viewing a GeoGraph.
 
@@ -71,7 +71,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             scroll_wheel_zoom=True,
             crs=ipyleaflet.projections.EPSG3857,  # EPSG code for WGS84 CRS
             zoom_snap=0.1,
-            **kwargs
+            **kwargs,
         )
         # There seems to be no easy way to add UTM35N to ipyleaflet.Map(), hence WGS84.
         self.gpd_crs_code = WGS84
@@ -152,7 +152,7 @@ class GeoGraphViewer(ipyleaflet.Map):
         self.layer_dict[layer_type][layer_name][layer_subtype]["active"] = active
 
     def hide_all_layers(self) -> None:
-        """ Hide all layers in self.layer_dict."""
+        """Hide all layers in self.layer_dict."""
         for layer_type, type_dict in self.layer_dict.items():
             for layer_name in type_dict:
                 if layer_type == "maps":
@@ -232,7 +232,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                 .to_frame(name="geometry")
                 .reset_index(),
                 name=current_name + "_graph",
-                **self.layer_style["graph"]
+                **self.layer_style["graph"],
             )
 
             # Creating choropleth layer for patch polygons
@@ -247,12 +247,12 @@ class GeoGraphViewer(ipyleaflet.Map):
                 dynamics_choropleth = self._get_choropleth_from_df(
                     graph_utils.map_dynamic_to_int(current_graph.df),
                     colname="dynamic_class",
-                    **style._NODE_DYNAMICS_STYLE  # pylint: disable=protected-access
+                    **style._NODE_DYNAMICS_STYLE,  # pylint: disable=protected-access
                 )
                 abs_growth_choropleth = self._get_choropleth_from_df(
                     current_graph.df,
                     colname="absolute_growth",
-                    **style._ABS_GROWTH_STYLE  # pylint: disable=protected-access
+                    **style._ABS_GROWTH_STYLE,  # pylint: disable=protected-access
                 )
             else:
                 dynamics_choropleth = None
@@ -271,7 +271,7 @@ class GeoGraphViewer(ipyleaflet.Map):
                 component_choropleth = ipyleaflet.GeoData(
                     geo_dataframe=component_df.to_crs(WGS84),
                     name=current_name + "_components",
-                    **self.layer_style["components"]
+                    **self.layer_style["components"],
                 )
             else:
                 component_choropleth = None
@@ -288,7 +288,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             discon_nodes_geo_data = ipyleaflet.GeoData(
                 geo_dataframe=nodes.loc[disconnected].to_frame(name="geometry"),
                 name=current_name + "_disconnected_nodes",
-                **self.layer_style["disconnected_nodes"]
+                **self.layer_style["disconnected_nodes"],
             )
 
             # Creating layer for poorly connected (one-edge) nodes
@@ -303,7 +303,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             poorly_con_nodes_geo_data = ipyleaflet.GeoData(
                 geo_dataframe=nodes.loc[poorly_connected].to_frame(name="geometry"),
                 name=current_name + "_poorly_connected_nodes",
-                **self.layer_style["poorly_connected_nodes"]
+                **self.layer_style["poorly_connected_nodes"],
             )
 
             # Getting graph metrics
@@ -433,7 +433,7 @@ class GeoGraphViewer(ipyleaflet.Map):
             layer = ipyleaflet.GeoData(
                 geo_dataframe=layer.geo_dataframe,
                 name=layer.name,
-                **self.layer_style["graph"]
+                **self.layer_style["graph"],
             )
             self.layer_dict["graphs"][name]["graph"]["layer"] = layer
         self.layer_update()
