@@ -789,7 +789,7 @@ class GeoGraph:
         """
         components: List[set] = list(nx.connected_components(self.graph))
         if calc_polygons:
-            geom = [self.df["geometry"].loc[comp].unary_union for comp in components]
+            geom = [self.df["geometry"].loc[list(comp)].unary_union for comp in components]
             gdf = gpd.GeoDataFrame(
                 {"geometry": geom, "class_label": -1}, crs=self.df.crs
             )

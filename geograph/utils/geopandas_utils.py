@@ -131,4 +131,4 @@ def merge_diagonally_connected_polygons(df: gpd.GeoDataFrame) -> gpd.GeoDataFram
         new_nodes["class_label"].append(df["class_label"].loc[nodes[0]])
         new_nodes["geometry"].append(MultiPolygon(df["geometry"].loc[nodes].values))
 
-    return new_df.append(gpd.GeoDataFrame(new_nodes), ignore_index=True)
+    return pd.concat([new_df, gpd.GeoDataFrame(new_nodes)], ignore_index=True)
